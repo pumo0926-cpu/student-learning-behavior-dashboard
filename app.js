@@ -1,4 +1,4 @@
-const state = { view: "overview", period: "week", segment: "all" };
+const state = { view: "overview", period: "week", segment: "all", userGroup: "all", outcome: "refund" };
 
 const icons = {
   open: '<svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 8h8M8 12h6"/></svg>',
@@ -9,7 +9,11 @@ const icons = {
   play: '<svg viewBox="0 0 24 24"><path d="m9 7 8 5-8 5V7Z"/><circle cx="12" cy="12" r="9"/></svg>',
   clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
   alert: '<svg viewBox="0 0 24 24"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 9v5M12 17.5v.1"/></svg>',
-  arrow: '<svg viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>'
+  arrow: '<svg viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>',
+  chain: '<svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5"/></svg>',
+  pulse: '<svg viewBox="0 0 24 24"><path d="M2 12h4l3-8 5 16 3-8h5"/></svg>',
+  mood: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 15.5c1-.9 2.2-1.4 3.5-1.4s2.5.5 3.5 1.4M9 9.5v.1M15 9.5v.1"/></svg>',
+  idle: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5v5M14.5 9.5v5"/></svg>'
 };
 
 const periodFactors = { week: 1, lastWeek: .94, month: 3.82 };
@@ -17,165 +21,613 @@ const segmentFactors = { all: 1, new: .31, risk: .14 };
 const formatNumber = (value) => Math.round(value).toLocaleString("zh-CN");
 const scaled = (value) => formatNumber(value * periodFactors[state.period] * segmentFactors[state.segment]);
 const pctShift = () => state.segment === "risk" ? -11.2 : state.segment === "new" ? 3.1 : 0;
-const pct = (value) => `${Math.max(0, value + pctShift()).toFixed(1)}%`;
+// invert = true 用于「越低越好」的指标（断点率、异常命中率等），风险人群应当更高而不是更低。
+const pct = (value, invert = false) => {
+  const shifted = value + (invert ? -pctShift() : pctShift());
+  return `${Math.min(100, Math.max(0, shifted)).toFixed(1)}%`;
+};
 
 const schemes = [
-  { id: "journey", no: "01", title: "学习闭环监测", color: "#1b8c72", pale: "#e8f4ef", desc: "看学生是否顺利完成“解锁—学—练—改”，定位每一步的关键流失。", footer: "回答：流程走得顺不顺" },
-  { id: "experience", no: "02", title: "体验质量诊断", color: "#5b7fc9", pale: "#edf2fb", desc: "观察时长、卡顿、退出与错误分布，发现具体内容和交互体验问题。", footer: "回答：哪里需要被优化" },
-  { id: "outcome", no: "03", title: "学习结果与预警", color: "#f08068", pale: "#fff0ed", desc: "连接完成、正确率与坚持度，识别高风险学生并衡量真实学习结果。", footer: "回答：学生有没有学会" }
+  { id: "chain", no: "01", title: "连续行为链路还原", color: "#1b8c72", pale: "#e8f4ef", desc: "把「跳出率 28%」还原成「断在动画 03:42、练习第 4 题」，并追踪断开后有没有回来。", footer: "回答：他在哪一步走的" },
+  { id: "signal", no: "02", title: "断点前异常信号", color: "#5b7fc9", pale: "#edf2fb", desc: "对比脱离会话与完课会话，用提升度排出最能预测脱离的 12 类前置异常行为。", footer: "回答：走之前发生了什么" },
+  { id: "emotion", no: "03", title: "厌烦情绪锚定与干预", color: "#f08068", pale: "#fff0ed", desc: "把异常信号加权成厌烦指数，区分受挫、无聊、涣散三型，并给出差异化干预。", footer: "回答：是不是烦了，怎么办" }
 ];
+
+// 结果决策口径：先按家长最终动作分群，再回看学习过程与反馈原因。
+// 数量与比例均为演示数据；原因标签来自用户反馈的主题归类。
+const outcomeGroups = [
+  { id: "refund", label: "退费用户", count: 186, rate: "7.8%", badge: "已发生", color: "#c65e49", pale: "#fff0ed", key: "先区分完课好与不好", question: "是没有学，还是学了却没感到效果？" },
+  { id: "notRefund", label: "未退费用户", count: 2198, rate: "92.2%", badge: "留存中", color: "#1b8c72", pale: "#e8f4ef", key: "持续观察使用健康度", question: "哪些正向体验值得固化？" },
+  { id: "renewed", label: "续费用户", count: 1086, rate: "45.6%", badge: "正向结果", color: "#397865", pale: "#e8f4ef", key: "孩子喜欢，且感到有效", question: "兴趣与效果如何共同出现？" },
+  { id: "notRenewed", label: "未续费用户", count: 1298, rate: "54.4%", badge: "待转化", color: "#8772bb", pale: "#f2eff8", key: "成绩没有明显变化", question: "效果感知在哪一步断了？" }
+];
+
+const outcomeDetails = {
+  refund: {
+    eyebrow: "退费判断",
+    title: "退费不是同一个问题：先看孩子有没有真正学进去",
+    summary: "完课不好的人需要解决兴趣与时间冲突；完课好仍退费的人，需要解决效果感知与练习方式。两类人不能用同一套挽回动作。",
+    stats: [["完课不好", "115 人", "61.8%"], ["完课较好", "71 人", "38.2%"], ["核心原因主题", "5 类", "反馈归类"]],
+    action: "分别进入下方两条退费原因链，按“未学习”和“学了没效果”制定动作。"
+  },
+  notRefund: {
+    eyebrow: "留存判断",
+    title: "未退费不等于健康，需要继续识别沉默风险",
+    summary: "把稳定学习者作为正向对照，同时关注低启动、低完课但尚未提出退费的用户，避免把“暂未行动”误判成满意。",
+    stats: [["保持周活", "1,750 人", "79.6%"], ["连续完课", "1,426 人", "64.9%"], ["沉默风险", "208 人", "需跟进"]],
+    action: "用续费用户的兴趣与效果信号做对照，提前触达沉默风险用户。"
+  },
+  renewed: {
+    eyebrow: "续费判断",
+    title: "续费用户的共同点：孩子愿意学，家长也看见了一定效果",
+    summary: "续费不是单靠高完课，而是“孩子喜欢”与“家长感到有效”同时成立。应把兴趣体验和阶段性成果表达固化到产品中。",
+    stats: [["稳定完课", "82.4%", "行为证据"], ["主动启动", "3.6 次/周", "兴趣信号"], ["正向反馈", "孩子喜欢", "有效果"]],
+    action: "沉淀续费用户的正向路径，并用于校准退费与未续费人群的差异。"
+  },
+  notRenewed: {
+    eyebrow: "未续费判断",
+    title: "未续费的核心障碍：家长没有看到成绩的明显变化",
+    summary: "即使孩子完成了一部分课程，如果产品只呈现答题过程、没有连接到校内成绩与能力变化，家长仍可能判断“没有效果”。",
+    stats: [["核心反馈", "成绩无变化", "效果感知"], ["建议验证", "校内成绩", "前后测"], ["关键时点", "续费前 4 周", "主动呈现"]],
+    action: "补齐阶段前后测、能力变化报告与校内题型映射，验证是否提升续费。"
+  }
+};
+
+// 12 类断点前异常信号，与 anomaly_signal_dict 种子数据一一对应。
+// brk = 断点会话中出现率；base = 完课会话基线；lift = brk / base。
+const signals = [
+  { name: "连续答错 ≥3 题", stage: "练", rule: "同会话内连续 answer 判错 3 次", brk: 61.3, base: 12.4, lift: 4.9, emo: "受挫" },
+  { name: "秒答（疑似乱选）", stage: "练", rule: "连续 3 题作答耗时低于该题 P5", brk: 39.6, base: 8.3, lift: 4.8, emo: "无聊" },
+  { name: "同题反复提交 ≥3 次", stage: "练", rule: "同一 question_id 提交答案 3 次以上", brk: 43.1, base: 9.8, lift: 4.4, emo: "受挫" },
+  { name: "单题停留 >3× 中位", stage: "练", rule: "作答耗时超过该题历史中位耗时 3 倍", brk: 57.8, base: 15.1, lift: 3.8, emo: "受挫" },
+  { name: "答案反复修改 ≥3 次", stage: "练", rule: "提交前 answer_change 达到 3 次", brk: 28.5, base: 7.6, lift: 3.8, emo: "受挫" },
+  { name: "动画连续快进 ≥3 次", stage: "学", rule: "连续 seek_forward 达到 3 次", brk: 48.7, base: 13.2, lift: 3.7, emo: "无聊" },
+  { name: "跳过讲解直奔练", stage: "学", rule: "动画进度 <20% 即切到练习", brk: 22.3, base: 6.1, lift: 3.7, emo: "无聊" },
+  { name: "环节来回横跳 ≥4 次", stage: "全", rule: "单会话内学练改往返切换 4 次", brk: 36.4, base: 11.7, lift: 3.1, emo: "涣散" },
+  { name: "静默无操作 ≥90 秒", stage: "全", rule: "相邻事件间隔 ≥90 秒且未退出", brk: 54.2, base: 18.6, lift: 2.9, emo: "涣散" },
+  { name: "单次时长 >45 分钟", stage: "全", rule: "会话时长超过 45 分钟后的行为衰减", brk: 24.7, base: 10.2, lift: 2.4, emo: "疲劳" },
+  { name: "同片段重复回看 ≥2 次", stage: "学", rule: "同一动画区间 replay 达到 2 次", brk: 33.8, base: 14.9, lift: 2.3, emo: "受挫" },
+  { name: "频繁切后台 ≥2 次", stage: "全", rule: "单会话 app_background 达到 2 次", brk: 31.2, base: 16.4, lift: 1.9, emo: "涣散" }
+];
+
+const emoColor = { 受挫: "#f08068", 无聊: "#5b7fc9", 涣散: "#8772bb", 疲劳: "#e9b951" };
 
 function kpiCard(label, value, trend, note, icon = "↗", down = false) {
   return `<article class="kpi-card"><div class="kpi-head"><span>${label}</span><i>${icon}</i></div><div class="kpi-value"><strong>${value}</strong><span class="trend ${down ? "down" : ""}">${trend}</span></div><small>${note}</small></article>`;
 }
 
-function overviewTemplate() {
-  return `
-    <section class="fade-in">
-      <div class="intro-row"><div><h2>先看全局，再定位问题</h2><p>三套方案从过程、体验到结果逐层深入。建议先用闭环监测发现流失，再用体验诊断定位原因，最后以学习结果验证改版价值。</p></div><span class="data-note"><i></i> 当前为演示数据</span></div>
-      <div class="scheme-grid">
-        ${schemes.map(s => `<article class="scheme-card" data-open="${s.id}" style="--scheme-color:${s.color};--scheme-pale:${s.pale}"><div class="scheme-top"><span class="scheme-number">${s.no}</span><span class="scheme-arrow">${icons.arrow}</span></div><h3>${s.title}</h3><p>${s.desc}</p><footer><i></i>${s.footer}</footer></article>`).join("")}
-      </div>
-      <div class="kpi-grid">
-        ${kpiCard("本周学习学生", scaled(2384), "+8.4%", "较上周同期", "人")}
-        ${kpiCard("双课完成率", pct(68.4), "+3.2%", "完成每周 2 节课", "%")}
-        ${kpiCard("练习正确率", pct(76.8), "+1.6%", "首答正确题目占比", "✓")}
-        ${kpiCard("待关注学生", scaled(186), "-12 人", "连续 7 天未学习", "!", true)}
-      </div>
-      <div class="dashboard-grid">
-        <article class="panel"><div class="panel-header"><div><h3>学习闭环转化</h3><p>本周解锁课程的学生 · 去重人数</p></div><span class="panel-tag">核心漏斗</span></div>${funnelMarkup()}<div class="insight-box"><span class="bulb">${icons.bulb}</span><span><b>本周洞察：</b>“练 → 改”仍是主要流失环节，建议强化错题入口反馈与完成激励。</span></div></article>
-        <article class="panel"><div class="panel-header"><div><h3>高流失内容 TOP 5</h3><p>按进入后未完成率排序</p></div><span class="panel-tag">需关注</span></div>${rankList([{n:"一次函数图像",v:42},{n:"全等三角形",v:37},{n:"整式乘法",v:33},{n:"浮力与压强",v:29},{n:"古诗文理解",v:24}], "#f08068")}</article>
-      </div>
-    </section>`;
-}
-
-function funnelMarkup() {
-  const base = [2384, 2146, 1932, 1651];
-  const stages = [
-    ["learn", "完成“学”", "90.0%", "平均 8.6 分钟", "#1b8c72", "#e8f4ef"],
-    ["practice", "完成“练”", "81.0%", "平均 12.4 分钟", "#5b7fc9", "#edf2fb"],
-    ["revise", "完成“改”", "69.3%", "平均 6.2 分钟", "#8772bb", "#f2eff8"],
-    ["open", "完整闭环", "68.4%", "双课完成", "#f08068", "#fff0ed"]
-  ];
-  return `<div class="funnel">${stages.map((s,i)=>`<div class="funnel-step" style="--stage-color:${s[4]};--stage-pale:${s[5]}"><span class="funnel-icon">${icons[s[0]]}</span><b>${scaled(base[i])}</b><span>${s[1]} · ${pct(parseFloat(s[2]))}</span><small>${s[3]}</small></div>`).join("")}</div>`;
-}
-
-function rankList(rows, color) {
-  const max = Math.max(...rows.map(r=>r.v));
-  return `<div class="rank-list">${rows.map(r=>`<div class="rank-row"><span class="rank-label">${r.n}</span><div class="bar-track"><div class="bar-fill" style="width:${r.v/max*100}%;--bar-color:${color}"></div></div><span class="rank-value">${r.v}%</span></div>`).join("")}</div>`;
+function insight(html) {
+  return `<div class="insight-box"><span class="bulb">${icons.bulb}</span><span>${html}</span></div>`;
 }
 
 function detailHeader(title, desc, goal) {
   return `<button class="back-button" data-open="overview"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>返回总览</button><div class="section-head"><div><h2>${title}</h2><p>${desc}</p></div><span class="goal-pill">${goal}</span></div>`;
 }
 
-function journeyTemplate() {
-  return `<section class="fade-in">${detailHeader("方案一 · 学习闭环监测", "追踪从每周课程解锁到完成错题订正的完整路径，快速识别流失节点。", "核心目标：提高双课闭环率")}
-    <div class="kpi-grid">${kpiCard("课程解锁人数",scaled(2650),"+6.3%","本周期至少解锁 1 节","人")}${kpiCard("首课启动率",pct(89.9),"+2.4%","解锁后 24 小时内启动","%")}${kpiCard("单课闭环率",pct(72.6),"+3.5%","完整完成学练改","✓")}${kpiCard("双课闭环率",pct(68.4),"+3.2%","每周 2 节均完成","2")}</div>
-    <div class="dashboard-grid">
-      <article class="panel panel-wide"><div class="panel-header"><div><h3>本周学习旅程</h3><p>人数与上一步转化率</p></div><span class="panel-tag">目标 ≥ 75%</span></div>${flowMarkup()}</article>
-      <article class="panel"><div class="panel-header"><div><h3>双课闭环率趋势</h3><p>近 8 周 · 每周完成 2 节课</p></div><div class="panel-actions"><button class="mini-tab active">闭环率</button><button class="mini-tab">人数</button></div></div>${lineChart([58,61,60,64,66,65,67,68])}<div class="insight-box"><span class="bulb">${icons.bulb}</span><span>第 15 周上线“错题回顾提醒”后，闭环率累计提升 <b>4.3 个百分点</b>。</span></div></article>
-      <article class="panel"><div class="panel-header"><div><h3>环节关键指标</h3><p>学、练、改三段拆解</p></div></div>${stageCards()}</article>
-    </div></section>`;
+function rankList(rows, color) {
+  const max = Math.max(...rows.map(r => r.v));
+  return `<div class="rank-list">${rows.map(r => `<div class="rank-row"><span class="rank-label">${r.n}</span><div class="bar-track"><div class="bar-fill" style="width:${r.v / max * 100}%;--bar-color:${color}"></div></div><span class="rank-value">${r.s || r.v + "%"}</span></div>`).join("")}</div>`;
 }
 
-function flowMarkup() {
-  const nodes = [
-    ["解锁",scaled(2650),"100%","#294c45","#e8efed"], ["进入学习",scaled(2384),pct(89.9),"#1b8c72","#e8f4ef"],
-    ["完成动画",scaled(2146),pct(90),"#5b7fc9","#edf2fb"], ["完成训练",scaled(1932),pct(90),"#8772bb","#f2eff8"], ["完成订正",scaled(1651),pct(85.5),"#f08068","#fff0ed"]
-  ];
-  return `<div class="flow-track">${nodes.map((n,i)=>`<div class="flow-node" style="--node-color:${n[3]};--node-pale:${n[4]}"><i>${i+1}</i><b>${n[0]} · ${n[1]}</b><small>${n[2]}</small></div>`).join("")}</div><div class="insight-box"><span class="bulb">${icons.bulb}</span><span><b>最大机会点：</b>训练完成后仍有 14.5% 学生未进入订正，约影响 ${scaled(281)} 人/周。</span></div>`;
-}
+/* ===================== 总览 ===================== */
 
-function lineChart(values) {
-  const min = 50, max = 75;
-  const pts = values.map((v,i)=>`${i/(values.length-1)*100},${100-(v-min)/(max-min)*100}`).join(" ");
-  const area = `0,100 ${pts} 100,100`;
-  return `<div class="line-chart"><div class="y-axis"><span>75%</span><span>65%</span><span>55%</span><span>50%</span></div><div class="plot"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><defs><linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b8c72" stop-opacity=".22"/><stop offset="1" stop-color="#1b8c72" stop-opacity="0"/></linearGradient></defs><polygon class="area" points="${area}"/><polyline class="chart-line" points="${pts}"/>${values.map((v,i)=>`<circle class="dot" cx="${i/(values.length-1)*100}" cy="${100-(v-min)/(max-min)*100}" r="1.8"/>`).join("")}</svg></div><div class="x-axis">${["W11","W12","W13","W14","W15","W16","W17","本周"].map(x=>`<span>${x}</span>`).join("")}</div></div>`;
-}
+function overviewTemplate() {
+  const focus = outcomeDetails[state.outcome];
+  return `<section class="fade-in decision-page">
+    <div class="intro-row decision-intro"><div><p class="decision-kicker">OUTCOME FIRST · 从结果倒推原因</p><h2>先看用户做了什么决定，再解释为什么</h2><p>以退费、未退费、续费、未续费四类结果为入口。退费用户进一步按完课表现拆分，避免把“没学”和“学了没效果”混成同一个问题；再用行为数据验证反馈原因。</p></div><span class="data-note"><i></i> 数量与占比为演示数据</span></div>
 
-function stageCards() {
-  const stages = [
-    ["学","动画讲解","#1b8c72","#e8f4ef",[["完成率",pct(90)],["平均观看", "8.6 min"],["拖拽/跳过","12.3%"]]],
-    ["练","知识训练","#5b7fc9","#edf2fb",[["完成率",pct(81)],["首答正确率",pct(76.8)],["平均用时","12.4 min"]]],
-    ["改","错题订正","#8772bb","#f2eff8",[["进入率",pct(85.5)],["订正正确率",pct(84.1)],["延展题完成","63.7%"]]]
-  ];
-  return `<div class="stage-grid">${stages.map(s=>`<div class="stage-card" style="--stage-color:${s[2]};--stage-pale:${s[3]}"><div class="stage-title"><i>${s[0]}</i><div><b>${s[1]}</b><small>环节表现</small></div></div>${s[4].map(m=>`<div class="stage-metric"><span>${m[0]}</span><strong>${m[1]}</strong></div>`).join("")}</div>`).join("")}</div>`;
-}
+    <div class="outcome-grid" role="tablist" aria-label="用户结果分群">
+      ${outcomeGroups.map(o => `<button class="outcome-card ${state.outcome === o.id ? "active" : ""}" data-outcome="${o.id}" role="tab" aria-selected="${state.outcome === o.id}" style="--outcome-color:${o.color};--outcome-pale:${o.pale}"><span class="outcome-top"><i></i>${o.badge}</span><span class="outcome-main"><strong>${formatNumber(o.count)}</strong><em>${o.rate}</em></span><b>${o.label}</b><small>${o.key}</small><span class="outcome-question">${o.question}${icons.arrow}</span></button>`).join("")}
+    </div>
 
-function experienceTemplate() {
-  return `<section class="fade-in">${detailHeader("方案二 · 体验质量诊断", "用时、退出、重复操作与内容难度共同还原学生在每个环节的真实体验。", "核心目标：降低异常退出率")}
-    <div class="kpi-grid">${kpiCard("平均单课用时","27.2 min","-1.8 min","目标区间 25–30 分钟","时")}${kpiCard("异常退出率",pct(8.7),"-1.4%","未完成且 30 分钟内未返回","!")}${kpiCard("视频有效观看率",pct(86.3),"+2.1%","观看超过视频时长 80%","▶")}${kpiCard("内容困难度","0.68","+0.03","错误率与耗时综合指数","ƒ")}</div>
-    <div class="dashboard-grid">
-      <article class="panel"><div class="panel-header"><div><h3>一周学习时段热力</h3><p>颜色越深代表活跃学生越多</p></div><span class="panel-tag">高峰 20:00</span></div>${heatmap()}</article>
-      <article class="panel"><div class="panel-header"><div><h3>体验问题雷达</h3><p>按影响学生人数排序</p></div><span class="panel-tag">本周 4 项</span></div>${issueList()}</article>
-      <article class="panel panel-wide"><div class="panel-header"><div><h3>内容困难度排行</h3><p>综合首答错误率、平均答题时长与重复观看率</p></div><div class="panel-actions"><button class="mini-tab active">全部年级</button><button class="mini-tab">初一</button><button class="mini-tab">初二</button></div></div>${rankList([{n:"八上数学 · 全等三角形判定",v:88},{n:"八上物理 · 浮力的计算",v:81},{n:"七下数学 · 一元一次不等式组",v:76},{n:"九上化学 · 化学方程式配平",v:68},{n:"七上语文 · 古诗文理解",v:62}], "#5b7fc9")}<div class="insight-box"><span class="bulb">${icons.bulb}</span><span><b>建议：</b>“全等三角形判定”动画回看率达 31%，且训练第 4 题停留超均值 42 秒，优先检查讲解与题目梯度。</span></div></article>
-    </div></section>`;
-}
+    <article class="outcome-focus" style="--focus-color:${outcomeGroups.find(o => o.id === state.outcome).color};--focus-pale:${outcomeGroups.find(o => o.id === state.outcome).pale}">
+      <div class="focus-copy"><span>${focus.eyebrow}</span><h3>${focus.title}</h3><p>${focus.summary}</p></div>
+      <div class="focus-stats">${focus.stats.map(s => `<div><small>${s[0]}</small><b>${s[1]}</b><em>${s[2]}</em></div>`).join("")}</div>
+      <div class="focus-action"><span>下一步</span><p>${focus.action}</p></div>
+    </article>
 
-function heatmap() {
-  const rows = ["06–09","09–12","12–15","15–18","18–21","21–24"], days=["周一","周二","周三","周四","周五","周六","周日"];
-  const vals = [[.08,.06,.08,.07,.08,.12,.14],[.08,.07,.06,.08,.08,.26,.31],[.12,.11,.12,.1,.13,.35,.38],[.2,.18,.19,.22,.24,.57,.52],[.68,.73,.71,.77,.8,.84,.76],[.38,.42,.4,.46,.44,.52,.47]];
-  return `<div class="heatmap-wrap"><div class="heatmap"><span></span>${days.map(d=>`<span>${d}</span>`).join("")}${rows.map((r,i)=>`<span>${r}</span>${vals[i].map((v,j)=>`<span class="heat-cell" style="--intensity:${v};--intensity-text:${v<.3?'#70808a':'white'}" title="${days[j]} ${r}"></span>`).join("")}`).join("")}</div></div><div class="heat-legend"><span>低</span>${[.1,.25,.45,.65,.85].map(i=>`<i style="--i:${i}"></i>`).join("")}<span>高</span></div>`;
-}
+    <div class="decision-section-head"><div><span>01 / 退费用户</span><h3>先按完课表现拆成两条原因链</h3><p>同样是退费，行为证据和产品动作完全不同。</p></div><button data-open="users">查看退费用户明细 ${icons.arrow}</button></div>
+    <div class="refund-split">
+      <article class="refund-branch low-completion">
+        <header><span class="branch-index">A</span><div><small>115 人 · 退费用户的 61.8%</small><h3>完课不好的退费用户</h3><p>核心判断：不是学了无效，而是学习没有真正发生。</p></div><strong>先解决<br>“学不进去”</strong></header>
+        <div class="reason-list">
+          ${decisionReason("孩子不喜欢学", "兴趣不足", "启动次数少、首段早退", "重做首课体验，增加兴趣化入口与自主选题")}
+          ${decisionReason("孩子作业多，顾不上来", "时间冲突", "工作日晚间短会话、频繁中断", "拆成 10–15 分钟小节，支持灵活完成")}
+          ${decisionReason("孩子没时间，基本不怎么学", "低使用", "连续多日未启动、解锁后未参课", "提供低负担学习计划，先验证真实可用时间")}
+        </div>
+      </article>
+      <article class="refund-branch high-completion">
+        <header><span class="branch-index">B</span><div><small>71 人 · 退费用户的 38.2%</small><h3>完课较好的退费用户</h3><p>核心判断：学习发生了，但家长没有认同效果或方式。</p></div><strong>优先解决<br>“学了没用”</strong></header>
+        <div class="reason-list">
+          ${decisionReason("孩子觉得学了没有什么效果", "效果感知", "有完课，但前后测与校内表现未呈现", "补阶段前后测、能力变化与校内知识点映射")}
+          ${decisionReason("点点选选的方式没效果", "练习方式", "选择题占比高，缺少主观表达证据", "加入主观题、过程作答与老师可见的思路反馈")}
+        </div>
+      </article>
+    </div>
 
-function issueList() {
-  const issues = [["play","动画中途退出","影响 143 人 · 集中在 03:20–04:10","高","#f08068","#fff0ed"],["clock","单题停留过久","影响 98 人 · 超过 P90 用时","中","#e9b951","#fff5d6"],["alert","连续重复提交","影响 76 人 · 同题 ≥ 3 次","中","#8772bb","#f2eff8"],["revise","订正页往返跳转","影响 51 人 · 单次 ≥ 4 次","中","#5b7fc9","#edf2fb"]];
-  return `<div class="issue-list">${issues.map(x=>`<div class="issue"><span class="issue-icon" style="--issue-color:${x[4]};--issue-pale:${x[5]}">${icons[x[0]]}</span><div><b>${x[1]}</b><small>${x[2]}</small></div><span class="severity ${x[3]==='高'?'high':'mid'}">${x[3]}优先</span></div>`).join("")}</div>`;
-}
+    <div class="decision-section-head"><div><span>02 / 续费结果对照</span><h3>用续费用户校准正向信号，用未续费用户定位效果断点</h3><p>不仅看谁留下，还要看家长最终认可了什么。</p></div></div>
+    <div class="renewal-compare">
+      <article class="renewal-card renewed-card"><div class="renewal-label"><i></i>续费用户</div><h3>孩子喜欢，且有一定效果</h3><p>孩子愿意主动学是前提，家长能观察到阶段进步才会形成续费决策。</p><div class="evidence-chips"><span>主动启动</span><span>稳定完课</span><span>正向反馈</span><span>效果可见</span></div><footer><b>应固化</b><span>兴趣体验 + 阶段成果表达</span></footer></article>
+      <div class="versus-mark"><span>VS</span><small>结果对照</small></div>
+      <article class="renewal-card not-renewed-card"><div class="renewal-label"><i></i>未续费用户</div><h3>孩子成绩没有什么明显变化</h3><p>完成课程不自动等于家长感知有效，续费前需要把产品内学习连接到校内成绩与能力变化。</p><div class="evidence-chips"><span>成绩无变化</span><span>能力不可见</span><span>价值感不足</span></div><footer><b>应验证</b><span>前后测 + 校内题型 + 成果报告</span></footer></article>
+    </div>
 
-function outcomeTemplate() {
-  return `<section class="fade-in">${detailHeader("方案三 · 学习结果与预警", "将过程行为与学习表现相连，既验证“是否学会”，也及时发现需要干预的学生。", "核心目标：提升学习有效性")}
-    <div class="kpi-grid">${kpiCard("首答正确率",pct(76.8),"+1.6%","全部训练题","✓")}${kpiCard("订正后掌握率",pct(84.1),"+2.8%","错题订正后二次作答","↻")}${kpiCard("延展题完成率",pct(63.7),"+4.2%","进入并完成延展题","↗")}${kpiCard("预警学生",scaled(186),"-6.0%","满足至少一项风险规则","!",true)}</div>
-    <div class="dashboard-grid">
-      <article class="panel"><div class="panel-header"><div><h3>学生学习状态分层</h3><p>基于近 4 周完成度、正确率与学习频次</p></div><span class="panel-tag">${scaled(2384)} 人</span></div>${donut()}</article>
-      <article class="panel"><div class="panel-header"><div><h3>需优先关注</h3><p>风险分最高的学生 · 已脱敏</p></div><span class="panel-tag">查看全部</span></div>${alertList()}</article>
-      <article class="panel panel-wide"><div class="panel-header"><div><h3>结果指标关联</h3><p>不同学习行为组的近 4 周表现对比</p></div></div><div class="table-wrap"><table class="event-table"><thead><tr><th>行为分组</th><th>学生数</th><th>双课完成率</th><th>首答正确率</th><th>订正后掌握率</th><th>建议动作</th></tr></thead><tbody><tr><td>稳定完成组</td><td>${scaled(1126)}</td><td>91.4%</td><td>83.2%</td><td>91.7%</td><td>保持正向激励</td></tr><tr><td>只学不练组</td><td>${scaled(328)}</td><td>34.6%</td><td>68.1%</td><td>72.5%</td><td>强化训练入口</td></tr><tr><td>练后不改组</td><td>${scaled(281)}</td><td>42.3%</td><td>61.7%</td><td>—</td><td>增加错题提醒</td></tr><tr><td>间歇学习组</td><td>${scaled(463)}</td><td>51.8%</td><td>73.4%</td><td>80.2%</td><td>固定每周学习计划</td></tr><tr><td>流失风险组</td><td>${scaled(186)}</td><td>18.2%</td><td>59.6%</td><td>65.1%</td><td>家长端温和触达</td></tr></tbody></table></div></article>
-    </div></section>`;
-}
+    <article class="panel panel-full priority-panel">
+      <div class="panel-header"><div><h3>本期决策优先级</h3><p>依据结果人群、反馈原因与行为证据安排产品动作</p></div><span class="panel-tag">从结果到行动</span></div>
+      <div class="priority-list">
+        ${decisionPriority("P0", "完课好仍退费", "效果与题型", "加入主观题/过程作答；上线阶段效果报告", "退费率 · 方式认可度", "#c65e49")}
+        ${decisionPriority("P1", "完课不好且退费", "兴趣与时间", "短课化、首课兴趣实验、灵活学习计划", "首周启动率 · 4 周完课率", "#e9b951")}
+        ${decisionPriority("P1", "未续费", "成绩无变化", "续费前 4 周呈现前后测和校内能力变化", "报告查看率 · 续费率", "#8772bb")}
+        ${decisionPriority("对照", "续费用户", "喜欢且有效", "沉淀正向路径，作为其他三组的基线", "主动启动 · 稳定完课", "#1b8c72")}
+      </div>
+    </article>
 
-function donut() {
-  return `<div class="donut-wrap"><div class="donut"><div class="donut-center"><strong>${pct(68)}</strong><span>状态良好</span></div></div><div class="legend-list">${[["稳定学习","54%","#1b8c72"],["偶尔波动","24%","#dff176"],["需要关注","13%","#5b7fc9"],["高风险","9%","#e7ebe9"]].map(x=>`<div class="legend-row"><i style="background:${x[2]}"></i><span>${x[0]}</span><b>${x[1]}</b></div>`).join("")}</div></div><div class="insight-box"><span class="bulb">${icons.bulb}</span><span>连续两周未完成“改”的学生，下周流失概率是稳定完成组的 <b>2.6 倍</b>。</span></div>`;
-}
-
-function alertList() {
-  return `<div class="alert-list">${[["林*","连续 9 天未学习","92","#fff0ed","#c65e49"],["赵*宇","2 周未完成订正","86","#fff5d6","#9b761f"],["陈*","正确率持续下降","81","#edf2fb","#5b7fc9"],["王*宁","动画多次中途退出","78","#f2eff8","#8772bb"]].map(x=>`<div class="alert-row"><span class="student-avatar" style="--avatar-bg:${x[3]};--avatar-color:${x[4]}">${x[0].slice(0,1)}</span><div><b>${x[0]}</b><small>${x[1]}</small></div><div class="risk-score"><strong>${x[2]}</strong><span>风险分</span></div></div>`).join("")}</div>`;
-}
-
-const eventRows = [
-  ["open","打开产品或课节","session_id、设备、来源","活跃人数 / 启动率"],
-  ["unlock","课程解锁成功","课程ID、课节ID、解锁周","解锁人数 / 解锁率"],
-  ["play","动画开始或恢复播放","动画ID、版本、播放位置","播放率 / 观看时长"],
-  ["pause","动画暂停","动画ID、播放位置、停留时长","暂停率 / 内容卡点"],
-  ["seek_forward","动画向前拖动","起止位置、动画版本","快进率 / 跳过区间"],
-  ["answer","提交题目答案","题目ID、版本、正误、耗时","首答正确率 / 单题耗时"],
-  ["correction","提交错题订正","题目ID、二答正误、订正次数","订正率 / 掌握率"],
-  ["exit","退出当前课程","所在环节、进度、退出方式","异常退出率 / 流失点"],
-  ["complete","完成课节闭环","学练改结果、延展题结果","单课 / 双课完成率"],
-];
-
-function eventsTemplate() {
-  const models = [
-    ["01", "用户基础表", "students", "学生画像与购买分群", ["student_id · 学生ID", "grade · 年级", "purchased_at · 购买时间", "package_code · 套餐", "channel · 渠道", "device_type · 设备"]],
-    ["02", "学习事件明细表", "learning_events", "原始行为事实 · 追加写入", ["event_id · 事件ID", "student_id · 学生ID", "event_name · 事件类型", "event_at · 发生时间", "course / lesson · 课程课节", "properties_json · 扩展属性"]],
-    ["03", "课程学习结果表", "course_learning_results", "每位学生 × 每节课", ["观看进度 / 时长", "训练题数 / 首答正确", "错题数 / 订正正确", "延展题完成", "completion_status", "is_completed"]],
-    ["04", "用户周度汇总表", "user_weekly_summaries", "每位学生 × 每自然周", ["解锁 / 学习 / 完成数", "活跃天数 / 学习时长", "答题数 / 正确率", "双课完成", "health_score · 健康分", "risk_level · 风险等级"]],
-    ["05", "内容质量表", "content_quality", "知识点 × 内容版本 × 日", ["知识点 / 学科 / 年级", "动画ID / 版本", "题集ID / 版本", "观看 / 跳过指标", "正确 / 掌握指标", "难度 / 退出指标"]]
-  ];
-  return `<section class="fade-in">${detailHeader("底层数据模型", "五张核心表串联学生、原始行为、课节结果、周度状态与内容质量，支撑三套监测方案。", "5 张核心表 · 2 个语义视图")}
-    <div class="model-flow"><span>学生画像</span><i>1 : N</i><span>行为事件</span><i>聚合</i><span>课程结果</span><i>按周</i><span>周度汇总</span><i>评估</i><span>内容质量</span></div>
-    <div class="model-grid">${models.map((m,i)=>`<article class="model-card ${i===1?'model-card-wide':''}"><header><span>${m[0]}</span><div><h3>${m[1]}</h3><code>${m[2]}</code></div></header><p>${m[3]}</p><div class="field-list">${m[4].map(f=>`<span>${f}</span>`).join("")}</div><footer><i></i>${i===1?'事实层':i<3?'明细层':i===3?'汇总层':'评估层'}</footer></article>`).join("")}</div>
-    <div class="panel" style="margin-top:18px"><div class="panel-header"><div><h3>学习事件口径</h3><p>原始事件进入 learning_events，结果表与周表均由事件重算</p></div><span class="panel-tag">9 类核心事件</span></div><div class="table-wrap"><table class="event-table"><thead><tr><th>事件名</th><th>触发时机</th><th>关键属性</th><th>支持指标</th><th>状态</th></tr></thead><tbody>${eventRows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td><span class="status-dot">已建模</span></td></tr>`).join("")}</tbody></table></div></div>
-    <div class="insight-box" style="margin-top:14px"><span class="bulb">${icons.bulb}</span><span><b>口径提醒：</b>学生数据默认使用匿名 ID；家长端仅呈现必要的学习建议，不展示行为监控细节。单课完成定义为同一课程的“学、练、改”均触发完成事件。</span></div>
+    <div class="decision-section-head behavior-entry"><div><span>03 / 行为证据下钻</span><h3>结果告诉我们先看谁，行为数据负责验证为什么</h3><p>保留现有三套连续行为分析能力，供每个结果人群继续下钻。</p></div></div>
+    <div class="scheme-grid compact-schemes">${schemes.map(s => `<article class="scheme-card" data-open="${s.id}" style="--scheme-color:${s.color};--scheme-pale:${s.pale}"><div class="scheme-top"><span class="scheme-number">${s.no}</span><span class="scheme-arrow">${icons.arrow}</span></div><h3>${s.title}</h3><p>${s.desc}</p><footer><i></i>${s.footer}</footer></article>`).join("")}</div>
   </section>`;
 }
 
+function decisionReason(title, tag, evidence, action) {
+  return `<div class="decision-reason"><span class="reason-dot"></span><div><h4>${title}<em>${tag}</em></h4><p><span>行为验证</span>${evidence}</p><p><span>建议动作</span>${action}</p></div></div>`;
+}
+
+function decisionPriority(level, group, reason, action, metric, color) {
+  return `<div class="priority-row" style="--priority-color:${color}"><span class="priority-level">${level}</span><div><small>目标人群</small><b>${group}</b></div><div><small>核心原因</small><b>${reason}</b></div><div class="priority-action"><small>产品动作</small><b>${action}</b></div><div><small>验证指标</small><b>${metric}</b></div></div>`;
+}
+
+const breakStages = [
+  { name: "练 · 知识训练", total: 45.7, color: "#5b7fc9", buckets: [["第 1–2 题", 8.2], ["第 3–4 题", 21.4], ["第 5–6 题", 12.1], ["第 7 题以后", 4.0]], hot: 1, note: "热区：第 3–4 题，占全部断点的 21.4%" },
+  { name: "学 · 动画讲解", total: 31.2, color: "#1b8c72", buckets: [["0–25%", 9.4], ["25–50%", 6.1], ["50–75%", 11.8], ["75–100%", 3.9]], hot: 2, note: "热区：动画 50–75%，多为知识点反例段落" },
+  { name: "改 · 错题订正", total: 23.1, color: "#8772bb", buckets: [["进入即走", 13.6], ["订正过程中", 7.2], ["延展题", 2.3], ["其他", 0]], hot: 0, note: "热区：进入订正页 30 秒内离开，占 13.6%" }
+];
+
+function breakDistribution() {
+  return `<div class="break-groups">${breakStages.map(s => {
+    const sum = s.buckets.reduce((a, b) => a + b[1], 0);
+    return `<div class="break-group" style="--bg-color:${s.color}">
+      <header><b>${s.name}</b><span>${s.total}%</span></header>
+      <div class="break-track">${s.buckets.map((b, i) => b[1] ? `<i class="${i === s.hot ? "hot" : ""}" style="width:${b[1] / sum * 100}%" title="${b[0]} · ${b[1]}%"></i>` : "").join("")}</div>
+      <div class="break-ticks">${s.buckets.filter(b => b[1]).map((b, i) => `<span class="${i === s.hot ? "hot" : ""}">${b[0]} ${b[1]}%</span>`).join("")}</div>
+      <small>${s.note}</small>
+    </div>`;
+  }).join("")}</div>`;
+}
+
+const emotions = [
+  { name: "投入型", key: "engaged", share: 61.2, color: "#1b8c72" },
+  { name: "受挫型（太难）", key: "frustrated", share: 18.4, color: "#f08068" },
+  { name: "无聊型（太简单）", key: "bored", share: 12.7, color: "#5b7fc9" },
+  { name: "涣散型（分心）", key: "distracted", share: 7.7, color: "#8772bb" }
+];
+
+function emotionDonut() {
+  let acc = 0;
+  const stops = emotions.map(e => { const from = acc; acc += e.share; return `${e.color} ${from}% ${acc}%`; }).join(",");
+  return `<div class="donut-wrap"><div class="donut" style="background:conic-gradient(${stops})"><div class="donut-center"><strong>38.8%</strong><span>存在厌烦倾向</span></div></div><div class="legend-list">${emotions.map(e => `<div class="legend-row"><i style="background:${e.color}"></i><span>${e.name}</span><b>${e.share}%</b></div>`).join("")}</div></div>${insight("<b>可干预的部分：</b>受挫型与无聊型合计 <b>31.1%</b>，均由内容难度错配引起，是最直接的迭代对象；涣散型 7.7% 多与外部环境相关，只做体验减负、不做内容归因。")}`;
+}
+
+/* ===================== 方案一 · 连续行为链路还原 ===================== */
+
+function chainTemplate() {
+  return `<section class="fade-in">${detailHeader("方案一 · 连续行为链路还原", "以「会话」而非「课时」为观测单位，把每一次打开到离开还原成带时间戳的事件序列，精确定位断点位置。", "核心目标：让每一次脱离可定位")}
+    <div class="kpi-grid">${kpiCard("本周会话数", scaled(5180), "+8.4%", "人均 2.2 次 / 周", "次")}${kpiCard("断点会话率", pct(28.4, true), "-2.1%", `${scaled(1472)} 次未完成即离开`, "!", true)}${kpiCard("断点后 24h 回归", pct(51.2), "+4.6%", "72 小时内回归 61.8%", "↻")}${kpiCard("回归后从头重来", pct(34.2, true), "+1.8%", "断点续学定位缺失", "↺", true)}</div>
+    <div class="dashboard-grid">
+      <article class="panel panel-wide"><div class="panel-header"><div><h3>单次会话回放 · SES-8842</h3><p>初二 L*（已脱敏）· 8 月 6 日 20:14–20:41 · 27 分钟 · 断点脱离</p></div><span class="panel-tag alert-tag">厌烦指数 78 · 受挫型</span></div>${sessionTimeline()}</article>
+      <article class="panel"><div class="panel-header"><div><h3>断点位置分布</h3><p>本周 ${scaled(1472)} 次断点会话</p></div></div>${breakDistribution()}</article>
+      <article class="panel"><div class="panel-header"><div><h3>断开之后去哪了</h3><p>断点会话的后续追踪</p></div><span class="panel-tag">连续性</span></div>${continuityMarkup()}</article>
+      <article class="panel panel-wide"><div class="panel-header"><div><h3>断点热区 TOP 5</h3><p>精确到动画时间段与题号，可直接派给内容团队</p></div><div class="panel-actions"><button class="mini-tab active">本周</button><button class="mini-tab">近 4 周</button></div></div>${rankList([
+        { n: "L05 · 相交线与平行线 — 动画 03:00–04:30", v: 214, s: scaled(214) + " 次" },
+        { n: "L05 · 相交线与平行线 — 练习第 4 题", v: 188, s: scaled(188) + " 次" },
+        { n: "L07 · 平面直角坐标系 — 练习第 3 题", v: 156, s: scaled(156) + " 次" },
+        { n: "L03 · 一元一次方程 — 动画 02:05–02:40", v: 132, s: scaled(132) + " 次" },
+        { n: "L06 · 实数 — 订正页进入 30 秒内", v: 118, s: scaled(118) + " 次" }
+      ], "#1b8c72")}${insight("<b>同一节课出现两个热区：</b>L05「相交线与平行线」在动画 03:00–04:30（同位角/内错角辨析段）和练习第 4 题各断一次，说明不是题目单独偏难，而是<b>讲解没讲透 → 练习接不住</b>，应优先改动画而非换题。")}</article>
+    </div></section>`;
+}
+
+// 一次真实会话的事件序列。flag 非空即为命中的异常信号。
+const sessionSteps = [
+  ["00:00", "打开产品", "session_start · 来源：桌面图标", "", ""],
+  ["00:12", "进入课节「L05 · 相交线与平行线」", "unlock · 本周第 1 节", "", ""],
+  ["00:20", "动画开始播放", "play · 时长 09:40", "", ""],
+  ["03:42", "暂停", "pause · 停在「同位角与内错角怎么区分」", "", ""],
+  ["03:50", "回看 02:50 → 03:42", "replay · 第 1 次", "", ""],
+  ["04:35", "再次回看同一片段", "replay · 第 2 次", "同片段重复回看 ×2", "warn"],
+  ["05:30", "连续快进 3 次", "seek_forward ×3 · 跳过 04:35 → 08:10", "动画连续快进 ≥3 次", "warn"],
+  ["06:10", "切到练习", "stage_switch · 动画完成度 61%", "", ""],
+  ["07:05", "第 1 题 · 答对", "answer · 用时 41 秒", "", ""],
+  ["08:30", "第 2 题 · 答对", "answer · 用时 52 秒", "", ""],
+  ["11:02", "第 3 题 · 答错", "answer · 用时 138 秒（该题中位 43 秒）", "单题停留 3.2× 中位", "warn"],
+  ["13:40", "第 3 题 · 再次提交 · 仍错", "answer · 第 3 次尝试", "同题反复提交 ≥3 次", "warn"],
+  ["16:20", "第 4 题 · 答错", "answer · 本会话连续第 3 次答错", "连续答错 ≥3 题", "danger"],
+  ["17:50", "第 4 题 · 反复改答案", "answer_change ×4 · 未提交", "答案反复修改 ≥3 次", "warn"],
+  ["19:20", "无任何操作", "idle · 持续 142 秒", "静默无操作 ≥90 秒", "danger"],
+  ["22:10", "切到后台", "app_background · 5 分 12 秒未回", "频繁切后台", "warn"],
+  ["26:42", "退出 · 停在练习第 4 题", "exit · 未完成，此后 3 天未再打开", "断点", "break"]
+];
+
+function sessionTimeline() {
+  return `<div class="timeline">${sessionSteps.map(s => `<div class="tl-row ${s[4] ? "is-" + s[4] : ""}"><span class="tl-time">${s[0]}</span><span class="tl-dot"></span><div class="tl-body"><b>${s[1]}</b><small>${s[2]}</small></div>${s[3] ? `<span class="tl-flag ${s[4]}">${s[4] === "break" ? "●" : "⚠"} ${s[3]}</span>` : ""}</div>`).join("")}</div>
+  ${insight("<b>这条链路说明的事：</b>课时维度只会记录「这节课未完成、正确率 50%」；连续链路能看出他<b>在讲解难点处反复回看 2 次仍没懂 → 索性快进 → 练习第 3 题起接连受挫 → 发呆 142 秒 → 离开</b>。真正该改的是动画 03:42 处的讲法，而不是第 4 题。")}`;
+}
+
+function continuityMarkup() {
+  const rows = [["24 小时内回归", 51.2, "#1b8c72"], ["24–72 小时回归", 10.6, "#5b7fc9"], ["72 小时后仍未回归", 38.2, "#f08068"]];
+  const modes = [["续学原位", 41.3, "#1b8c72"], ["从头重来", 34.2, "#e9b951"], ["改学别的课节", 24.5, "#8772bb"]];
+  return `<div class="split-block"><p class="split-title">断点后是否回来</p><div class="stack-bar">${rows.map(r => `<i style="width:${r[1]}%;background:${r[2]}" title="${r[0]} ${r[1]}%"></i>`).join("")}</div><div class="legend-list">${rows.map(r => `<div class="legend-row"><i style="background:${r[2]}"></i><span>${r[0]}</span><b>${r[1]}%</b></div>`).join("")}</div></div>
+  <div class="split-block"><p class="split-title">回来之后从哪继续</p><div class="stack-bar">${modes.map(r => `<i style="width:${r[1]}%;background:${r[2]}" title="${r[0]} ${r[1]}%"></i>`).join("")}</div><div class="legend-list">${modes.map(r => `<div class="legend-row"><i style="background:${r[2]}"></i><span>${r[0]}</span><b>${r[1]}%</b></div>`).join("")}</div></div>
+  ${insight("<b>二次流失源：</b>回来的人里 34.2% 被迫从头重来，重复观看已看过的动画。补齐「断点续学」定位，预计可挽回约 ${scaled(205)} 次/周的重复消耗。".replace("${scaled(205)}", scaled(205)))}`;
+}
+
+/* ===================== 方案二 · 断点前异常信号 ===================== */
+
+function signalTemplate() {
+  return `<section class="fade-in">${detailHeader("方案二 · 断点前异常信号", "以完课会话为基线，统计脱离前 5 分钟窗口内各类异常行为的出现率与提升度，找出最能预测脱离的前置动作。", "核心目标：在孩子走之前预测到")}
+    <div class="kpi-grid">${kpiCard("信号库规模", "12 项", "+3 项", "可配置阈值，改配置不改代码", "⚡")}${kpiCard("断点前命中率", pct(87.6), "+3.5%", "脱离前 5 分钟命中 ≥1 个信号", "✓")}${kpiCard("最强信号提升度", "4.9×", "—", "连续答错 ≥3 题", "↑")}${kpiCard("平均提前量", "6.4 分钟", "+0.8", "首个信号到真实退出的间隔", "时")}</div>
+    <div class="dashboard-grid">
+      <article class="panel panel-full"><div class="panel-header"><div><h3>断点前异常信号提升度排行</h3><p>深色 = 脱离会话出现率　浅色 = 完课会话基线　提升度 = 两者之比</p></div><div class="panel-actions"><button class="mini-tab active">按提升度</button><button class="mini-tab">按覆盖率</button></div></div>${liftTable()}</article>
+      <article class="panel"><div class="panel-header"><div><h3>脱离前最后 10 步</h3><p>会话 SES-8842 · 逆序回放</p></div><span class="panel-tag alert-tag">6 步命中</span></div>${replayStrip()}</article>
+      <article class="panel"><div class="panel-header"><div><h3>断点时段分布</h3><p>颜色越深代表断点会话越集中</p></div><span class="panel-tag">高峰 21–22 点</span></div>${heatmap()}${insight("21 点后断点率比 19–20 点高 <b>9.7 个百分点</b>，且以「静默 / 切后台」为主——更像<b>疲劳</b>而非内容问题，建议做时长提醒而不是改内容。")}</article>
+      <article class="panel panel-full"><div class="panel-header"><div><h3>高危信号组合链</h3><p>按顺序出现的信号组合，比单一信号预测力更强</p></div><span class="panel-tag">4 条已验证</span></div>${comboChains()}</article>
+    </div></section>`;
+}
+
+function liftTable() {
+  const maxLift = Math.max(...signals.map(s => s.lift));
+  return `<div class="lift-list">${signals.map(s => `
+    <div class="lift-row" style="--emo:${emoColor[s.emo]}">
+      <div class="lift-name"><b>${s.name}</b><small><em>${s.stage}</em>${s.rule}</small></div>
+      <div class="lift-bars">
+        <div class="lift-bar"><i style="width:${s.brk}%"></i><span>${s.brk}%</span></div>
+        <div class="lift-bar base"><i style="width:${s.base}%"></i><span>${s.base}%</span></div>
+      </div>
+      <span class="lift-badge" style="--fill:${s.lift / maxLift * 100}%">${s.lift}×</span>
+      <span class="emo-tag">${s.emo}</span>
+    </div>`).join("")}</div>
+    ${insight("<b>怎么读这张表：</b>提升度 4.9× 意味着「连续答错 ≥3 题」在脱离会话中出现的概率是完课会话的 4.9 倍，是最值得做实时干预的触发点。<b>注意：</b>提升度只说明相关，不等于因果——上线干预时务必留对照组验证。")}`;
+}
+
+function replayStrip() {
+  const steps = sessionSteps.slice(-10);
+  return `<div class="replay-strip">${steps.map((s, i) => {
+    const idx = i - steps.length + 1;
+    return `<div class="rp-step ${s[4] ? "is-" + s[4] : ""}"><b>${idx === 0 ? "退出" : idx}</b><span>${s[1].split(" · ")[0]}</span><small>${s[0]}</small></div>`;
+  }).join("")}</div>
+  <div class="rp-note"><span>倒数第 7 步起连续命中信号，此时距真实退出还有 <b>15 分 40 秒</b>，完全来得及干预。</span></div>`;
+}
+
+function heatmap() {
+  const rows = ["06–09", "09–12", "12–15", "15–18", "18–21", "21–24"], days = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+  const vals = [[.08, .06, .08, .07, .08, .12, .14], [.08, .07, .06, .08, .08, .26, .31], [.12, .11, .12, .1, .13, .35, .38], [.2, .18, .19, .22, .24, .57, .52], [.55, .58, .56, .62, .64, .68, .6], [.78, .82, .8, .86, .88, .74, .7]];
+  return `<div class="heatmap-wrap"><div class="heatmap"><span></span>${days.map(d => `<span>${d}</span>`).join("")}${rows.map((r, i) => `<span>${r}</span>${vals[i].map((v, j) => `<span class="heat-cell" style="--intensity:${v};--intensity-text:${v < .3 ? '#70808a' : 'white'}" title="${days[j]} ${r}"></span>`).join("")}`).join("")}</div></div><div class="heat-legend"><span>低</span>${[.1, .25, .45, .65, .85].map(i => `<i style="--i:${i}"></i>`).join("")}<span>高</span></div>`;
+}
+
+const chains = [
+  { flow: ["单题超时", "同题反复提交", "答案反复修改"], hit: 254, prob: 81.2, emo: "受挫", note: "同一题上耗尽耐心" },
+  { flow: ["连续答错 ≥3", "静默 ≥90 秒"], hit: 428, prob: 78.4, emo: "受挫", note: "受挫后放空再离开" },
+  { flow: ["动画快进 ≥3", "跳过讲解", "秒答 ≥3"], hit: 316, prob: 74.1, emo: "无聊", note: "内容太浅，走完流程就走" },
+  { flow: ["切后台 ×2", "环节来回横跳"], hit: 197, prob: 63.5, emo: "涣散", note: "被外部打断，注意力散了" }
+];
+
+function comboChains() {
+  return `<div class="chain-list">${chains.map(c => `
+    <div class="chain-item" style="--emo:${emoColor[c.emo]}">
+      <div class="chain-flow">${c.flow.map(f => `<span>${f}</span>`).join('<i>→</i>')}<i>→</i><b>退出</b></div>
+      <div class="chain-meta">
+        <div><strong>${scaled(c.hit)}</strong><small>命中会话</small></div>
+        <div><strong class="chain-prob">${c.prob}%</strong><small>15 分钟内不再回来</small></div>
+        <span class="emo-tag">${c.emo}</span>
+      </div>
+      <p class="chain-note">${c.note}</p>
+    </div>`).join("")}</div>
+  ${insight("<b>组合优于单点：</b>单看「静默 ≥90 秒」提升度只有 2.9×，但接在「连续答错」之后，脱离概率升到 78.4%。实时干预建议按组合链触发，可把误报率从 31% 降到 <b>14.2%</b>。")}`;
+}
+
+/* ===================== 方案三 · 厌烦情绪锚定与干预 ===================== */
+
+function emotionTemplate() {
+  return `<section class="fade-in">${detailHeader("方案三 · 厌烦情绪锚定与干预", "把断点前信号按情绪归属加权成 0–100 的厌烦指数，区分受挫、无聊、涣散三型，并配套差异化干预与效果验证。", "核心目标：把情绪推测变成可验证的动作")}
+    <div class="kpi-grid">${kpiCard("平均厌烦指数", "34.6", "-2.4", "0–100，越低越投入", "指")}${kpiCard("受挫型占比", pct(18.4, true), "-1.2%", "内容偏难，可直接迭代", "难", true)}${kpiCard("无聊型占比", pct(12.7, true), "+0.6%", "内容偏浅或节奏拖沓", "浅", true)}${kpiCard("高危学生", scaled(186), "-12 人", "指数 ≥ 60，需本周干预", "!", true)}</div>
+    <div class="dashboard-grid">
+      <article class="panel panel-wide"><div class="panel-header"><div><h3>厌烦指数怎么算</h3><p>信号权重来自 anomaly_signal_dict，可随验证结果调参</p></div><span class="panel-tag">口径定义</span></div>${formulaBlock()}</article>
+      <article class="panel"><div class="panel-header"><div><h3>情绪分型分布</h3><p>本周 ${scaled(2384)} 名学习学生</p></div></div>${emotionDonut()}</article>
+      <article class="panel"><div class="panel-header"><div><h3>需本周干预</h3><p>指数最高的学生 · 已脱敏</p></div><span class="panel-tag alert-tag">查看全部</span></div>${alertList()}</article>
+      <article class="panel panel-full"><div class="panel-header"><div><h3>三种厌烦的行为特征不一样，干预也必须不一样</h3><p>把「孩子是不是烦了」拆成可区分、可动作的三类</p></div></div>${emotionCompare()}</article>
+      <article class="panel panel-full"><div class="panel-header"><div><h3>干预动作矩阵</h3><p>每条干预都绑定触发条件与验证指标</p></div><span class="panel-tag">可直接排期</span></div>${interventionTable()}</article>
+      <article class="panel panel-full"><div class="panel-header"><div><h3>这个指数可信吗 · 三重验证</h3><p>不做验证的情绪推测等于占卜</p></div><span class="panel-tag">已验证</span></div>${validationBlock()}</article>
+    </div></section>`;
+}
+
+function formulaBlock() {
+  return `<div class="formula-box">
+    <div class="formula-line"><span class="f-label">会话级</span><code>厌烦指数 = 100 × ( 0.45·F<sub>受挫</sub> + 0.35·B<sub>无聊</sub> + 0.20·D<sub>涣散</sub> )</code></div>
+    <div class="formula-line"><span class="f-label">分项</span><code>F / B / D = Σ( w<sub>i</sub> × 命中<sub>i</sub> × e<sup>−Δt<sub>i</sub>/300</sup> ) ÷ Σ( w<sub>i</sub> )</code></div>
+    <div class="formula-line"><span class="f-label">周级</span><code>周指数 = 会话均值 × ( 1 + 0.15 × 周内断点次数 ) × ( 1 − 0.10 × 24h 回归率 )</code></div>
+    <p class="formula-note">Δt = 信号距断点秒数，以 300 秒为半衰期做时间衰减——越贴近脱离的异常越能代表离开时的情绪，5 分钟以前的波动几乎不计入。w<sub>i</sub> 为信号权重（0.5–1.0），按情绪归属分组求和。</p>
+  </div>
+  <div class="grade-scale">
+    ${[["0–39", "投入", "#1b8c72", 40], ["40–59", "观察", "#e9b951", 20], ["60–79", "预警", "#f08068", 20], ["80–100", "高危", "#c65e49", 20]].map(g => `<div class="gs-seg" style="width:${g[3]}%;--c:${g[2]}"><b>${g[1]}</b><span>${g[0]}</span></div>`).join("")}
+  </div>`;
+}
+
+const emotionDetail = [
+  ["受挫型（太难）", "#f08068", "#fff0ed", [["主导信号", "连续答错 / 单题超时 / 反复提交"], ["断点位置", "练习第 3–5 题"], ["首答正确率", "58.3% · 明显偏低"], ["单课耗时", "38.4 分钟 · 偏长"], ["次周流失倍数", "3.4×"], ["误判风险", "可能只是这一题偏难，需看是否跨课复现"]]],
+  ["无聊型（太简单）", "#5b7fc9", "#edf2fb", [["主导信号", "快进 / 秒答 / 跳过讲解"], ["断点位置", "动画 0–30% 或直接跳过"], ["首答正确率", "84.6% · 明显偏高"], ["单课耗时", "11.2 分钟 · 偏短"], ["次周流失倍数", "2.1×"], ["误判风险", "可能真的已掌握，需结合正确率排除"]]],
+  ["涣散型（分心）", "#8772bb", "#f2eff8", [["主导信号", "静默 / 切后台 / 来回横跳"], ["断点位置", "无规律，任意位置"], ["首答正确率", "71.2% · 接近均值"], ["单课耗时", "31.6 分钟 · 含大量空转"], ["次周流失倍数", "1.6×"], ["误判风险", "多为外部打扰，不应归因到内容"]]]
+];
+
+function emotionCompare() {
+  return `<div class="emo-grid">${emotionDetail.map(e => `<div class="emo-card" style="--stage-color:${e[1]};--stage-pale:${e[2]}">
+    <div class="stage-title"><i>${e[0].slice(0, 1)}</i><div><b>${e[0]}</b><small>行为特征</small></div></div>
+    ${e[3].map((m, i) => `<div class="stage-metric ${i === 5 ? "is-caveat" : ""}"><span>${m[0]}</span><strong>${m[1]}</strong></div>`).join("")}
+  </div>`).join("")}</div>`;
+}
+
+function interventionTable() {
+  const rows = [
+    ["受挫型", "连续答错 ≥3 且 单题超时", "第 3 次答错自动降梯度 + 分步提示", "拆解该知识点讲解、补 2 道台阶题", "学生端鼓励文案，<b>不推送给家长</b>", "次周该课断点率"],
+    ["无聊型", "快进 ≥3 且 秒答 ≥3", "提供「我会了」跳测入口，直给挑战题", "上线动画提速版 / 进阶题包", "解锁挑战徽章", "延展题完成率"],
+    ["涣散型", "静默 ≥90 秒 或 切后台 ≥2", "25 分钟分段 + 断点续学定位", "切分短版片段（≤5 分钟）", "温和提醒；家长周报只给建议不给行为明细", "断后 24h 回归率"],
+    ["疲劳型", "单次时长 >45 分钟", "强制休息提示，本次学习记为已完成", "—", "不触达", "单次时长 P90"]
+  ];
+  return `<div class="table-wrap"><table class="event-table"><thead><tr><th>情绪型</th><th>触发条件</th><th>产品干预</th><th>内容干预</th><th>触达策略</th><th>验证指标</th></tr></thead><tbody>${rows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td></tr>`).join("")}</tbody></table></div>
+  ${insight("<b>触达红线：</b>厌烦指数是给产品和内容团队的迭代依据，不是给家长的监控工具。家长端只输出「建议本周陪学一次」这类动作建议，不展示孩子的快进、发呆、答错等行为明细——否则监测本身会变成新的厌烦来源。")}`;
+}
+
+function alertList() {
+  return `<div class="alert-list">${[["林*", "受挫型 · 连续 3 节卡在练习", "88", "#fff0ed", "#c65e49"], ["赵*宇", "无聊型 · 快进率 76%，正确率 91%", "74", "#edf2fb", "#5b7fc9"], ["陈*", "受挫型 · 订正页进入即走 ×4", "71", "#fff0ed", "#c65e49"], ["王*宁", "涣散型 · 单会话静默累计 8 分钟", "66", "#f2eff8", "#8772bb"]].map(x => `<div class="alert-row"><span class="student-avatar" style="--avatar-bg:${x[3]};--avatar-color:${x[4]}">${x[0].slice(0, 1)}</span><div><b>${x[0]}</b><small>${x[1]}</small></div><div class="risk-score"><strong>${x[2]}</strong><span>厌烦指数</span></div></div>`).join("")}</div>`;
+}
+
+function validationBlock() {
+  const cards = [
+    ["预测性验证", "3.2×", "厌烦指数 ≥60 组的次周「不再启动」概率，是 <40 组的 3.2 倍（n=2,384）", "#1b8c72"],
+    ["主观回访验证", "r = 0.63", "抽样 412 名学生自评「最近学得烦不烦」，与指数中度正相关", "#5b7fc9"],
+    ["干预实验验证", "−11.4pp", "受挫型学生 A/B 下发降梯度题包，实验组次周断点率下降 11.4 个百分点", "#f08068"]
+  ];
+  return `<div class="valid-grid">${cards.map(c => `<div class="valid-card" style="--vc:${c[3]}"><span>${c[0]}</span><strong>${c[1]}</strong><p>${c[2]}</p></div>`).join("")}</div>
+  ${insight("<b>诚实的边界：</b>r = 0.63 说明指数能解释约四成的主观厌烦波动，剩下的来自作业量、考试周、家庭情绪等产品外因素。因此该指数只用于<b>排序和定位</b>（哪些内容、哪些学生最该先看），不用于给单个孩子下情绪结论。")}`;
+}
+
+/* ============ 课时归因 / 用户追踪的连续行为补充面板 ============
+   课时表与用户矩阵回答的仍是「课时维度」的问题；下面几个面板把同一节课、
+   同一个人的断点还原到「动画第几秒、第几题、第几次会话」，供两个视图直接引用。 */
+
+// 动画时长 10:00，按 30 秒分桶统计断点次数。热区 = 03:00–04:30。
+const densityBuckets = [19, 12, 9, 14, 22, 17, 58, 82, 74, 28, 19, 14, 11, 17, 12, 9, 8, 6, 5, 3];
+const densityHot = [6, 7, 8];
+
+const questionRows = [
+  ["第 1 题", "88.4%", "38 秒", 21, "—", "保持"],
+  ["第 2 题", "81.2%", "45 秒", 34, "—", "保持"],
+  ["第 3 题", "52.6%", "96 秒", 142, "单题超时 / 同题反复提交", "难度跳变，补 1–2 道台阶题"],
+  ["第 4 题", "41.3%", "128 秒", 188, "连续答错 / 答案反复修改", "拆成两问，或前置分步提示"],
+  ["第 5 题", "63.8%", "71 秒", 76, "秒答", "受前两题挫败传导，非题目本身问题"],
+  ["第 6 题", "69.1%", "58 秒", 41, "—", "保持"]
+];
+
+// 断点密度：把某节课「学」环节的跳出还原到动画的某一段。
+function breakDensityPanel() {
+  const maxDensity = Math.max(...densityBuckets);
+  const label = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+  return `<article class="panel panel-full" style="margin-top:18px"><div class="panel-header"><div><h3>动画断点密度 · 精确到 30 秒</h3><p>以 L05「相交线与平行线」为例：横轴是动画播放位置，柱高是该时段离开的会话数</p></div><span class="panel-tag alert-tag">热区 03:00–04:30</span></div>
+    <div class="density-chart"><div class="dc-plot">${densityBuckets.map((v, i) => `<i class="${densityHot.includes(i) ? "hot" : ""}" style="--h:${v / maxDensity * 100}%" title="${label(i * 30)}–${label(i * 30 + 30)} · ${v} 次断点"></i>`).join("")}</div><div class="dc-axis">${["00:00", "02:30", "05:00", "07:30", "10:00"].map(t => `<span>${t}</span>`).join("")}</div></div>
+    ${insight("<b>这一条是课时表给不出的：</b>课时表只能说 L05 跳出率 18.7%；密度条能指到 03:00–04:30 这一段共 <b>214 次</b>断点、占该课学环节断点的 48.7%。这段正是「同位角与内错角辨析」的讲解，且有 <b>33.8%</b> 的学生在此重复回看 ≥2 次仍然离开——不是没在听，是<b>讲了但没讲懂</b>。工单可以直接写成「重录 03:00–04:30」。")}
+  </article>`;
+}
+
+// 逐题诊断：把「练」环节的跳出还原到具体题号，并挂上断点前的主导信号。
+function questionDiagnosisPanel() {
+  return `<article class="panel panel-full" style="margin-top:18px"><div class="panel-header"><div><h3>逐题诊断 · L05</h3><p>正确率、耗时、断点次数与断点前主导信号对齐看</p></div><span class="panel-tag">6 道训练题</span></div>
+    <div class="table-wrap"><table class="event-table"><thead><tr><th>题号</th><th>首答正确率</th><th>中位耗时</th><th>断点次数</th><th>断点前主导信号</th><th>建议动作</th></tr></thead><tbody>${questionRows.map(r => `<tr class="${r[3] > 100 ? "row-alert" : ""}"><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${scaled(r[3])}</td><td>${r[4]}</td><td>${r[5]}</td></tr>`).join("")}</tbody></table></div>
+    ${insight("<b>梯度断层：</b>第 2 题到第 3 题，首答正确率从 81.2% 掉到 52.6%（<b>−28.6 个百分点</b>），中位耗时翻倍——典型的难度跳变。第 5 题正确率回升却出现秒答，是<b>前两题受挫后的放弃性作答</b>，属于传导而非题目本身的问题；改掉第 3、4 题，它会自动好转。")}
+  </article>`;
+}
+
+// 改版效果验证：证明「按断点位置改内容」这件事本身有效。
+function versionComparePanel() {
+  return `<article class="panel panel-full" style="margin-top:18px"><div class="panel-header"><div><h3>上次改版效果验证</h3><p>L05 内容版本 v1.2 → v1.3 · 第 15 周上线</p></div><span class="panel-tag">已验证有效</span></div>
+    ${versionCompare()}</article>`;
+}
+
+function versionCompare() {
+  const rows = [["断点会话率", "34.2%", "28.4%", "-5.8pp", true], ["03:00–04:30 断点占比", "66.2%", "48.7%", "-17.5pp", true], ["第 4 题首答正确率", "41.3%", "52.7%", "+11.4pp", true], ["第 3 题首答正确率", "52.6%", "52.6%", "持平", false]];
+  return `<div class="table-wrap"><table class="event-table"><thead><tr><th>指标</th><th>v1.2</th><th>v1.3</th><th>变化</th></tr></thead><tbody>${rows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td><span class="delta ${r[4] ? "good" : "flat"}">${r[3]}</span></td></tr>`).join("")}</tbody></table></div>
+  ${insight("v1.3 给反例段加了分步演示，断点率下降 5.8pp，<b>方法有效</b>。第 3 题这次没动，指标纹丝不动——反过来印证了改动与效果的对应关系。下一步按同样方式改第 3 题梯度。")}`;
+}
+
+const drilldownSessions = [
+  ["SES-8842", "8/6 20:14", "27 分钟", "练", "断点 · 练习第 4 题", 6, 78, "break"],
+  ["SES-8701", "8/4 20:32", "19 分钟", "练", "断点 · 练习第 3 题", 4, 71, "break"],
+  ["SES-8566", "8/1 21:05", "12 分钟", "学", "断点 · 动画 03:50", 3, 64, "break"],
+  ["SES-8402", "7/30 20:11", "34 分钟", "改", "完成闭环", 1, 38, ""],
+  ["SES-8255", "7/28 19:48", "31 分钟", "改", "完成闭环", 0, 26, ""]
+];
+
+const renewalBands = [
+  ["0–39 · 投入", 1459, "12.4%", "71.3%", "4.2%", "#1b8c72"],
+  ["40–59 · 观察", 739, "31.6%", "52.8%", "11.7%", "#e9b951"],
+  ["60–79 · 预警", 118, "58.2%", "28.4%", "26.5%", "#f08068"],
+  ["80–100 · 高危", 68, "76.9%", "14.6%", "43.1%", "#c65e49"]
+];
+
+// 跨会话退化：同一个人连续几次会话的断点越来越早，是「厌烦」最直接的证据链。
+function sessionDegradationPanel() {
+  return `<article class="panel panel-full" style="margin-top:18px"><div class="panel-header"><div><h3>跨会话退化曲线 · 王*宁（已流失）</h3><p>最近 5 次会话逆序排列——从完整闭环一路退化到 12 分钟就断</p></div><span class="panel-tag alert-tag">厌烦指数 26 → 78</span></div>
+    <div class="table-wrap"><table class="event-table"><thead><tr><th>会话</th><th>时间</th><th>时长</th><th>到达环节</th><th>结果</th><th>命中信号</th><th>厌烦指数</th></tr></thead><tbody>${drilldownSessions.map(s => `<tr class="${s[7] ? "row-alert" : ""}"><td>${s[0]}</td><td>${s[1]}</td><td>${s[2]}</td><td>${s[3]}</td><td>${s[4]}</td><td>${s[5]} 个</td><td><span class="score-pill" style="--sc:${s[6] >= 60 ? "#c65e49" : s[6] >= 40 ? "#e9b951" : "#1b8c72"}">${s[6]}</span></td></tr>`).join("")}</tbody></table></div>
+    ${insight("<b>这就是「锚定」要的证据链：</b>7/28 还能完整走完学练改（指数 26），7/30 起断点位置一次比一次早——改 → 练第 4 题 → 练第 3 题 → 动画 03:50，会话时长从 31 分钟压到 12 分钟，指数从 26 爬到 78。<b>上面的状态矩阵只会显示「最近几节未参课」，看不到这条退化曲线。</b>")}
+  </article>`;
+}
+
+// 厌烦指数 × 续费：把过程情绪接到半年包的商业结果上。
+function boredomRenewalPanel() {
+  return `<article class="panel panel-full" style="margin-top:18px"><div class="panel-header"><div><h3>厌烦指数 × 半年包续费</h3><p>把过程情绪和最终商业结果对上，是给这套监测排期的依据</p></div><span class="panel-tag">${scaled(2384)} 人</span></div>
+    <div class="table-wrap"><table class="event-table"><thead><tr><th>厌烦指数区间</th><th>学生数</th><th>周均断点率</th><th>半年包续费率</th><th>到期前停用率</th></tr></thead><tbody>${renewalBands.map(b => `<tr><td><span class="band-dot" style="--sc:${b[5]}"></span>${b[0]}</td><td>${scaled(b[1])}</td><td>${b[2]}</td><td><b>${b[3]}</b></td><td>${b[4]}</td></tr>`).join("")}</tbody></table></div>
+    ${insight(`<b>投入组续费率是高危组的 4.9 倍（71.3% vs 14.6%）。</b>按当前分布，把「预警 + 高危」共 ${scaled(186)} 人拉回观察区间，预计可多留住约 ${scaled(60)} 个半年包。<b>提醒：</b>这是相关性不是因果，续费还受价格、升学季等因素影响，实际增量需以干预实验的对照组为准。`)}
+  </article>`;
+}
+
+/* ===================== 数据模型 ===================== */
+
+const lessonRows = [
+  {name:"L01 · 有理数与数轴",time:"解锁后 0.8 天",duration:"24.6 min",jump:6.8,attend:92.4,finish:86.1,accuracy:84.2,answer:"54s",cause:"表现良好",tone:"good"},
+  {name:"L02 · 整式的加减",time:"解锁后 1.1 天",duration:"27.3 min",jump:8.2,attend:89.7,finish:81.6,accuracy:79.8,answer:"61s",cause:"练习偏长",tone:"watch"},
+  {name:"L03 · 一元一次方程",time:"解锁后 1.4 天",duration:"31.8 min",jump:12.6,attend:86.2,finish:74.3,accuracy:72.1,answer:"78s",cause:"题目梯度",tone:"risk"},
+  {name:"L04 · 几何图形初步",time:"解锁后 1.2 天",duration:"28.9 min",jump:9.4,attend:84.8,finish:77.9,accuracy:76.5,answer:"69s",cause:"动画跳看",tone:"watch"},
+  {name:"L05 · 相交线与平行线",time:"解锁后 1.7 天",duration:"34.2 min",jump:18.7,attend:80.3,finish:66.8,accuracy:68.4,answer:"93s",cause:"优先迭代",tone:"risk"},
+  {name:"L06 · 实数",time:"解锁后 1.5 天",duration:"29.5 min",jump:11.3,attend:78.9,finish:71.2,accuracy:74.7,answer:"72s",cause:"订正流失",tone:"watch"},
+  {name:"L07 · 平面直角坐标系",time:"解锁后 1.9 天",duration:"35.7 min",jump:20.1,attend:75.1,finish:61.5,accuracy:65.9,answer:"101s",cause:"优先迭代",tone:"risk"},
+  {name:"L08 · 二元一次方程组",time:"解锁后 1.6 天",duration:"32.1 min",jump:14.5,attend:73.6,finish:68.3,accuracy:70.2,answer:"88s",cause:"题目耗时",tone:"risk"}
+];
+
+const trackingUsers = [
+  {id:"STU-1024",name:"林*然",churn:false,renew:true,states:["done","done","done","done","done","done","done","done"]},
+  {id:"STU-1087",name:"赵*宇",churn:false,renew:true,states:["done","done","done","done","done","done","learning","missed"]},
+  {id:"STU-1132",name:"陈*欣",churn:false,renew:false,states:["done","done","done","exit","done","learning","missed","missed"]},
+  {id:"STU-1196",name:"王*宁",churn:true,renew:false,states:["done","done","exit","missed","missed","missed","missed","missed"]},
+  {id:"STU-1251",name:"周*文",churn:false,renew:false,states:["done","done","done","done","exit","done","learning","missed"]},
+  {id:"STU-1308",name:"刘*浩",churn:true,renew:false,states:["done","exit","missed","missed","missed","missed","missed","missed"]},
+  {id:"STU-1364",name:"许*彤",churn:false,renew:true,states:["done","done","done","done","done","done","done","learning"]},
+  {id:"STU-1419",name:"郑*一",churn:false,renew:false,states:["done","done","learning","done","done","exit","missed","missed"]}
+];
+
+const userGroups = [
+  ["all","全部用户","2,384"],["churn","退费用户","186"],["active","未退费用户","2,198"],["renewed","续费用户","1,086"],["notRenewed","未续费用户","1,298"]
+];
+const statusMeta = { done:["完课","done"], learning:["参课中","learning"], exit:["跳出","exit"], missed:["未参课","missed"] };
+
+function drawerShell() {
+  return `<div class="drawer-layer" id="detailDrawer"><button class="drawer-backdrop" data-close-drawer aria-label="关闭详情"></button><aside class="detail-drawer" aria-label="下钻详情"><button class="drawer-close" data-close-drawer aria-label="关闭">×</button><div id="drawerContent"></div></aside></div>`;
+}
+
+function lessonTemplate() {
+  return `<section class="fade-in">${detailHeader("课时维度归因", "沿解锁顺序比较每节课的参与、完成与答题体验，识别最值得优先迭代的内容。", "目标：找到指标变化的产品原因")}
+    <div class="analysis-toolbar"><div><span>当前班期</span><b>2026 暑期 · 初一数学 A 班</b></div><label>对比口径<select><option>同班期全部用户</option><option>未流失用户</option><option>续费用户</option></select></label><span class="data-note"><i></i> 演示数据</span></div>
+    <div class="kpi-grid">
+      ${kpiCard("已解锁课时","8 / 24","+2 节","本周已解锁至 L08","课")}
+      ${kpiCard("平均参课率","82.6%","-2.1%","随课时推进略有下降","人",true)}
+      ${kpiCard("平均参完率","73.5%","-3.4%","完课人数 / 参课人数","✓",true)}
+      ${kpiCard("高优迭代课时","3 节","+1 节","满足至少 2 项异常规则","!",true)}
+    </div>
+    <article class="panel attribution-panel"><div class="panel-header"><div><h3>课时表现与归因</h3><p>点击任意课时，下钻查看流失环节与单题耗时分布</p></div><div class="legend-inline"><span><i class="legend-good"></i>健康</span><span><i class="legend-watch"></i>观察</span><span><i class="legend-risk"></i>迭代</span></div></div>
+      <div class="table-wrap"><table class="event-table attribution-table"><thead><tr><th>课时</th><th>完成时间</th><th>完成时长</th><th>跳出率</th><th>参课率</th><th>参完率</th><th>正确率</th><th>题均耗时</th><th>归因结论</th></tr></thead><tbody>${lessonRows.map((r,i)=>`<tr data-lesson-detail="${i}" tabindex="0"><td>${r.name}</td><td>${r.time}</td><td>${r.duration}</td><td class="${r.jump>15?'metric-bad':''}">${r.jump}%</td><td>${r.attend}%</td><td>${r.finish}%</td><td>${r.accuracy}%</td><td>${r.answer}</td><td><span class="cause-pill ${r.tone}">${r.cause}</span></td></tr>`).join("")}</tbody></table></div>
+    </article>
+    <div class="insight-box"><span class="bulb">${icons.bulb}</span><span><b>归因结论：</b>L05、L07 同时出现动画跳出高、题均耗时长和参完率低；优先拆短讲解、降低首组题目难度，再以同班期未流失用户作为对照组验证。</span></div>
+    ${breakDensityPanel()}
+    ${questionDiagnosisPanel()}
+    ${versionComparePanel()}
+    ${drawerShell()}
+  </section>`;
+}
+
+function userMatchesGroup(user) {
+  return state.userGroup === "all" || (state.userGroup === "churn" && user.churn) || (state.userGroup === "active" && !user.churn) || (state.userGroup === "renewed" && user.renew) || (state.userGroup === "notRenewed" && !user.renew);
+}
+
+function usersTemplate() {
+  const visibleUsers = trackingUsers.filter(userMatchesGroup);
+  return `<section class="fade-in">${detailHeader("同班期用户连续追踪", "从解锁开始逐课追踪参课与完课状态，比较流失和续费人群的行为路径。", "点击状态：下钻到用户 × 课时")}
+    <div class="analysis-toolbar"><div><span>当前班期</span><b>2026 暑期 · 初一数学 A 班</b></div><label>班期<select><option>2026 暑期 A 班</option><option>2026 春季 B 班</option><option>2025 秋季 A 班</option></select></label><span class="cohort-range">购买期 07.01–07.07 · 2,384 人</span></div>
+    <div class="segment-tabs">${userGroups.map(g=>`<button class="${state.userGroup===g[0]?'active':''}" data-user-group="${g[0]}"><span>${g[1]}</span><b>${g[2]}</b></button>`).join("")}</div>
+    <article class="panel tracking-panel"><div class="panel-header"><div><h3>用户课时状态矩阵</h3><p>同一行从左到右观察用户随课程推进的状态变化</p></div><div class="status-legend"><span><i class="done"></i>完课</span><span><i class="learning"></i>参课中</span><span><i class="exit"></i>跳出</span><span><i class="missed"></i>未参课</span></div></div>
+      <div class="tracking-wrap"><table class="tracking-table"><thead><tr><th>用户</th><th>结果状态</th>${lessonRows.map((_,i)=>`<th>L0${i+1}</th>`).join("")}</tr></thead><tbody>${visibleUsers.map(u=>`<tr><td><b>${u.name}</b><small>${u.id}</small></td><td><span class="lifecycle ${u.churn?'churn':'active'}">${u.churn?'已退费':'未退费'}</span><span class="lifecycle ${u.renew?'renew':'no-renew'}">${u.renew?'已续费':'未续费'}</span></td>${u.states.map((s,i)=>`<td><button class="lesson-state ${statusMeta[s][1]}" data-user-detail="${u.id}" data-lesson="${i}" title="${u.name} · ${lessonRows[i].name} · ${statusMeta[s][0]}"><i></i><span>${statusMeta[s][0]}</span></button></td>`).join("")}</tr>`).join("")}</tbody></table></div>
+    </article>
+    <div class="compare-grid"><article><span>退费用户典型路径</span><b>连续 2 节未参课 → 退费风险升高</b><p>首次跳出多集中于 L03、L05，且跳出前一节正确率均值低于 65%。</p></article><article><span>续费用户典型路径</span><b>前 6 节完成 ≥ 5 节 → 续费率 71%</b><p>稳定完课用户的错题订正率比未续费用户高 19.4 个百分点。</p></article></div>
+    ${sessionDegradationPanel()}
+    ${boredomRenewalPanel()}
+    ${drawerShell()}
+  </section>`;
+}
+
+function openDrawer(content) {
+  const layer = document.getElementById("detailDrawer");
+  if (!layer) return;
+  document.getElementById("drawerContent").innerHTML = content;
+  layer.classList.add("open");
+  document.body.style.overflow = "hidden";
+  layer.querySelectorAll("[data-close-drawer]").forEach(x=>x.addEventListener("click", closeDrawer));
+}
+
+function closeDrawer() {
+  document.getElementById("detailDrawer")?.classList.remove("open");
+  document.body.style.overflow = "";
+}
+
+function openLessonDetail(index) {
+  const r = lessonRows[index];
+  const questions = [48,64,91,76,118,83].map((v,i)=>v + index * 2 - (i%2)*5);
+  openDrawer(`<div class="drawer-kicker">课时归因详情</div><h2>${r.name}</h2><p class="drawer-sub">2026 暑期 · 初一数学 A 班 · 已解锁 2,384 人</p>
+    <div class="drawer-metrics"><div><span>参课率</span><b>${r.attend}%</b></div><div><span>参完率</span><b>${r.finish}%</b></div><div><span>跳出率</span><b class="danger">${r.jump}%</b></div><div><span>正确率</span><b>${r.accuracy}%</b></div></div>
+    <h3 class="drawer-title">单题平均耗时</h3><div class="question-bars">${questions.map((v,i)=>`<div><span>第 ${i+1} 题</span><i><em style="width:${Math.min(v/1.25,100)}%"></em></i><b>${v}s</b></div>`).join("")}</div>
+    <h3 class="drawer-title">产品归因</h3><div class="root-cause"><span class="${r.tone}">${r.cause}</span><p>${index===4||index===6?'动画后半段跳出与首组训练题高耗时同时出现，说明讲解承接到练习的难度跃迁过大。':'关键指标处于班期正常区间，继续观察后续课时的衰减趋势。'}</p></div>
+    <div class="action-box"><b>建议迭代</b><p>拆分动画关键步骤；首组训练增加 1 道脚手架题；改版后对比同班期参完率与题均耗时。</p></div>`);
+}
+
+function openTrackingDetail(studentId, lessonIndex) {
+  const u = trackingUsers.find(x=>x.id===studentId), s = u.states[lessonIndex], base = 49 + lessonIndex*5 + studentId.charCodeAt(4)%9;
+  const duration = s==="done" ? 24 + lessonIndex : s==="learning" ? 13 : s==="exit" ? 8 : 0;
+  const accuracy = s==="missed" ? "—" : `${Math.max(48,88-lessonIndex*3-(u.churn?14:0))}%`;
+  const questions = [base,base+17,base+42,base+8,base+29];
+  openDrawer(`<div class="drawer-kicker">用户 × 课时下钻</div><div class="student-drawer-head"><span>${u.name.slice(0,1)}</span><div><h2>${u.name}</h2><p>${u.id} · ${u.churn?'退费用户':'未退费用户'} · ${u.renew?'已续费':'未续费'}</p></div></div>
+    <div class="lesson-focus"><small>当前课时</small><b>${lessonRows[lessonIndex].name}</b><span class="cause-pill ${s==='done'?'good':s==='exit'?'risk':'watch'}">${statusMeta[s][0]}</span></div>
+    <div class="drawer-metrics six"><div><span>完成时间</span><b>${s==='done'?'07-18 20:46':'—'}</b></div><div><span>完成时长</span><b>${duration?duration+' min':'—'}</b></div><div><span>跳出</span><b class="${s==='exit'?'danger':''}">${s==='exit'?'是':'否'}</b></div><div><span>参课</span><b>${s==='missed'?'否':'是'}</b></div><div><span>完课</span><b>${s==='done'?'是':'否'}</b></div><div><span>正确率</span><b>${accuracy}</b></div></div>
+    <h3 class="drawer-title">每道题答题时长</h3>${s==='missed'?'<div class="empty-state">该用户本节课未参课，暂无答题记录</div>':`<div class="question-bars">${questions.map((v,i)=>`<div><span>第 ${i+1} 题</span><i><em class="${v>90?'slow':''}" style="width:${Math.min(v/1.2,100)}%"></em></i><b>${v}s</b></div>`).join("")}</div>`}
+    <div class="action-box"><b>行为归因</b><p>${s==='exit'?'用户在动画 68% 处退出，退出前发生 2 次快进；建议核查该片段信息密度。':s==='missed'?'前序课时未形成连续完课，建议在解锁后 24 小时进行学习提醒。':'学习路径完整，可作为未流失/续费用户的正向对照样本。'}</p></div>`);
+}
+
+const eventRows = [
+  ["session_start / session_end", "会话开始与结束", "session_id、设备、入口来源", "会话数 / 单次时长", "新增"],
+  ["open / unlock", "打开产品、课程解锁", "课程ID、课节ID、解锁周", "活跃 / 解锁率", ""],
+  ["play / pause", "动画播放与暂停", "动画ID、版本、播放位置", "观看时长 / 内容卡点", ""],
+  ["seek_forward", "动画向前拖动", "起止位置、连续次数", "快进率 / 跳过区间", ""],
+  ["replay", "回看已播片段", "区间起止、重复次数", "重复回看信号", "新增"],
+  ["stage_switch", "学 / 练 / 改环节切换", "来源环节、目标环节、当前进度", "跳过讲解 / 来回横跳信号", "新增"],
+  ["answer", "提交题目答案", "题目ID、题序、尝试次数、正误、耗时", "正确率 / 单题耗时 / 连错信号", ""],
+  ["answer_change", "提交前修改答案", "题目ID、修改次数", "答案反复修改信号", "新增"],
+  ["correction", "提交错题订正", "题目ID、二答正误、订正次数", "订正率 / 掌握率", ""],
+  ["hint_view", "查看提示或解析", "题目ID、提示层级", "求助率 / 受挫佐证", "新增"],
+  ["idle", "静默超时无操作", "静默时长、所在位置", "静默信号 / 空转时长", "新增"],
+  ["app_background / app_foreground", "切后台与回前台", "离开时长、所在位置", "切后台信号 / 分心度", "新增"],
+  ["exit", "退出当前课节", "所在环节、进度、题序、退出方式", "断点定位 / 断点会话率", ""],
+  ["complete", "完成课节闭环", "学练改结果、延展题结果", "单课 / 双课完成率", ""]
+];
+
+function modelTemplate() {
+  const models = [
+    ["01", "用户基础表", "students", "同班期画像、购买与结果状态分群", ["student_id · 学生ID", "cohort_code · 班期", "refund_status · 退费状态", "renewal_status · 续费状态", "package_code · 套餐", "device_type · 设备"], "基础层", false],
+    ["02", "学习会话表", "learning_sessions", "一次打开到离开为一行 · 断点定位主表", ["session_id · 会话ID", "is_break · 是否断点", "break_stage · 断点环节", "break_position_label · 断点位置", "resume_mode · 续接方式", "boredom_score · 厌烦指数"], "连续行为层", true],
+    ["03", "学习事件明细表", "learning_events", "原始行为事实 · 按 event_sequence 还原序列", ["event_name · 18 类事件", "stage · 所属环节", "prev_event_gap_seconds · 距上一步", "question_index · 题序", "answer_attempt · 尝试次数", "properties_json · 扩展"], "连续行为层", true],
+    ["04", "异常信号字典", "anomaly_signal_dict", "12 类信号的判定规则与权重 · 可配置", ["signal_code · 信号编码", "detect_rule · 判定规则", "threshold_json · 阈值", "emotion_type · 情绪归属", "weight · 权重", "reference_lift · 参考提升度"], "信号层", true],
+    ["05", "会话异常明细表", "session_anomaly_signals", "一次会话命中一个信号一行", ["session_id · 会话ID", "signal_code · 信号编码", "seconds_before_break · 距断点秒数", "steps_before_break · 距断点步数", "position_label · 命中位置", "intensity · 强度"], "信号层", true],
+    ["06", "学生情绪状态表", "student_emotion_states", "学生 × 自然周 · 厌烦指数与分型", ["boredom_index · 厌烦指数", "emotion_type · 情绪分型", "frustration / boredom / distraction", "top_signal_codes · 主导信号", "alert_level · 预警等级", "suggested_action · 建议动作"], "情绪层", true],
+    ["07", "课程学习结果表", "course_learning_results", "每位学生 × 每节课", ["完成时间 / 完成时长", "参课 / 完课 / 跳出", "训练题数 / 首答正确", "错题数 / 订正正确", "lesson_sequence · 课序", "is_completed"], "结果层", false],
+    ["08", "用户周度汇总表", "user_weekly_summaries", "每位学生 × 每自然周", ["解锁 / 学习 / 完成数", "session / break 计数", "resume_within_24h_count", "答题数 / 正确率", "health_score · 健康分", "risk_level · 风险等级"], "结果层", false],
+    ["09", "内容质量表", "content_quality", "知识点 × 内容版本 × 日", ["动画ID / 版本", "题集ID / 版本", "break_session_rate · 断点率", "top_break_position · 断点热区", "难度 / 退出指标", "掌握指标"], "评估层", false],
+    ["10", "用户结果决策表", "user_outcome_decisions", "一次退费/续费结果一行，冻结当时完课表现与反馈原因", ["outcome_type · 决策类型", "outcome_status · 结果状态", "completion_band · 完课分层", "completion_rate · 当时完课率", "primary_reason_code · 原因", "feedback_source · 反馈来源"], "结果决策层", true]
+  ];
+  return `<section class="fade-in">${detailHeader("底层数据模型", "十张表把用户结果、反馈原因、连续行为、异常信号、情绪状态与内容质量串起来。", "10 张表 · 18 类事件 · 10 个视图")}
+    <div class="model-flow"><span>结果决策</span><i>定位人群</i><span>学生画像</span><i>1 : N</i><span class="is-new">学习会话</span><i>1 : N</i><span class="is-new">行为事件</span><i>规则判定</i><span class="is-new">异常信号</span><i>加权</i><span class="is-new">情绪状态</span><i>验证</i><span>课节结果</span></div>
+    <div class="model-grid">${models.map(m => `<article class="model-card ${m[6] ? "is-new" : ""}"><header><span>${m[0]}</span><div><h3>${m[1]}</h3><code>${m[2]}</code></div></header><p>${m[3]}</p><div class="field-list">${m[4].map(f => `<span>${f}</span>`).join("")}</div><footer><i></i>${m[5]}${m[6] ? " · 本次新增" : ""}</footer></article>`).join("")}</div>
+    <div class="panel panel-full" style="margin-top:18px"><div class="panel-header"><div><h3>埋点事件口径</h3><p>同一 session_id 内按 event_sequence 排序，即可完整还原一次连续使用行为</p></div><span class="panel-tag">18 类事件 · 7 类新增</span></div><div class="table-wrap"><table class="event-table"><thead><tr><th>事件名</th><th>触发时机</th><th>关键属性</th><th>支持指标</th><th>状态</th></tr></thead><tbody>${eventRows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4] ? '<span class="status-dot is-new">待埋点</span>' : '<span class="status-dot">已上报</span>'}</td></tr>`).join("")}</tbody></table></div></div>
+    <div class="panel panel-full" style="margin-top:18px"><div class="panel-header"><div><h3>落地节奏建议</h3><p>不必等全部埋点齐了再开始</p></div><span class="panel-tag">3 期</span></div>
+      <div class="phase-grid">
+        <div class="phase-card"><span>第 1 期 · 2 周</span><b>把会话补上</b><p>先埋 session_start / session_end / exit / stage_switch 四个事件，建 learning_sessions 表。这一步做完就能回答「断在哪个环节、断后有没有回来」，价值最大、成本最低。</p></div>
+        <div class="phase-card"><span>第 2 期 · 3 周</span><b>把异常信号跑起来</b><p>补 idle / replay / answer_change / app_background，上线信号字典与判定任务，产出提升度排行。此时可开始按断点热区排内容迭代。</p></div>
+        <div class="phase-card"><span>第 3 期 · 4 周</span><b>做情绪分型与干预</b><p>上线厌烦指数与三型分类，配套 A/B 干预。务必先跑满 4 周积累基线，再开实验，否则无法判断改动是否有效。</p></div>
+      </div>
+    </div>
+  </section>`;
+}
+
+/* ===================== 路由 ===================== */
+
 const views = {
-  overview: { title: "用户行为监测总览", eyebrow: "数据驾驶舱", render: overviewTemplate },
-  journey: { title: "学习闭环监测", eyebrow: "方案 01 / 过程", render: journeyTemplate },
-  experience: { title: "体验质量诊断", eyebrow: "方案 02 / 体验", render: experienceTemplate },
-  outcome: { title: "学习结果与预警", eyebrow: "方案 03 / 结果", render: outcomeTemplate },
-  events: { title: "底层数据模型", eyebrow: "数据管理", render: eventsTemplate }
+  overview: { title: "用户结果决策看板", eyebrow: "决策驾驶舱 / OUTCOME FIRST", render: overviewTemplate },
+  chain: { title: "连续行为链路还原", eyebrow: "方案 01 / 断点定位", render: chainTemplate },
+  signal: { title: "断点前异常信号", eyebrow: "方案 02 / 异常归因", render: signalTemplate },
+  emotion: { title: "厌烦情绪锚定与干预", eyebrow: "方案 03 / 情绪与动作", render: emotionTemplate },
+  lesson: { title: "课时维度归因", eyebrow: "迭代归因 / 课时", render: lessonTemplate },
+  users: { title: "同班期用户追踪", eyebrow: "迭代归因 / 用户", render: usersTemplate },
+  model: { title: "底层数据模型", eyebrow: "数据管理", render: modelTemplate }
 };
 
 function render() {
@@ -185,7 +637,16 @@ function render() {
   document.getElementById("content").innerHTML = view.render();
   document.querySelectorAll(".nav-item").forEach(el => el.classList.toggle("active", el.dataset.view === state.view));
   document.querySelectorAll("[data-open]").forEach(el => el.addEventListener("click", () => navigate(el.dataset.open)));
-  document.querySelectorAll(".mini-tab").forEach(el => el.addEventListener("click", () => { el.parentElement.querySelectorAll(".mini-tab").forEach(x=>x.classList.remove("active")); el.classList.add("active"); }));
+  document.querySelectorAll(".mini-tab").forEach(el => el.addEventListener("click", () => { el.parentElement.querySelectorAll(".mini-tab").forEach(x => x.classList.remove("active")); el.classList.add("active"); }));
+  document.querySelectorAll("[data-lesson-detail]").forEach(el => {
+    const open = () => openLessonDetail(Number(el.dataset.lessonDetail));
+    el.addEventListener("click", open);
+    el.addEventListener("keydown", e => { if (e.key === "Enter") open(); });
+  });
+  document.querySelectorAll("[data-user-detail]").forEach(el => el.addEventListener("click", () => openTrackingDetail(el.dataset.userDetail, Number(el.dataset.lesson))));
+  document.querySelectorAll("[data-user-group]").forEach(el => el.addEventListener("click", () => { state.userGroup = el.dataset.userGroup; render(); }));
+  document.querySelectorAll("[data-outcome]").forEach(el => el.addEventListener("click", () => { state.outcome = el.dataset.outcome; render(); }));
+  document.querySelectorAll("[data-close-drawer]").forEach(el => el.addEventListener("click", closeDrawer));
 }
 
 function navigate(view) {
@@ -201,14 +662,14 @@ document.getElementById("segmentSelect").addEventListener("change", e => { state
 document.getElementById("exportButton").addEventListener("click", () => {
   const headers = ["方案", "指标", "当前值", "周期", "人群"];
   const rows = [[views[state.view].title, "页面数据快照", new Date().toLocaleString("zh-CN"), state.period, state.segment]];
-  const csv = "\ufeff" + [headers, ...rows].map(row => row.join(",")).join("\n");
-  const url = URL.createObjectURL(new Blob([csv], {type:"text/csv;charset=utf-8"}));
+  const csv = "﻿" + [headers, ...rows].map(row => row.join(",")).join("\n");
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
   const a = document.createElement("a"); a.href = url; a.download = `拾光学习_${views[state.view].title}.csv`; a.click(); URL.revokeObjectURL(url);
-  const toast = document.getElementById("toast"); toast.classList.add("show"); setTimeout(()=>toast.classList.remove("show"), 2200);
+  const toast = document.getElementById("toast"); toast.classList.add("show"); setTimeout(() => toast.classList.remove("show"), 2200);
 });
 
 const sidebar = document.querySelector(".sidebar"), scrim = document.getElementById("scrim");
-function closeMenu(){ sidebar.classList.remove("open"); scrim.classList.remove("show"); }
-document.getElementById("menuButton").addEventListener("click", ()=>{ sidebar.classList.add("open"); scrim.classList.add("show"); });
+function closeMenu() { sidebar.classList.remove("open"); scrim.classList.remove("show"); }
+document.getElementById("menuButton").addEventListener("click", () => { sidebar.classList.add("open"); scrim.classList.add("show"); });
 scrim.addEventListener("click", closeMenu);
 render();
