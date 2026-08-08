@@ -8,7 +8,256 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./styles.css" />
+    <style>
+:root {
+  --ink: #152a35;
+  --muted: #70808a;
+  --faint: #a4afb5;
+  --line: #e6ebe9;
+  --panel: #ffffff;
+  --canvas: #f6f8f6;
+  --mint: #1b8c72;
+  --mint-deep: #116c59;
+  --mint-pale: #e8f4ef;
+  --lime: #dff176;
+  --coral: #f08068;
+  --coral-pale: #fff0ed;
+  --blue: #5b7fc9;
+  --blue-pale: #edf2fb;
+  --violet: #8772bb;
+  --yellow: #e9b951;
+  --shadow: 0 8px 28px rgba(27, 55, 47, .055);
+  --radius: 18px;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: "DM Sans", "Noto Sans SC", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+button, select { font: inherit; }
+button { color: inherit; }
+svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+.app-shell { min-height: 100vh; display: grid; grid-template-columns: 232px minmax(0, 1fr); }
+.sidebar {
+  position: fixed; inset: 0 auto 0 0; z-index: 20; width: 232px;
+  display: flex; flex-direction: column; padding: 28px 18px 20px;
+  background: #102f2b; color: #eaf5f1;
+}
+.brand { display: flex; align-items: center; gap: 11px; padding: 0 10px 34px; text-decoration: none; color: inherit; }
+.brand-mark { width: 35px; height: 35px; display: grid; place-items: center; color: var(--lime); }
+.brand-mark svg { width: 33px; stroke: none; fill: currentColor; }
+.brand b { display: block; font-size: 16px; letter-spacing: .08em; }
+.brand small { display: block; margin-top: 3px; color: #7ea09a; font-size: 8px; letter-spacing: .17em; }
+.primary-nav { flex: 1; }
+.nav-label { margin: 0 12px 9px; color: #70918b; font-size: 10px; font-weight: 600; letter-spacing: .16em; }
+.nav-label-spaced { margin-top: 26px; }
+.nav-item {
+  width: 100%; min-height: 44px; display: flex; align-items: center; gap: 12px;
+  margin: 3px 0; padding: 0 13px; border: 0; border-radius: 10px;
+  color: #9fbbb5; background: transparent; cursor: pointer; text-align: left; font-size: 13px;
+  transition: .2s ease;
+}
+.nav-item:hover { color: #fff; background: rgba(255,255,255,.055); }
+.nav-item.active { color: #12352d; background: var(--lime); font-weight: 600; box-shadow: 0 7px 20px rgba(4,20,17,.18); }
+.nav-item svg { width: 17px; height: 17px; }
+.nav-index { display: grid; place-items: center; width: 20px; height: 20px; border: 1px solid currentColor; border-radius: 6px; font-size: 9px; font-weight: 700; }
+.sidebar-foot { padding: 14px 4px 0; border-top: 1px solid rgba(255,255,255,.08); }
+.sync-status { display: flex; align-items: center; gap: 9px; margin: 0 7px 18px; font-size: 11px; color: #abc2bd; }
+.sync-status i { width: 7px; height: 7px; border-radius: 50%; background: #84d4a6; box-shadow: 0 0 0 4px rgba(132,212,166,.1); }
+.sync-status small { display: block; color: #668a83; margin-top: 2px; }
+.user-chip { display: grid; grid-template-columns: 35px 1fr auto; align-items: center; gap: 9px; }
+.user-chip > span { width: 35px; height: 35px; display: grid; place-items: center; border-radius: 50%; background: #285047; font-size: 11px; font-weight: 700; color: var(--lime); }
+.user-chip b, .user-chip small { display: block; }
+.user-chip b { font-size: 11px; }.user-chip small { margin-top: 2px; color: #668a83; font-size: 9px; }
+.user-chip button { border: 0; background: none; color: #73938d; cursor: pointer; }
+
+.main { grid-column: 2; min-width: 0; }
+.topbar {
+  height: 103px; display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  padding: 0 clamp(24px, 3.2vw, 48px); border-bottom: 1px solid var(--line); background: rgba(246,248,246,.93);
+  position: sticky; top: 0; z-index: 10; backdrop-filter: blur(12px);
+}
+.eyebrow { margin: 0 0 5px; color: var(--mint); font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+h1 { margin: 0; font-size: 23px; letter-spacing: -.035em; line-height: 1.15; }
+.top-actions { display: flex; align-items: center; gap: 10px; }
+.select-wrap { height: 43px; display: flex; align-items: center; gap: 7px; padding: 0 11px; border: 1px solid var(--line); border-radius: 10px; background: white; }
+.select-wrap span { color: var(--faint); font-size: 10px; }
+.select-wrap select { max-width: 128px; border: 0; outline: 0; color: var(--ink); background: transparent; font-size: 12px; font-weight: 600; cursor: pointer; }
+.icon-button, .mobile-menu { width: 43px; height: 43px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 10px; background: white; cursor: pointer; transition: .2s; }
+.icon-button:hover { color: white; border-color: var(--mint); background: var(--mint); }
+.icon-button svg, .mobile-menu svg { width: 18px; height: 18px; }
+.mobile-menu { display: none; }
+.content { padding: 32px clamp(24px, 3.2vw, 48px) 52px; max-width: 1600px; margin: auto; }
+
+.intro-row { display: flex; align-items: end; justify-content: space-between; gap: 30px; margin-bottom: 24px; }
+.intro-row h2 { margin: 0 0 8px; font-size: 19px; letter-spacing: -.025em; }
+.intro-row p { max-width: 650px; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
+.data-note { flex: none; display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border-radius: 8px; background: #eef1ef; color: var(--muted); font-size: 10px; }
+.data-note i { width: 6px; height: 6px; border-radius: 50%; background: var(--yellow); }
+
+.scheme-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+.scheme-card {
+  position: relative; overflow: hidden; min-height: 184px; display: flex; flex-direction: column;
+  padding: 21px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); box-shadow: var(--shadow);
+  cursor: pointer; transition: transform .2s ease, box-shadow .2s ease, border-color .2s;
+}
+.scheme-card::after { content: ""; position: absolute; right: -32px; bottom: -47px; width: 125px; height: 125px; border-radius: 50%; background: var(--scheme-pale); }
+.scheme-card:hover { transform: translateY(-3px); border-color: var(--scheme-color); box-shadow: 0 14px 34px rgba(27,55,47,.09); }
+.scheme-top { display: flex; align-items: center; justify-content: space-between; }
+.scheme-number { width: 33px; height: 33px; display: grid; place-items: center; border-radius: 10px; color: var(--scheme-color); background: var(--scheme-pale); font-size: 10px; font-weight: 700; }
+.scheme-arrow { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; color: var(--muted); }
+.scheme-arrow svg { width: 14px; }
+.scheme-card h3 { margin: 19px 0 7px; font-size: 16px; }
+.scheme-card p { position: relative; z-index: 1; max-width: 86%; margin: 0; color: var(--muted); font-size: 11px; line-height: 1.65; }
+.scheme-card footer { position: relative; z-index: 1; display: flex; align-items: center; gap: 9px; margin-top: auto; padding-top: 15px; color: var(--scheme-color); font-size: 10px; font-weight: 600; }
+.scheme-card footer i { width: 22px; height: 1px; background: currentColor; }
+
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
+.kpi-card { padding: 18px 19px; border: 1px solid var(--line); border-radius: 15px; background: white; box-shadow: var(--shadow); }
+.kpi-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 13px; }
+.kpi-head span { color: var(--muted); font-size: 11px; }
+.kpi-head i { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 8px; background: var(--mint-pale); color: var(--mint); font-style: normal; font-size: 12px; }
+.kpi-value { display: flex; align-items: baseline; gap: 9px; }
+.kpi-value strong { font-size: 25px; letter-spacing: -.04em; }
+.trend { font-size: 9px; font-weight: 600; color: var(--mint); }
+.trend.down { color: var(--coral); }
+.kpi-card small { display: block; margin-top: 5px; color: var(--faint); font-size: 9px; }
+
+.dashboard-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(300px, .75fr); gap: 18px; }
+.panel { overflow: hidden; padding: 21px; border: 1px solid var(--line); border-radius: var(--radius); background: white; box-shadow: var(--shadow); }
+.panel-wide { grid-column: 1 / -1; }
+.panel-header { display: flex; align-items: start; justify-content: space-between; gap: 15px; margin-bottom: 19px; }
+.panel-header h3 { margin: 0 0 4px; font-size: 14px; }
+.panel-header p { margin: 0; color: var(--faint); font-size: 9px; }
+.panel-tag { flex: none; padding: 5px 8px; border-radius: 6px; background: var(--mint-pale); color: var(--mint); font-size: 9px; font-weight: 600; }
+.panel-actions { display: flex; gap: 5px; }
+.mini-tab { padding: 5px 8px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 9px; cursor: pointer; }
+.mini-tab.active { color: var(--mint-deep); background: var(--mint-pale); font-weight: 600; }
+
+.funnel { display: flex; align-items: stretch; min-height: 151px; }
+.funnel-step { flex: 1; position: relative; padding: 20px 15px 13px; text-align: center; }
+.funnel-step:not(:last-child)::after { content: ""; position: absolute; top: 33px; right: -5px; z-index: 2; width: 10px; height: 10px; border-top: 1px solid #cbd6d2; border-right: 1px solid #cbd6d2; transform: rotate(45deg); }
+.funnel-icon { width: 38px; height: 38px; margin: 0 auto 11px; display: grid; place-items: center; border-radius: 12px; background: var(--stage-pale); color: var(--stage-color); }
+.funnel-icon svg { width: 18px; height: 18px; }
+.funnel-step b { display: block; font-size: 18px; }.funnel-step span { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; }
+.funnel-step small { display: inline-block; margin-top: 9px; padding: 3px 7px; border-radius: 20px; background: #f3f5f4; color: var(--faint); font-size: 8px; }
+
+.insight-box { margin-top: 12px; display: flex; align-items: center; gap: 10px; padding: 11px 13px; border-radius: 10px; background: #f8faf8; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.insight-box .bulb { flex: none; width: 25px; height: 25px; display: grid; place-items: center; border-radius: 7px; background: #fff3ce; color: #b48825; }
+.insight-box svg { width: 13px; }
+.insight-box b { color: var(--ink); }
+
+.rank-list { display: grid; gap: 14px; }
+.rank-row { display: grid; grid-template-columns: minmax(80px, 1fr) 1.5fr 38px; align-items: center; gap: 11px; font-size: 10px; }
+.rank-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-track { height: 6px; border-radius: 6px; background: #edf1ef; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: inherit; background: var(--bar-color, var(--mint)); transform-origin: left; animation: grow .8s ease both; }
+.rank-value { text-align: right; color: var(--muted); font-size: 9px; }
+@keyframes grow { from { transform: scaleX(0); } }
+
+.section-head { display: flex; align-items: end; justify-content: space-between; margin: 0 0 22px; }
+.section-head h2 { margin: 0 0 5px; font-size: 19px; }.section-head p { margin: 0; color: var(--muted); font-size: 11px; }
+.back-button { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 12px; padding: 0; border: 0; background: none; color: var(--mint); font-size: 10px; cursor: pointer; }
+.back-button svg { width: 12px; }
+.goal-pill { padding: 8px 11px; border-radius: 8px; background: var(--mint-pale); color: var(--mint-deep); font-size: 10px; font-weight: 600; }
+
+.flow-track { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; margin: 11px 0 23px; padding: 4px 0; }
+.flow-node { position: relative; text-align: center; }
+.flow-node:not(:last-child)::after { content: ""; position: absolute; top: 20px; left: 65%; width: 70%; height: 1px; background: #dce4e0; }
+.flow-node i { position: relative; z-index: 2; width: 40px; height: 40px; margin: auto; display: grid; place-items: center; border-radius: 50%; color: white; background: var(--node-color); box-shadow: 0 0 0 6px var(--node-pale); font-style: normal; font-size: 11px; font-weight: 700; }
+.flow-node b { display: block; margin-top: 12px; font-size: 10px; }.flow-node small { color: var(--faint); font-size: 8px; }
+
+.line-chart { height: 190px; display: grid; grid-template-columns: 27px 1fr; grid-template-rows: 1fr 21px; }
+.y-axis { display: flex; flex-direction: column; justify-content: space-between; color: var(--faint); font-size: 8px; padding-bottom: 3px; }
+.plot { position: relative; border-bottom: 1px solid var(--line); background: repeating-linear-gradient(to bottom, transparent 0, transparent calc(25% - 1px), #edf1ef 25%); }
+.plot svg { width: 100%; height: 100%; overflow: visible; }
+.plot .area { stroke: none; fill: url(#areaGradient); }
+.plot .chart-line { fill: none; stroke: var(--mint); stroke-width: 2.3; vector-effect: non-scaling-stroke; }
+.plot .dot { fill: white; stroke: var(--mint); stroke-width: 2; }
+.x-axis { grid-column: 2; display: flex; justify-content: space-between; padding-top: 7px; color: var(--faint); font-size: 8px; }
+
+.stage-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 13px; }
+.stage-card { padding: 16px; border: 1px solid var(--line); border-radius: 13px; background: #fbfcfb; }
+.stage-title { display: flex; align-items: center; gap: 8px; margin-bottom: 13px; }
+.stage-title i { width: 27px; height: 27px; display: grid; place-items: center; border-radius: 8px; background: var(--stage-pale); color: var(--stage-color); font-style: normal; font-size: 10px; font-weight: 700; }
+.stage-title b { font-size: 11px; }.stage-title small { display: block; color: var(--faint); font-size: 8px; margin-top: 1px; }
+.stage-metric { display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px dashed var(--line); font-size: 9px; color: var(--muted); }
+.stage-metric strong { color: var(--ink); font-size: 10px; }
+
+.heatmap-wrap { overflow-x: auto; }
+.heatmap { min-width: 580px; display: grid; grid-template-columns: 66px repeat(7, 1fr); gap: 5px; }
+.heatmap > span { display: grid; place-items: center; min-height: 26px; border-radius: 5px; color: var(--muted); font-size: 8px; }
+.heat-cell { background: rgba(27,140,114,var(--intensity)); color: var(--intensity-text, white) !important; cursor: default; transition: transform .15s; }
+.heat-cell:hover { transform: scale(1.08); }
+.heat-legend { display: flex; align-items: center; justify-content: flex-end; gap: 5px; margin-top: 10px; color: var(--faint); font-size: 8px; }
+.heat-legend i { width: 12px; height: 7px; border-radius: 2px; background: rgba(27,140,114,var(--i)); }
+
+.issue-list { display: grid; gap: 10px; }
+.issue { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 11px; padding: 11px; border-radius: 11px; background: #f9faf9; }
+.issue-icon { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 9px; background: var(--issue-pale); color: var(--issue-color); }
+.issue-icon svg { width: 16px; }.issue b { display: block; font-size: 10px; }.issue small { color: var(--faint); font-size: 8px; }
+.severity { padding: 4px 7px; border-radius: 5px; font-size: 8px; font-weight: 600; }.severity.high { color: #b6503d; background: var(--coral-pale); }.severity.mid { color: #997317; background: #fff5d6; }
+
+.donut-wrap { display: flex; align-items: center; justify-content: center; gap: 26px; padding: 11px 0; }
+.donut { position: relative; width: 126px; height: 126px; border-radius: 50%; background: conic-gradient(var(--mint) 0 54%, var(--lime) 54% 78%, var(--blue) 78% 91%, #e7ebe9 91%); }
+.donut::after { content: ""; position: absolute; inset: 17px; border-radius: 50%; background: white; }
+.donut-center { position: absolute; inset: 0; z-index: 2; display: grid; place-content: center; text-align: center; }.donut-center strong { font-size: 22px; }.donut-center span { color: var(--faint); font-size: 8px; }
+.legend-list { display: grid; gap: 11px; }.legend-row { display: grid; grid-template-columns: 8px 1fr auto; align-items: center; gap: 8px; font-size: 9px; }.legend-row i { width: 8px; height: 8px; border-radius: 3px; }.legend-row span { color: var(--muted); }.legend-row b { font-size: 9px; }
+
+.alert-list { display: grid; gap: 8px; }
+.alert-row { display: grid; grid-template-columns: 36px 1fr auto; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 11px; }
+.student-avatar { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; background: var(--avatar-bg); color: var(--avatar-color); font-size: 10px; font-weight: 700; }
+.alert-row b { display: block; font-size: 10px; }.alert-row small { display: block; margin-top: 2px; color: var(--faint); font-size: 8px; }
+.risk-score { text-align: right; }.risk-score strong { display: block; color: var(--coral); font-size: 11px; }.risk-score span { color: var(--faint); font-size: 8px; }
+
+.event-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+.event-table th { padding: 10px 12px; color: var(--faint); background: #f7f9f8; text-align: left; font-size: 8px; letter-spacing: .06em; }
+.event-table td { padding: 12px; border-bottom: 1px solid var(--line); vertical-align: middle; color: var(--muted); }
+.event-table td:first-child { color: var(--ink); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 600; }
+.event-table tr:last-child td { border-bottom: 0; }
+.status-dot { display: inline-flex; align-items: center; gap: 5px; color: var(--mint); }.status-dot::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.table-wrap { overflow-x: auto; }
+
+.model-flow { display: flex; align-items: center; justify-content: center; gap: 8px; overflow-x: auto; margin-bottom: 17px; padding: 13px 16px; border: 1px solid #dce9e4; border-radius: 12px; background: linear-gradient(90deg,#f0f7f4,#f7faf8); white-space: nowrap; }
+.model-flow span { padding: 7px 10px; border-radius: 7px; color: var(--mint-deep); background: white; box-shadow: 0 2px 8px rgba(27,55,47,.06); font-size: 9px; font-weight: 600; }
+.model-flow i { color: #8ba39d; font-size: 8px; font-style: normal; }
+.model-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 13px; }
+.model-card { grid-column: span 2; display: flex; flex-direction: column; min-height: 236px; padding: 17px; border: 1px solid var(--line); border-radius: 15px; background: white; box-shadow: var(--shadow); }
+.model-card-wide { grid-column: span 3; }
+.model-card:nth-child(3) { grid-column: span 3; }
+.model-card header { display: flex; align-items: flex-start; gap: 10px; }
+.model-card header > span { flex: none; width: 29px; height: 29px; display: grid; place-items: center; border-radius: 8px; color: var(--mint); background: var(--mint-pale); font-size: 9px; font-weight: 700; }
+.model-card h3 { margin: 0 0 3px; font-size: 12px; }
+.model-card code { color: var(--mint); font-size: 8px; }
+.model-card > p { margin: 13px 0 10px; color: var(--muted); font-size: 9px; }
+.field-list { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px; }
+.field-list span { overflow: hidden; padding: 6px 7px; border-radius: 6px; color: #65766f; background: #f5f8f6; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 7.5px; text-overflow: ellipsis; white-space: nowrap; }
+.model-card footer { display: flex; align-items: center; gap: 6px; margin-top: auto; padding-top: 11px; color: var(--faint); font-size: 8px; }
+.model-card footer i { width: 15px; height: 2px; border-radius: 2px; background: var(--mint); }
+
+.toast { position: fixed; right: 28px; bottom: 28px; z-index: 50; display: flex; align-items: center; gap: 10px; padding: 12px 17px; border-radius: 11px; color: white; background: #173b34; box-shadow: 0 12px 30px rgba(17,47,43,.25); transform: translateY(80px); opacity: 0; pointer-events: none; transition: .3s ease; }
+.toast.show { transform: none; opacity: 1; }.toast span { width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; color: #14352f; background: var(--lime); font-size: 11px; }.toast p { margin: 0; font-size: 11px; }
+.scrim { display: none; }
+.fade-in { animation: fadeIn .35s ease both; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } }
+
+@media (max-width: 1050px) {
+  .app-shell { grid-template-columns: 200px minmax(0, 1fr); }.sidebar { width: 200px; }.scheme-grid { grid-template-columns: 1fr; }.scheme-card { min-height: 145px; }.kpi-grid { grid-template-columns: repeat(2, 1fr); }.dashboard-grid { grid-template-columns: 1fr; }.panel-wide { grid-column: auto; }
+}
+@media (max-width: 760px) {
+  .app-shell { display: block; }.main { grid-column: auto; }.sidebar { width: 232px; transform: translateX(-100%); transition: transform .25s ease; }.sidebar.open { transform: none; }.scrim { position: fixed; inset: 0; z-index: 15; background: rgba(9,29,25,.35); backdrop-filter: blur(2px); }.scrim.show { display: block; }
+  .topbar { height: auto; min-height: 90px; padding: 16px 18px; align-items: flex-start; }.topbar > div:first-child { display: grid; grid-template-columns: 36px 1fr; column-gap: 10px; }.mobile-menu { display: grid; width: 36px; height: 36px; grid-row: 1 / 3; }.eyebrow { grid-column: 2; }.topbar h1 { grid-column: 2; font-size: 18px; }.top-actions { align-self: center; }.select-wrap span, .top-actions .select-wrap:first-child { display: none; }.select-wrap { padding: 0 7px; height: 36px; }.select-wrap select { max-width: 100px; font-size: 10px; }.icon-button { width: 36px; height: 36px; }
+  .content { padding: 24px 17px 40px; }.intro-row { align-items: flex-start; flex-direction: column; gap: 12px; }.scheme-grid, .kpi-grid, .stage-grid { grid-template-columns: 1fr; }.funnel { overflow-x: auto; }.funnel-step { min-width: 120px; }.flow-track { overflow-x: auto; grid-template-columns: repeat(5, 105px); }.event-table { min-width: 640px; }.donut-wrap { flex-direction: column; }.section-head { gap: 14px; align-items: flex-start; }.goal-pill { display: none; }.model-flow { justify-content: flex-start; }.model-grid { display: block; }.model-card { margin-bottom: 11px; }.field-list { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+
+    </style>
   </head>
   <body>
     <div class="app-shell">
@@ -42,7 +291,7 @@
           <p class="nav-label nav-label-spaced">管理</p>
           <button class="nav-item" data-view="events">
             <svg viewBox="0 0 24 24"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>
-            埋点字典
+            数据模型
           </button>
         </nav>
 
@@ -76,6 +325,222 @@
 
     <div class="toast" id="toast" role="status"><span>✓</span><p>报表已导出</p></div>
     <div class="scrim" id="scrim"></div>
-    <script src="./app.js"></script>
+    <script>
+const state = { view: "overview", period: "week", segment: "all" };
+
+const icons = {
+  open: '<svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 8h8M8 12h6"/></svg>',
+  learn: '<svg viewBox="0 0 24 24"><path d="m4 6 8-3 8 3-8 3-8-3Z"/><path d="M7 8v6c0 1 2.2 3 5 3s5-2 5-3V8M20 7v7"/></svg>',
+  practice: '<svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 9l2 2 4-4M8 15h8"/></svg>',
+  revise: '<svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 1-2.3-5.7L20 8"/><path d="M20 3v5h-5M9 12l2 2 4-5"/></svg>',
+  bulb: '<svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M8.5 15.5a7 7 0 1 1 7 0c-.8.6-1.5 1.4-1.5 2.5h-4c0-1.1-.7-1.9-1.5-2.5Z"/></svg>',
+  play: '<svg viewBox="0 0 24 24"><path d="m9 7 8 5-8 5V7Z"/><circle cx="12" cy="12" r="9"/></svg>',
+  clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  alert: '<svg viewBox="0 0 24 24"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 9v5M12 17.5v.1"/></svg>',
+  arrow: '<svg viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>'
+};
+
+const periodFactors = { week: 1, lastWeek: .94, month: 3.82 };
+const segmentFactors = { all: 1, new: .31, risk: .14 };
+const formatNumber = (value) => Math.round(value).toLocaleString("zh-CN");
+const scaled = (value) => formatNumber(value * periodFactors[state.period] * segmentFactors[state.segment]);
+const pctShift = () => state.segment === "risk" ? -11.2 : state.segment === "new" ? 3.1 : 0;
+const pct = (value) => `${Math.max(0, value + pctShift()).toFixed(1)}%`;
+
+const schemes = [
+  { id: "journey", no: "01", title: "学习闭环监测", color: "#1b8c72", pale: "#e8f4ef", desc: "看学生是否顺利完成“解锁—学—练—改”，定位每一步的关键流失。", footer: "回答：流程走得顺不顺" },
+  { id: "experience", no: "02", title: "体验质量诊断", color: "#5b7fc9", pale: "#edf2fb", desc: "观察时长、卡顿、退出与错误分布，发现具体内容和交互体验问题。", footer: "回答：哪里需要被优化" },
+  { id: "outcome", no: "03", title: "学习结果与预警", color: "#f08068", pale: "#fff0ed", desc: "连接完成、正确率与坚持度，识别高风险学生并衡量真实学习结果。", footer: "回答：学生有没有学会" }
+];
+
+function kpiCard(label, value, trend, note, icon = "↗", down = false) {
+  return `<article class="kpi-card"><div class="kpi-head"><span>${label}</span><i>${icon}</i></div><div class="kpi-value"><strong>${value}</strong><span class="trend ${down ? "down" : ""}">${trend}</span></div><small>${note}</small></article>`;
+}
+
+function overviewTemplate() {
+  return `
+    <section class="fade-in">
+      <div class="intro-row"><div><h2>先看全局，再定位问题</h2><p>三套方案从过程、体验到结果逐层深入。建议先用闭环监测发现流失，再用体验诊断定位原因，最后以学习结果验证改版价值。</p></div><span class="data-note"><i></i> 当前为演示数据</span></div>
+      <div class="scheme-grid">
+        ${schemes.map(s => `<article class="scheme-card" data-open="${s.id}" style="--scheme-color:${s.color};--scheme-pale:${s.pale}"><div class="scheme-top"><span class="scheme-number">${s.no}</span><span class="scheme-arrow">${icons.arrow}</span></div><h3>${s.title}</h3><p>${s.desc}</p><footer><i></i>${s.footer}</footer></article>`).join("")}
+      </div>
+      <div class="kpi-grid">
+        ${kpiCard("本周学习学生", scaled(2384), "+8.4%", "较上周同期", "人")}
+        ${kpiCard("双课完成率", pct(68.4), "+3.2%", "完成每周 2 节课", "%")}
+        ${kpiCard("练习正确率", pct(76.8), "+1.6%", "首答正确题目占比", "✓")}
+        ${kpiCard("待关注学生", scaled(186), "-12 人", "连续 7 天未学习", "!", true)}
+      </div>
+      <div class="dashboard-grid">
+        <article class="panel"><div class="panel-header"><div><h3>学习闭环转化</h3><p>本周解锁课程的学生 · 去重人数</p></div><span class="panel-tag">核心漏斗</span></div>${funnelMarkup()}<div class="insight-box"><span class="bulb">${icons.bulb}</span><span><b>本周洞察：</b>“练 → 改”仍是主要流失环节，建议强化错题入口反馈与完成激励。</span></div></article>
+        <article class="panel"><div class="panel-header"><div><h3>高流失内容 TOP 5</h3><p>按进入后未完成率排序</p></div><span class="panel-tag">需关注</span></div>${rankList([{n:"一次函数图像",v:42},{n:"全等三角形",v:37},{n:"整式乘法",v:33},{n:"浮力与压强",v:29},{n:"古诗文理解",v:24}], "#f08068")}</article>
+      </div>
+    </section>`;
+}
+
+function funnelMarkup() {
+  const base = [2384, 2146, 1932, 1651];
+  const stages = [
+    ["learn", "完成“学”", "90.0%", "平均 8.6 分钟", "#1b8c72", "#e8f4ef"],
+    ["practice", "完成“练”", "81.0%", "平均 12.4 分钟", "#5b7fc9", "#edf2fb"],
+    ["revise", "完成“改”", "69.3%", "平均 6.2 分钟", "#8772bb", "#f2eff8"],
+    ["open", "完整闭环", "68.4%", "双课完成", "#f08068", "#fff0ed"]
+  ];
+  return `<div class="funnel">${stages.map((s,i)=>`<div class="funnel-step" style="--stage-color:${s[4]};--stage-pale:${s[5]}"><span class="funnel-icon">${icons[s[0]]}</span><b>${scaled(base[i])}</b><span>${s[1]} · ${pct(parseFloat(s[2]))}</span><small>${s[3]}</small></div>`).join("")}</div>`;
+}
+
+function rankList(rows, color) {
+  const max = Math.max(...rows.map(r=>r.v));
+  return `<div class="rank-list">${rows.map(r=>`<div class="rank-row"><span class="rank-label">${r.n}</span><div class="bar-track"><div class="bar-fill" style="width:${r.v/max*100}%;--bar-color:${color}"></div></div><span class="rank-value">${r.v}%</span></div>`).join("")}</div>`;
+}
+
+function detailHeader(title, desc, goal) {
+  return `<button class="back-button" data-open="overview"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>返回总览</button><div class="section-head"><div><h2>${title}</h2><p>${desc}</p></div><span class="goal-pill">${goal}</span></div>`;
+}
+
+function journeyTemplate() {
+  return `<section class="fade-in">${detailHeader("方案一 · 学习闭环监测", "追踪从每周课程解锁到完成错题订正的完整路径，快速识别流失节点。", "核心目标：提高双课闭环率")}
+    <div class="kpi-grid">${kpiCard("课程解锁人数",scaled(2650),"+6.3%","本周期至少解锁 1 节","人")}${kpiCard("首课启动率",pct(89.9),"+2.4%","解锁后 24 小时内启动","%")}${kpiCard("单课闭环率",pct(72.6),"+3.5%","完整完成学练改","✓")}${kpiCard("双课闭环率",pct(68.4),"+3.2%","每周 2 节均完成","2")}</div>
+    <div class="dashboard-grid">
+      <article class="panel panel-wide"><div class="panel-header"><div><h3>本周学习旅程</h3><p>人数与上一步转化率</p></div><span class="panel-tag">目标 ≥ 75%</span></div>${flowMarkup()}</article>
+      <article class="panel"><div class="panel-header"><div><h3>双课闭环率趋势</h3><p>近 8 周 · 每周完成 2 节课</p></div><div class="panel-actions"><button class="mini-tab active">闭环率</button><button class="mini-tab">人数</button></div></div>${lineChart([58,61,60,64,66,65,67,68])}<div class="insight-box"><span class="bulb">${icons.bulb}</span><span>第 15 周上线“错题回顾提醒”后，闭环率累计提升 <b>4.3 个百分点</b>。</span></div></article>
+      <article class="panel"><div class="panel-header"><div><h3>环节关键指标</h3><p>学、练、改三段拆解</p></div></div>${stageCards()}</article>
+    </div></section>`;
+}
+
+function flowMarkup() {
+  const nodes = [
+    ["解锁",scaled(2650),"100%","#294c45","#e8efed"], ["进入学习",scaled(2384),pct(89.9),"#1b8c72","#e8f4ef"],
+    ["完成动画",scaled(2146),pct(90),"#5b7fc9","#edf2fb"], ["完成训练",scaled(1932),pct(90),"#8772bb","#f2eff8"], ["完成订正",scaled(1651),pct(85.5),"#f08068","#fff0ed"]
+  ];
+  return `<div class="flow-track">${nodes.map((n,i)=>`<div class="flow-node" style="--node-color:${n[3]};--node-pale:${n[4]}"><i>${i+1}</i><b>${n[0]} · ${n[1]}</b><small>${n[2]}</small></div>`).join("")}</div><div class="insight-box"><span class="bulb">${icons.bulb}</span><span><b>最大机会点：</b>训练完成后仍有 14.5% 学生未进入订正，约影响 ${scaled(281)} 人/周。</span></div>`;
+}
+
+function lineChart(values) {
+  const min = 50, max = 75;
+  const pts = values.map((v,i)=>`${i/(values.length-1)*100},${100-(v-min)/(max-min)*100}`).join(" ");
+  const area = `0,100 ${pts} 100,100`;
+  return `<div class="line-chart"><div class="y-axis"><span>75%</span><span>65%</span><span>55%</span><span>50%</span></div><div class="plot"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><defs><linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b8c72" stop-opacity=".22"/><stop offset="1" stop-color="#1b8c72" stop-opacity="0"/></linearGradient></defs><polygon class="area" points="${area}"/><polyline class="chart-line" points="${pts}"/>${values.map((v,i)=>`<circle class="dot" cx="${i/(values.length-1)*100}" cy="${100-(v-min)/(max-min)*100}" r="1.8"/>`).join("")}</svg></div><div class="x-axis">${["W11","W12","W13","W14","W15","W16","W17","本周"].map(x=>`<span>${x}</span>`).join("")}</div></div>`;
+}
+
+function stageCards() {
+  const stages = [
+    ["学","动画讲解","#1b8c72","#e8f4ef",[["完成率",pct(90)],["平均观看", "8.6 min"],["拖拽/跳过","12.3%"]]],
+    ["练","知识训练","#5b7fc9","#edf2fb",[["完成率",pct(81)],["首答正确率",pct(76.8)],["平均用时","12.4 min"]]],
+    ["改","错题订正","#8772bb","#f2eff8",[["进入率",pct(85.5)],["订正正确率",pct(84.1)],["延展题完成","63.7%"]]]
+  ];
+  return `<div class="stage-grid">${stages.map(s=>`<div class="stage-card" style="--stage-color:${s[2]};--stage-pale:${s[3]}"><div class="stage-title"><i>${s[0]}</i><div><b>${s[1]}</b><small>环节表现</small></div></div>${s[4].map(m=>`<div class="stage-metric"><span>${m[0]}</span><strong>${m[1]}</strong></div>`).join("")}</div>`).join("")}</div>`;
+}
+
+function experienceTemplate() {
+  return `<section class="fade-in">${detailHeader("方案二 · 体验质量诊断", "用时、退出、重复操作与内容难度共同还原学生在每个环节的真实体验。", "核心目标：降低异常退出率")}
+    <div class="kpi-grid">${kpiCard("平均单课用时","27.2 min","-1.8 min","目标区间 25–30 分钟","时")}${kpiCard("异常退出率",pct(8.7),"-1.4%","未完成且 30 分钟内未返回","!")}${kpiCard("视频有效观看率",pct(86.3),"+2.1%","观看超过视频时长 80%","▶")}${kpiCard("内容困难度","0.68","+0.03","错误率与耗时综合指数","ƒ")}</div>
+    <div class="dashboard-grid">
+      <article class="panel"><div class="panel-header"><div><h3>一周学习时段热力</h3><p>颜色越深代表活跃学生越多</p></div><span class="panel-tag">高峰 20:00</span></div>${heatmap()}</article>
+      <article class="panel"><div class="panel-header"><div><h3>体验问题雷达</h3><p>按影响学生人数排序</p></div><span class="panel-tag">本周 4 项</span></div>${issueList()}</article>
+      <article class="panel panel-wide"><div class="panel-header"><div><h3>内容困难度排行</h3><p>综合首答错误率、平均答题时长与重复观看率</p></div><div class="panel-actions"><button class="mini-tab active">全部年级</button><button class="mini-tab">初一</button><button class="mini-tab">初二</button></div></div>${rankList([{n:"八上数学 · 全等三角形判定",v:88},{n:"八上物理 · 浮力的计算",v:81},{n:"七下数学 · 一元一次不等式组",v:76},{n:"九上化学 · 化学方程式配平",v:68},{n:"七上语文 · 古诗文理解",v:62}], "#5b7fc9")}<div class="insight-box"><span class="bulb">${icons.bulb}</span><span><b>建议：</b>“全等三角形判定”动画回看率达 31%，且训练第 4 题停留超均值 42 秒，优先检查讲解与题目梯度。</span></div></article>
+    </div></section>`;
+}
+
+function heatmap() {
+  const rows = ["06–09","09–12","12–15","15–18","18–21","21–24"], days=["周一","周二","周三","周四","周五","周六","周日"];
+  const vals = [[.08,.06,.08,.07,.08,.12,.14],[.08,.07,.06,.08,.08,.26,.31],[.12,.11,.12,.1,.13,.35,.38],[.2,.18,.19,.22,.24,.57,.52],[.68,.73,.71,.77,.8,.84,.76],[.38,.42,.4,.46,.44,.52,.47]];
+  return `<div class="heatmap-wrap"><div class="heatmap"><span></span>${days.map(d=>`<span>${d}</span>`).join("")}${rows.map((r,i)=>`<span>${r}</span>${vals[i].map((v,j)=>`<span class="heat-cell" style="--intensity:${v};--intensity-text:${v<.3?'#70808a':'white'}" title="${days[j]} ${r}"></span>`).join("")}`).join("")}</div></div><div class="heat-legend"><span>低</span>${[.1,.25,.45,.65,.85].map(i=>`<i style="--i:${i}"></i>`).join("")}<span>高</span></div>`;
+}
+
+function issueList() {
+  const issues = [["play","动画中途退出","影响 143 人 · 集中在 03:20–04:10","高","#f08068","#fff0ed"],["clock","单题停留过久","影响 98 人 · 超过 P90 用时","中","#e9b951","#fff5d6"],["alert","连续重复提交","影响 76 人 · 同题 ≥ 3 次","中","#8772bb","#f2eff8"],["revise","订正页往返跳转","影响 51 人 · 单次 ≥ 4 次","中","#5b7fc9","#edf2fb"]];
+  return `<div class="issue-list">${issues.map(x=>`<div class="issue"><span class="issue-icon" style="--issue-color:${x[4]};--issue-pale:${x[5]}">${icons[x[0]]}</span><div><b>${x[1]}</b><small>${x[2]}</small></div><span class="severity ${x[3]==='高'?'high':'mid'}">${x[3]}优先</span></div>`).join("")}</div>`;
+}
+
+function outcomeTemplate() {
+  return `<section class="fade-in">${detailHeader("方案三 · 学习结果与预警", "将过程行为与学习表现相连，既验证“是否学会”，也及时发现需要干预的学生。", "核心目标：提升学习有效性")}
+    <div class="kpi-grid">${kpiCard("首答正确率",pct(76.8),"+1.6%","全部训练题","✓")}${kpiCard("订正后掌握率",pct(84.1),"+2.8%","错题订正后二次作答","↻")}${kpiCard("延展题完成率",pct(63.7),"+4.2%","进入并完成延展题","↗")}${kpiCard("预警学生",scaled(186),"-6.0%","满足至少一项风险规则","!",true)}</div>
+    <div class="dashboard-grid">
+      <article class="panel"><div class="panel-header"><div><h3>学生学习状态分层</h3><p>基于近 4 周完成度、正确率与学习频次</p></div><span class="panel-tag">${scaled(2384)} 人</span></div>${donut()}</article>
+      <article class="panel"><div class="panel-header"><div><h3>需优先关注</h3><p>风险分最高的学生 · 已脱敏</p></div><span class="panel-tag">查看全部</span></div>${alertList()}</article>
+      <article class="panel panel-wide"><div class="panel-header"><div><h3>结果指标关联</h3><p>不同学习行为组的近 4 周表现对比</p></div></div><div class="table-wrap"><table class="event-table"><thead><tr><th>行为分组</th><th>学生数</th><th>双课完成率</th><th>首答正确率</th><th>订正后掌握率</th><th>建议动作</th></tr></thead><tbody><tr><td>稳定完成组</td><td>${scaled(1126)}</td><td>91.4%</td><td>83.2%</td><td>91.7%</td><td>保持正向激励</td></tr><tr><td>只学不练组</td><td>${scaled(328)}</td><td>34.6%</td><td>68.1%</td><td>72.5%</td><td>强化训练入口</td></tr><tr><td>练后不改组</td><td>${scaled(281)}</td><td>42.3%</td><td>61.7%</td><td>—</td><td>增加错题提醒</td></tr><tr><td>间歇学习组</td><td>${scaled(463)}</td><td>51.8%</td><td>73.4%</td><td>80.2%</td><td>固定每周学习计划</td></tr><tr><td>流失风险组</td><td>${scaled(186)}</td><td>18.2%</td><td>59.6%</td><td>65.1%</td><td>家长端温和触达</td></tr></tbody></table></div></article>
+    </div></section>`;
+}
+
+function donut() {
+  return `<div class="donut-wrap"><div class="donut"><div class="donut-center"><strong>${pct(68)}</strong><span>状态良好</span></div></div><div class="legend-list">${[["稳定学习","54%","#1b8c72"],["偶尔波动","24%","#dff176"],["需要关注","13%","#5b7fc9"],["高风险","9%","#e7ebe9"]].map(x=>`<div class="legend-row"><i style="background:${x[2]}"></i><span>${x[0]}</span><b>${x[1]}</b></div>`).join("")}</div></div><div class="insight-box"><span class="bulb">${icons.bulb}</span><span>连续两周未完成“改”的学生，下周流失概率是稳定完成组的 <b>2.6 倍</b>。</span></div>`;
+}
+
+function alertList() {
+  return `<div class="alert-list">${[["林*","连续 9 天未学习","92","#fff0ed","#c65e49"],["赵*宇","2 周未完成订正","86","#fff5d6","#9b761f"],["陈*","正确率持续下降","81","#edf2fb","#5b7fc9"],["王*宁","动画多次中途退出","78","#f2eff8","#8772bb"]].map(x=>`<div class="alert-row"><span class="student-avatar" style="--avatar-bg:${x[3]};--avatar-color:${x[4]}">${x[0].slice(0,1)}</span><div><b>${x[0]}</b><small>${x[1]}</small></div><div class="risk-score"><strong>${x[2]}</strong><span>风险分</span></div></div>`).join("")}</div>`;
+}
+
+const eventRows = [
+  ["open","打开产品或课节","session_id、设备、来源","活跃人数 / 启动率"],
+  ["unlock","课程解锁成功","课程ID、课节ID、解锁周","解锁人数 / 解锁率"],
+  ["play","动画开始或恢复播放","动画ID、版本、播放位置","播放率 / 观看时长"],
+  ["pause","动画暂停","动画ID、播放位置、停留时长","暂停率 / 内容卡点"],
+  ["seek_forward","动画向前拖动","起止位置、动画版本","快进率 / 跳过区间"],
+  ["answer","提交题目答案","题目ID、版本、正误、耗时","首答正确率 / 单题耗时"],
+  ["correction","提交错题订正","题目ID、二答正误、订正次数","订正率 / 掌握率"],
+  ["exit","退出当前课程","所在环节、进度、退出方式","异常退出率 / 流失点"],
+  ["complete","完成课节闭环","学练改结果、延展题结果","单课 / 双课完成率"],
+];
+
+function eventsTemplate() {
+  const models = [
+    ["01", "用户基础表", "students", "学生画像与购买分群", ["student_id · 学生ID", "grade · 年级", "purchased_at · 购买时间", "package_code · 套餐", "channel · 渠道", "device_type · 设备"]],
+    ["02", "学习事件明细表", "learning_events", "原始行为事实 · 追加写入", ["event_id · 事件ID", "student_id · 学生ID", "event_name · 事件类型", "event_at · 发生时间", "course / lesson · 课程课节", "properties_json · 扩展属性"]],
+    ["03", "课程学习结果表", "course_learning_results", "每位学生 × 每节课", ["观看进度 / 时长", "训练题数 / 首答正确", "错题数 / 订正正确", "延展题完成", "completion_status", "is_completed"]],
+    ["04", "用户周度汇总表", "user_weekly_summaries", "每位学生 × 每自然周", ["解锁 / 学习 / 完成数", "活跃天数 / 学习时长", "答题数 / 正确率", "双课完成", "health_score · 健康分", "risk_level · 风险等级"]],
+    ["05", "内容质量表", "content_quality", "知识点 × 内容版本 × 日", ["知识点 / 学科 / 年级", "动画ID / 版本", "题集ID / 版本", "观看 / 跳过指标", "正确 / 掌握指标", "难度 / 退出指标"]]
+  ];
+  return `<section class="fade-in">${detailHeader("底层数据模型", "五张核心表串联学生、原始行为、课节结果、周度状态与内容质量，支撑三套监测方案。", "5 张核心表 · 2 个语义视图")}
+    <div class="model-flow"><span>学生画像</span><i>1 : N</i><span>行为事件</span><i>聚合</i><span>课程结果</span><i>按周</i><span>周度汇总</span><i>评估</i><span>内容质量</span></div>
+    <div class="model-grid">${models.map((m,i)=>`<article class="model-card ${i===1?'model-card-wide':''}"><header><span>${m[0]}</span><div><h3>${m[1]}</h3><code>${m[2]}</code></div></header><p>${m[3]}</p><div class="field-list">${m[4].map(f=>`<span>${f}</span>`).join("")}</div><footer><i></i>${i===1?'事实层':i<3?'明细层':i===3?'汇总层':'评估层'}</footer></article>`).join("")}</div>
+    <div class="panel" style="margin-top:18px"><div class="panel-header"><div><h3>学习事件口径</h3><p>原始事件进入 learning_events，结果表与周表均由事件重算</p></div><span class="panel-tag">9 类核心事件</span></div><div class="table-wrap"><table class="event-table"><thead><tr><th>事件名</th><th>触发时机</th><th>关键属性</th><th>支持指标</th><th>状态</th></tr></thead><tbody>${eventRows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td><span class="status-dot">已建模</span></td></tr>`).join("")}</tbody></table></div></div>
+    <div class="insight-box" style="margin-top:14px"><span class="bulb">${icons.bulb}</span><span><b>口径提醒：</b>学生数据默认使用匿名 ID；家长端仅呈现必要的学习建议，不展示行为监控细节。单课完成定义为同一课程的“学、练、改”均触发完成事件。</span></div>
+  </section>`;
+}
+
+const views = {
+  overview: { title: "用户行为监测总览", eyebrow: "数据驾驶舱", render: overviewTemplate },
+  journey: { title: "学习闭环监测", eyebrow: "方案 01 / 过程", render: journeyTemplate },
+  experience: { title: "体验质量诊断", eyebrow: "方案 02 / 体验", render: experienceTemplate },
+  outcome: { title: "学习结果与预警", eyebrow: "方案 03 / 结果", render: outcomeTemplate },
+  events: { title: "底层数据模型", eyebrow: "数据管理", render: eventsTemplate }
+};
+
+function render() {
+  const view = views[state.view];
+  document.getElementById("pageTitle").textContent = view.title;
+  document.getElementById("pageEyebrow").textContent = view.eyebrow;
+  document.getElementById("content").innerHTML = view.render();
+  document.querySelectorAll(".nav-item").forEach(el => el.classList.toggle("active", el.dataset.view === state.view));
+  document.querySelectorAll("[data-open]").forEach(el => el.addEventListener("click", () => navigate(el.dataset.open)));
+  document.querySelectorAll(".mini-tab").forEach(el => el.addEventListener("click", () => { el.parentElement.querySelectorAll(".mini-tab").forEach(x=>x.classList.remove("active")); el.classList.add("active"); }));
+}
+
+function navigate(view) {
+  state.view = view;
+  render();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  closeMenu();
+}
+
+document.querySelectorAll(".nav-item").forEach(el => el.addEventListener("click", () => navigate(el.dataset.view)));
+document.getElementById("periodSelect").addEventListener("change", e => { state.period = e.target.value; render(); });
+document.getElementById("segmentSelect").addEventListener("change", e => { state.segment = e.target.value; render(); });
+document.getElementById("exportButton").addEventListener("click", () => {
+  const headers = ["方案", "指标", "当前值", "周期", "人群"];
+  const rows = [[views[state.view].title, "页面数据快照", new Date().toLocaleString("zh-CN"), state.period, state.segment]];
+  const csv = "\ufeff" + [headers, ...rows].map(row => row.join(",")).join("\n");
+  const url = URL.createObjectURL(new Blob([csv], {type:"text/csv;charset=utf-8"}));
+  const a = document.createElement("a"); a.href = url; a.download = `拾光学习_${views[state.view].title}.csv`; a.click(); URL.revokeObjectURL(url);
+  const toast = document.getElementById("toast"); toast.classList.add("show"); setTimeout(()=>toast.classList.remove("show"), 2200);
+});
+
+const sidebar = document.querySelector(".sidebar"), scrim = document.getElementById("scrim");
+function closeMenu(){ sidebar.classList.remove("open"); scrim.classList.remove("show"); }
+document.getElementById("menuButton").addEventListener("click", ()=>{ sidebar.classList.add("open"); scrim.classList.add("show"); });
+scrim.addEventListener("click", closeMenu);
+render();
+
+    </script>
   </body>
 </html>

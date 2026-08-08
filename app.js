@@ -143,21 +143,29 @@ function alertList() {
 }
 
 const eventRows = [
-  ["course_unlock","课程解锁成功","课程ID、年级、学科、解锁周","解锁人数 / 启动率"],
-  ["lesson_start","进入单节学习","课程ID、来源、距解锁时长","课程启动率"],
-  ["video_progress","动画观看进度","视频ID、进度、播放时长、倍速","有效观看率 / 跳出点"],
-  ["video_complete","动画播放完成","视频ID、总时长、回看次数","学环节完成率"],
-  ["practice_start","进入知识训练","练习ID、题目数、来源","练环节进入率"],
-  ["answer_submit","提交题目答案","题目ID、答案、是否正确、耗时","首答正确率 / 单题耗时"],
-  ["correction_start","进入错题订正","错题数、入口来源","改环节进入率"],
-  ["correction_complete","完成错题订正","订正题数、二答正确数","订正后掌握率"],
-  ["extension_complete","完成延展题","题目ID、正确率、耗时","延展题完成率"],
-  ["lesson_exit","退出当前课程","所在环节、进度、退出方式","异常退出率"],
+  ["open","打开产品或课节","session_id、设备、来源","活跃人数 / 启动率"],
+  ["unlock","课程解锁成功","课程ID、课节ID、解锁周","解锁人数 / 解锁率"],
+  ["play","动画开始或恢复播放","动画ID、版本、播放位置","播放率 / 观看时长"],
+  ["pause","动画暂停","动画ID、播放位置、停留时长","暂停率 / 内容卡点"],
+  ["seek_forward","动画向前拖动","起止位置、动画版本","快进率 / 跳过区间"],
+  ["answer","提交题目答案","题目ID、版本、正误、耗时","首答正确率 / 单题耗时"],
+  ["correction","提交错题订正","题目ID、二答正误、订正次数","订正率 / 掌握率"],
+  ["exit","退出当前课程","所在环节、进度、退出方式","异常退出率 / 流失点"],
+  ["complete","完成课节闭环","学练改结果、延展题结果","单课 / 双课完成率"],
 ];
 
 function eventsTemplate() {
-  return `<section class="fade-in">${detailHeader("核心埋点字典", "用最小事件集覆盖三套监测方案；所有事件需携带匿名 student_id、session_id 与时间戳。", "建议版本：v1.0")}
-    <div class="panel"><div class="panel-header"><div><h3>事件与指标映射</h3><p>上线前由产品、研发、数据共同校验触发时机</p></div><span class="panel-tag">10 个核心事件</span></div><div class="table-wrap"><table class="event-table"><thead><tr><th>事件名</th><th>触发时机</th><th>关键属性</th><th>支持指标</th><th>状态</th></tr></thead><tbody>${eventRows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td><span class="status-dot">待接入</span></td></tr>`).join("")}</tbody></table></div></div>
+  const models = [
+    ["01", "用户基础表", "students", "学生画像与购买分群", ["student_id · 学生ID", "grade · 年级", "purchased_at · 购买时间", "package_code · 套餐", "channel · 渠道", "device_type · 设备"]],
+    ["02", "学习事件明细表", "learning_events", "原始行为事实 · 追加写入", ["event_id · 事件ID", "student_id · 学生ID", "event_name · 事件类型", "event_at · 发生时间", "course / lesson · 课程课节", "properties_json · 扩展属性"]],
+    ["03", "课程学习结果表", "course_learning_results", "每位学生 × 每节课", ["观看进度 / 时长", "训练题数 / 首答正确", "错题数 / 订正正确", "延展题完成", "completion_status", "is_completed"]],
+    ["04", "用户周度汇总表", "user_weekly_summaries", "每位学生 × 每自然周", ["解锁 / 学习 / 完成数", "活跃天数 / 学习时长", "答题数 / 正确率", "双课完成", "health_score · 健康分", "risk_level · 风险等级"]],
+    ["05", "内容质量表", "content_quality", "知识点 × 内容版本 × 日", ["知识点 / 学科 / 年级", "动画ID / 版本", "题集ID / 版本", "观看 / 跳过指标", "正确 / 掌握指标", "难度 / 退出指标"]]
+  ];
+  return `<section class="fade-in">${detailHeader("底层数据模型", "五张核心表串联学生、原始行为、课节结果、周度状态与内容质量，支撑三套监测方案。", "5 张核心表 · 2 个语义视图")}
+    <div class="model-flow"><span>学生画像</span><i>1 : N</i><span>行为事件</span><i>聚合</i><span>课程结果</span><i>按周</i><span>周度汇总</span><i>评估</i><span>内容质量</span></div>
+    <div class="model-grid">${models.map((m,i)=>`<article class="model-card ${i===1?'model-card-wide':''}"><header><span>${m[0]}</span><div><h3>${m[1]}</h3><code>${m[2]}</code></div></header><p>${m[3]}</p><div class="field-list">${m[4].map(f=>`<span>${f}</span>`).join("")}</div><footer><i></i>${i===1?'事实层':i<3?'明细层':i===3?'汇总层':'评估层'}</footer></article>`).join("")}</div>
+    <div class="panel" style="margin-top:18px"><div class="panel-header"><div><h3>学习事件口径</h3><p>原始事件进入 learning_events，结果表与周表均由事件重算</p></div><span class="panel-tag">9 类核心事件</span></div><div class="table-wrap"><table class="event-table"><thead><tr><th>事件名</th><th>触发时机</th><th>关键属性</th><th>支持指标</th><th>状态</th></tr></thead><tbody>${eventRows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td><span class="status-dot">已建模</span></td></tr>`).join("")}</tbody></table></div></div>
     <div class="insight-box" style="margin-top:14px"><span class="bulb">${icons.bulb}</span><span><b>口径提醒：</b>学生数据默认使用匿名 ID；家长端仅呈现必要的学习建议，不展示行为监控细节。单课完成定义为同一课程的“学、练、改”均触发完成事件。</span></div>
   </section>`;
 }
@@ -167,7 +175,7 @@ const views = {
   journey: { title: "学习闭环监测", eyebrow: "方案 01 / 过程", render: journeyTemplate },
   experience: { title: "体验质量诊断", eyebrow: "方案 02 / 体验", render: experienceTemplate },
   outcome: { title: "学习结果与预警", eyebrow: "方案 03 / 结果", render: outcomeTemplate },
-  events: { title: "核心埋点字典", eyebrow: "数据管理", render: eventsTemplate }
+  events: { title: "底层数据模型", eyebrow: "数据管理", render: eventsTemplate }
 };
 
 function render() {

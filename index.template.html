@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="拾光学习用户行为监测中心——覆盖学习闭环、体验诊断与学习结果预警。" />
+    <title>拾光学习 · 行为监测中心</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="主导航">
+        <a class="brand" href="#" aria-label="拾光学习首页">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32"><path d="M8 7.5 16 3l8 4.5v9L16 21l-8-4.5v-9Z"/><path d="m8 16.5 8 4.5 8-4.5V25l-8 4-8-4v-8.5Z" opacity=".52"/></svg>
+          </span>
+          <span><b>拾光学习</b><small>INSIGHT CENTER</small></span>
+        </a>
+
+        <nav class="primary-nav">
+          <p class="nav-label">工作台</p>
+          <button class="nav-item active" data-view="overview">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
+            监测总览
+          </button>
+          <p class="nav-label nav-label-spaced">监测方案</p>
+          <button class="nav-item" data-view="journey">
+            <span class="nav-index">01</span>
+            学习闭环
+          </button>
+          <button class="nav-item" data-view="experience">
+            <span class="nav-index">02</span>
+            体验诊断
+          </button>
+          <button class="nav-item" data-view="outcome">
+            <span class="nav-index">03</span>
+            结果与预警
+          </button>
+          <p class="nav-label nav-label-spaced">管理</p>
+          <button class="nav-item" data-view="events">
+            <svg viewBox="0 0 24 24"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>
+            数据模型
+          </button>
+        </nav>
+
+        <div class="sidebar-foot">
+          <div class="sync-status"><i></i><span>数据同步正常<small>更新于 10:32</small></span></div>
+          <div class="user-chip"><span>KK</span><div><b>Kk Hh</b><small>产品负责人</small></div><button aria-label="更多">•••</button></div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <button class="mobile-menu" id="menuButton" aria-label="打开菜单">
+              <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+            <p class="eyebrow" id="pageEyebrow">数据驾驶舱</p>
+            <h1 id="pageTitle">用户行为监测总览</h1>
+          </div>
+          <div class="top-actions">
+            <label class="select-wrap"><span>人群</span><select id="segmentSelect"><option value="all">全部学生</option><option value="new">新购学生</option><option value="risk">流失风险学生</option></select></label>
+            <label class="select-wrap"><span>周期</span><select id="periodSelect"><option value="week">本周 · 第 18 周</option><option value="lastWeek">上周 · 第 17 周</option><option value="month">近 4 周</option></select></label>
+            <button class="icon-button" id="exportButton" title="导出本页数据" aria-label="导出本页数据">
+              <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 18v2h14v-2"/></svg>
+            </button>
+          </div>
+        </header>
+
+        <div class="content" id="content" aria-live="polite"></div>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status"><span>✓</span><p>报表已导出</p></div>
+    <div class="scrim" id="scrim"></div>
+    <script src="./app.js"></script>
+  </body>
+</html>
