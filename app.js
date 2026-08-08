@@ -571,7 +571,7 @@ function openTrackingDetail(studentId, lessonIndex) {
     <div class="lesson-focus"><small>当前课时</small><b>${lessonRows[lessonIndex].name}</b><span class="cause-pill ${s==='done'?'good':s==='exit'?'risk':'watch'}">${statusMeta[s][0]}</span></div>
     <div class="drawer-metrics six"><div><span>完成时间</span><b>${s==='done'?'07-18 20:46':'—'}</b></div><div><span>完成时长</span><b>${duration?duration+' min':'—'}</b></div><div><span>跳出</span><b class="${s==='exit'?'danger':''}">${s==='exit'?'是':'否'}</b></div><div><span>参课</span><b>${s==='missed'?'否':'是'}</b></div><div><span>完课</span><b>${s==='done'?'是':'否'}</b></div><div><span>正确率</span><b>${accuracy}</b></div></div>
     <h3 class="drawer-title">每道题答题时长</h3>${s==='missed'?'<div class="empty-state">该用户本节课未参课，暂无答题记录</div>':`<div class="question-bars">${questions.map((v,i)=>`<div><span>第 ${i+1} 题</span><i><em class="${v>90?'slow':''}" style="width:${Math.min(v/1.2,100)}%"></em></i><b>${v}s</b></div>`).join("")}</div>`}
-    <div class="action-box"><b>行为归因</b><p>${s==='exit'?'用户在动画 68% 处退出，退出前发生 2 次快进；建议核查该片段信息密度。':s==='missed'?'前序课时未形成连续完课，建议在解锁后 24 小时进行学习提醒。':'学习路径完整，可作为未流失/续费用户的正向对照样本。'}</p></div>`);
+    <div class="action-box"><b>行为归因</b><p>${s==='exit'?'用户在动画 68% 处退出，退出前发生 2 次快进；建议核查该片段信息密度。':s==='missed'?'前序课时未形成连续完课，建议在解锁后 24 小时进行学习提醒。':u.churn?'本节学习路径完整，但该用户最终仍然退费——说明流失并非发生在这一节，需回看其首次出现连续断点的课时。':'学习路径完整，可作为未流失/续费用户的正向对照样本。'}</p></div>`);
 }
 
 const eventRows = [
@@ -634,7 +634,14 @@ function render() {
   const view = views[state.view];
   document.getElementById("pageTitle").textContent = view.title;
   document.getElementById("pageEyebrow").textContent = view.eyebrow;
+  // 上一视图移到 body 上的抽屉不会随 #content 重绘被清掉，先移除避免 id 重复。
+  document.querySelectorAll("body > .drawer-layer").forEach(el => el.remove());
+  document.body.style.overflow = "";
   document.getElementById("content").innerHTML = view.render();
+  // 抽屉必须挂在 body 上：留在 .fade-in 内部时，动画期间的 transform 会让它
+  // 成为 position: fixed 的包含块，抽屉会贴着 section 定位而不是视口。
+  const drawer = document.getElementById("detailDrawer");
+  if (drawer) document.body.appendChild(drawer);
   document.querySelectorAll(".nav-item").forEach(el => el.classList.toggle("active", el.dataset.view === state.view));
   document.querySelectorAll("[data-open]").forEach(el => el.addEventListener("click", () => navigate(el.dataset.open)));
   document.querySelectorAll(".mini-tab").forEach(el => el.addEventListener("click", () => { el.parentElement.querySelectorAll(".mini-tab").forEach(x => x.classList.remove("active")); el.classList.add("active"); }));

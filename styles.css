@@ -252,7 +252,11 @@ h1 { margin: 0; font-size: 23px; letter-spacing: -.035em; line-height: 1.15; }
 .toast { position: fixed; right: 28px; bottom: 28px; z-index: 50; display: flex; align-items: center; gap: 10px; padding: 12px 17px; border-radius: 11px; color: white; background: #173b34; box-shadow: 0 12px 30px rgba(17,47,43,.25); transform: translateY(80px); opacity: 0; pointer-events: none; transition: .3s ease; }
 .toast.show { transform: none; opacity: 1; }.toast span { width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; color: #14352f; background: var(--lime); font-size: 11px; }.toast p { margin: 0; font-size: 11px; }
 .scrim { display: none; }
-.fade-in { animation: fadeIn .35s ease both; }
+/* fill-mode 用 backwards 而不是 both：both 会让动画结束后仍保留 transform 的
+   计算值 matrix(1,0,0,1,0,0)，虽是单位矩阵但不等于 none，会使 .fade-in 成为
+   position: fixed 的包含块，导致内部的下钻抽屉贴着 section 定位而跑出视口。
+   本动画无 delay，backwards 与 both 视觉上完全一致。 */
+.fade-in { animation: fadeIn .35s ease backwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } }
 
 @media (max-width: 1050px) {
