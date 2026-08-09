@@ -1,4 +1,5 @@
 const state = { view: "overview", period: "m1", analysisCycle: "product", segment: "all", grade: "g7", subject: "math", packageType: "half", courseStartDate: "2026-08-01", userGroup: "all", selectedUser: null, selectedLessonSession: null, outcome: "refund", expandedLesson: 4 };
+let analysisStepObserver = null;
 
 const icons = {
   open: '<svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 8h8M8 12h6"/></svg>',
@@ -1020,12 +1021,21 @@ function userMonitoringFlow(user = null) {
           : p.repeat || p.slow ? `优先：拆解第 ${[...w.em.qs].sort((a, b) => b.seconds - a.seconds)[0].no} 题` : "保持当前梯度，观察月度课";
   }
   const steps = [
-    ["01", "连续学习表现", user ? `${attended}/9 参课 · ${completed}/9 完课` : "月度 9 节状态 + 会话回放", "先还原每次打开到离开的真实过程", "chain"],
+    ["01", "连续学表现", user ? `${attended}/9 参课 · ${completed}/9 完课` : "月度 9 节状态 + 会话回放", "先还原每次打开到离开的真实过程", "chain"],
     ["02", "异常信号", signalText || "断点前 5 分钟 · 20 类信号", "判断离开前发生了什么", "signal"],
     ["03", "用户情绪识别", moodText || "受挫 / 无聊 / 涣散 / 正向", "把连续行为转成可验证的情绪判断", "emotion"],
     ["04", "断点优化点", fixText || "定位到动画秒段与具体题号", "将情绪原因落到可改的产品位置", "lesson"]
   ];
-  return `<section class="user-monitoring-flow is-primary-flow"><div class="monitor-flow-head"><div><span>用户行为归因 · 主要四步</span><h3>连续表现 → 异常信号 → 情绪识别 → 断点优化</h3><p>${user ? `当前聚焦 ${user.name}，按四步从月度连续行为下钻到可执行优化点。` : "本页所有用户矩阵、异常分布、情绪聚类与断点分析，均按以下四步展开。"}</p></div>${user ? "" : '<button data-example-session>打开会话样例 · SES-8842</button>'}</div><div class="monitor-flow-grid">${steps.map((s,i)=>`<button data-open="${s[4]}" class="monitor-flow-card"><i>${s[0]}</i><span><b>${s[1]}</b><strong>${s[2]}</strong><small>${s[3]}</small></span>${i<steps.length-1?'<em>→</em>':""}</button>`).join("")}</div><div class="primary-flow-guide"><span>主分析框架</span><i></i><b>以下内容按 01 → 04 逐步展开</b></div></section>`;
+  return `<section class="user-monitoring-flow is-primary-flow"><div class="monitor-flow-head"><div><span>用户行为归因 · 总框架</span><h3>连续学表现 → 异常信号 → 情绪识别 → 断点优化</h3><p>${user ? `当前聚焦 ${user.name}，按四步从月度连续行为下钻到可执行优化点。` : "从学习事实出发，经由异常与情绪判断，最终落到可验证的产品优化动作。"}</p></div><div class="monitor-flow-actions"><button class="is-secondary" data-open="framework">查看总分析框架</button>${user ? "" : '<button data-example-session>打开会话样例 · SES-8842</button>'}</div></div>
+    <div class="flow-logic-line"><span><small>输入</small><b>用户连续学习事实</b></span><i>→</i><span><small>分析</small><b>异常信号 × 情绪判断</b></span><i>→</i><span><small>输出</small><b>产品断点与优化动作</b></span></div>
+    <div class="monitor-flow-grid">${steps.map((s,i)=>`<button ${user ? `data-open="${s[4]}"` : `data-analysis-jump="analysis-step-${s[0]}"`} class="monitor-flow-card" aria-label="${user ? "打开" : "定位到"}${s[1]}"><i>${s[0]}</i><span><b>${s[1]}</b><strong>${s[2]}</strong><small>${s[3]}</small><u>${user ? "打开专项分析" : "点击定位本步"} ↓</u></span>${i<steps.length-1?'<em>→</em>':""}</button>`).join("")}</div>
+    <div class="flow-interaction-guide"><div><span>交互指引</span><b>${user ? "当前为单用户下钻，可点击四步打开专项分析" : "按 01 → 04 完成一轮归因"}</b></div><div><span><i>1</i>选月份与人群</span><span><i>2</i>点用户 / 课时回放</span><span><i>3</i>对照信号与情绪</span><span><i>4</i>形成优化动作</span></div></div>
+  </section>`;
+}
+
+function analysisProcessNav() {
+  const steps = [["01", "连续学表现"], ["02", "异常信号"], ["03", "情绪识别"], ["04", "断点优化"]];
+  return `<nav class="analysis-process-nav" aria-label="用户行为归因分析过程"><span class="process-nav-label"><i></i><b>分析过程</b><small>点击跳转</small></span>${steps.map((step, index) => `<button class="${index === 0 ? "active" : ""}" data-analysis-jump="analysis-step-${step[0]}"><i>${step[0]}</i><span>${step[1]}</span>${index < steps.length - 1 ? "<em>→</em>" : ""}</button>`).join("")}</nav>`;
 }
 
 function signalDistributionPanel() {
@@ -1038,7 +1048,7 @@ function signalDistributionPanel() {
   const allHits = stageMeta.reduce((sum, stage) => sum + stage.rows.reduce((value, row) => value + row.brk, 0), 0);
   const topSignal = [...signals].sort((a, b) => b.brk - a.brk)[0];
   const strongestSignal = [...signals].sort((a, b) => b.lift - a.lift)[0];
-  return `<article class="panel signal-distribution-panel"><div class="panel-header"><div><span class="signal-panel-kicker">异常信号 · 全量分布</span><h3>20 类异常信号分布图</h3><p>统计断点前 5 分钟的信号命中；按学、练、改与跨环节分组，快速判断异常主要发生在哪里。</p></div><span class="panel-tag">20 类信号 · 同批断点会话</span></div>
+  return `<article class="panel signal-distribution-panel"><div class="panel-header"><div><span class="signal-panel-kicker">02 / 异常信号 · 全量分布</span><h3>20 类异常信号分布图</h3><p>统计断点前 5 分钟的信号命中；按学、练、改与跨环节分组，快速判断异常主要发生在哪里。</p></div><span class="panel-tag">20 类信号 · 同批断点会话</span></div>
     <div class="signal-stage-summary"><div class="signal-stage-stack">${stageMeta.map(stage => { const hit = stage.rows.reduce((value, row) => value + row.brk, 0); return `<i style="width:${hit / allHits * 100}%;--stage-color:${stage.color}" title="${stage.label} · ${(hit / allHits * 100).toFixed(1)}%"></i>`; }).join("")}</div><div class="signal-stage-legend">${stageMeta.map(stage => { const hit = stage.rows.reduce((value, row) => value + row.brk, 0); return `<span><i style="--stage-color:${stage.color}"></i><b>${stage.label}</b><em>${(hit / allHits * 100).toFixed(1)}%</em><small>${stage.rows.length} 类</small></span>`; }).join("")}</div></div>
     <div class="signal-distribution-grid">${stageMeta.map(stage => `<section class="signal-stage-card" style="--stage-color:${stage.color};--stage-pale:${stage.pale}"><header><i></i><div><b>${stage.label}</b><small>${stage.rows.length} 类异常信号</small></div><em>${stage.rows.filter(row => row.lift >= 3.5).length} 类强关联</em></header><div>${stage.rows.map(row => `<div class="signal-distribution-row" title="判定规则：${row.rule}"><span>${row.name}</span><div><i style="width:${row.brk}%"></i></div><b>${row.brk.toFixed(1)}%</b><em class="${row.lift >= 4 ? "is-strong" : ""}">${row.lift.toFixed(1)}×</em></div>`).join("")}</div></section>`).join("")}</div>
     <div class="signal-distribution-footer"><span><b>最高频</b>${topSignal.name} · ${topSignal.brk.toFixed(1)}%</span><span><b>最强关联</b>${strongestSignal.name} · ${strongestSignal.lift.toFixed(1)}×</span><p>命中率 = 断点会话中出现该信号的比例；提升度 = 断点会话命中率 ÷ 完课会话命中率。同一会话可命中多项，阶段占比按全部信号命中次数归一。</p></div>
@@ -1275,8 +1285,8 @@ function userEmotionAndWarningPanel(users) {
   const warnings = users.filter(user => !user.churn).map(dropoutWarning).filter(item => item.score >= 50).sort((a, b) => b.score - a.score).slice(0, 4);
   const counts = Object.fromEntries(Object.keys(userEmotionClusterMeta).map(key => [key, clustered.filter(item => item.type === key).length]));
   const total = Math.max(1, users.length);
-  return `<div class="table-to-insight-link"><i></i><span>由上表每位用户的 9 节连续学习行为自动计算</span><svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg></div>
-    <section class="behavior-intelligence-panel"><header><div><span>行为结果衍生分析</span><h3>用户使用情绪聚类 × 脱离用户预警</h3><p>把参课、完课、跳出和逐题异常聚合成人群感受，并在用户真正脱离前给出干预名单。</p></div><em>当前表内 ${users.length} 名脱敏样本</em></header>
+  return `<div class="table-to-insight-link"><i></i><span>由连续学表现与 20 类异常信号共同计算</span><svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg></div>
+    <section class="behavior-intelligence-panel"><header><div><span>03 / 情绪识别 · 行为结果衍生分析</span><h3>用户使用情绪聚类 × 脱离用户预警</h3><p>把参课、完课、跳出和逐题异常聚合成人群感受，并在用户真正脱离前给出干预名单。</p></div><em>当前表内 ${users.length} 名脱敏样本</em></header>
       <div class="behavior-intelligence-grid">
         <article class="emotion-cluster-block"><div class="intelligence-title"><div><span>A / 用户使用情绪聚类</span><b>孩子使用时是什么感受？</b></div><small>行为聚类，不是心理诊断</small></div><div class="emotion-cluster-grid">${Object.entries(userEmotionClusterMeta).map(([key, meta]) => `<div class="emotion-cluster-card" style="--cluster-color:${meta.color};--cluster-pale:${meta.pale}"><i></i><span><b>${meta.label}<em>${meta.feeling}</em></b><small>${meta.evidence}</small></span><strong>${counts[key]}<small>人 · ${(counts[key] / total * 100).toFixed(0)}%</small></strong></div>`).join("")}</div><footer><b>聚类用途</b><span>受挫型优先降难度，无聊型提供跳测与挑战，涣散型优化续学提醒，正向型沉淀有效路径。</span></footer></article>
         <article class="dropout-warning-block"><div class="intelligence-title"><div><span>B / 脱离用户预警</span><b>谁正在从连续学习中脱离？</b></div><small>高危 ≥70 · 观察 50–69</small></div><div class="warning-summary"><span><b>${warnings.filter(w => w.level === "高危").length}</b>高危</span><span><b>${warnings.filter(w => w.level === "观察").length}</b>观察</span><p>按最近 4 节异常、累计未参及参未完联合评分</p></div><div class="warning-user-list">${warnings.length ? warnings.map(item => `<button data-select-user="${item.user.id}" class="warning-user is-${item.level === "高危" ? "high" : "watch"}"><span class="warning-avatar">${item.user.name.slice(0, 1)}</span><span><b>${item.user.name}<small>${userEmotionClusterMeta[item.cluster.type].label}</small></b><em>${item.signals.join(" · ") || "连续性开始下降"}</em></span><strong>${item.score}<small>${item.level}</small></strong><i>查看行为 →</i></button>`).join("") : '<div class="warning-empty">当前筛选人群暂无达到预警阈值的用户</div>'}</div><footer><b>建议动作</b><span>高危用户 24 小时内触达，先回放首次异常会话，再匹配难度、跳测或断点续学策略。</span></footer></article>
@@ -1290,19 +1300,24 @@ function usersTemplate() {
   const matrix = `<article class="panel tracking-panel"><div class="panel-header"><div><h3>月度用户课时状态矩阵</h3><p>一个月 9 节：四周每周解锁 2 节，另加 1 节月度综合课；点击用户名查看完整课时明细</p></div><div class="status-legend"><span><i class="done"></i>完课</span><span><i class="learning"></i>参未完</span><span><i class="exit"></i>跳出</span><span><i class="missed"></i>未参</span></div></div>
       <div class="tracking-wrap"><table class="tracking-table month-tracking-table"><thead><tr class="week-band"><th rowspan="2">用户</th><th rowspan="2">结果状态</th><th colspan="2">第 1 周</th><th colspan="2">第 2 周</th><th colspan="2">第 3 周</th><th colspan="2">第 4 周</th><th>月度加课</th></tr><tr>${lessonRows.map((_,i)=>`<th>L${String(i+1).padStart(2,"0")}</th>`).join("")}</tr></thead><tbody>${visibleUsers.map(u=>`<tr><td><button class="student-name-button" data-select-user="${u.id}"><b>${u.name}</b><small>${u.id} · ${u.city} · ${u.channel}</small><em>查看课时明细 →</em></button></td><td><span class="lifecycle ${u.churn?'churn':'active'}">${u.churn?'已退费':'未退费'}</span><span class="lifecycle ${u.renew?'renew':'no-renew'}">${u.renew?'已续费':'未续费'}</span>${isPotentialRisk(u)?'<span class="lifecycle risk">潜在风险</span>':''}</td>${u.states.map((s,i)=>`<td><button class="lesson-state ${statusMeta[s][1]}" data-user-detail="${u.id}" data-lesson="${i}" title="${u.name} · ${lessonRows[i].name} · ${statusMeta[s][0]}"><i></i><span>${s==="learning"||s==="exit"?"参未完":s==="missed"?"未参":"完课"}</span></button></td>`).join("")}</tr>`).join("")}</tbody></table></div>
     </article>`;
-  return `<section class="fade-in">${detailHeader("用户行为归因：连续表现 → 异常信号 → 情绪识别 → 断点优化", "先看连续学习事实，再定位异常、识别使用情绪，并将断点落到可执行的产品优化位置。", "点击用户/课时：展开会话回放")}
+  const groupAnalysis = selectedUser ? "" : `<section id="analysis-step-02" class="analysis-step-section" data-analysis-section="02">${signalDistributionPanel()}</section>
+    <section id="analysis-step-03" class="analysis-step-section" data-analysis-section="03">${userEmotionAndWarningPanel(visibleUsers)}</section>
+    <section id="analysis-step-04" class="analysis-step-section optimization-output-section" data-analysis-section="04"><div class="optimization-step-head"><div><span>04 / 断点优化</span><h2>把共性断点转成产品优化动作</h2><p>用结果人群对照判断优先级，再将动作定位到提醒时机、动画片段、具体题目与订正路径。</p></div><em>输出：可执行、可验证</em></div>
+      <div class="compare-grid"><article><span>退费用户典型路径</span><b>连续 2 节未参课 → 退费风险升高</b><p>首次跳出多集中于 L03、L05，且跳出前一节正确率均值低于 65%。</p></article><article><span>续费用户典型路径</span><b>前 6 节完成 ≥ 5 节 → 续费率 71%</b><p>稳定完课用户的错题订正率比未续费用户高 19.4 个百分点。</p></article></div>
+      ${sessionDegradationPanel()}
+      ${boredomRenewalPanel()}
+    </section>`;
+  return `<section class="fade-in">${detailHeader("用户行为归因：连续学表现 → 异常信号 → 情绪识别 → 断点优化", "先看连续学习事实，再定位异常、识别使用情绪，并将断点落到可执行的产品优化位置。", "点击用户/课时：展开会话回放")}
     ${userMonitoringFlow(selectedUser)}
-    <div class="continuity-section-head"><div><span>01 / 连续表现</span><h2>用户学习行为的连续性表现</h2><p>从当前用户生命周期月份开始，每月连续观察四周 8 节常规课和 1 节月度加课。</p></div><em>当前用户生命周期月份开始</em></div>
-    <div class="analysis-toolbar"><div><span>当前用户生命周期月份开始</span><b>${lifecyclePeriod()[1]} · ${lifecyclePeriod()[2]} · ${courseFilterLabel()} · ${packageFilterLabel()} · ${courseStartLabel()}开课</b></div><label>周期<select data-lifecycle-period>${lifecyclePeriodOptions()}</select></label><span class="cohort-range">同批进入 2,384 人 · ${lifecyclePeriod()[1]} 共 9 节</span></div>
-    <div class="month-plan"><span><b>第 1 周</b>L01–L02</span><i></i><span><b>第 2 周</b>L03–L04</span><i></i><span><b>第 3 周</b>L05–L06</span><i></i><span><b>第 4 周</b>L07–L08</span><i></i><span class="extra"><b>月度加课</b>L09 综合挑战</span></div>
-    <div class="segment-tabs">${userGroups.map(g=>`<button class="${state.userGroup===g[0]?'active':''}" data-user-group="${g[0]}"><span>${g[1]}</span><b>${g[2]}</b></button>`).join("")}</div>
-    <div class="segment-definition"><b>潜在流失风险口径</b><span>未退费且未续费，并在最近 4 节中至少 2 节出现未参、参未完或跳出。</span></div>
-    ${selectedUser ? userLessonDetailTable(selectedUser) : matrix}
-    ${selectedUser ? "" : userEmotionAndWarningPanel(visibleUsers)}
-    ${selectedUser ? "" : signalDistributionPanel()}
-    ${selectedUser ? insight(`<b>${selectedUser.name} 的月度行为：</b>异常标签已按题目阈值标记——≤15 秒为秒答，同题提交 ≥3 次为反复，≥100 秒为过长；可直接定位需要回放的题目。`) : `<div class="compare-grid"><article><span>退费用户典型路径</span><b>连续 2 节未参课 → 退费风险升高</b><p>首次跳出多集中于 L03、L05，且跳出前一节正确率均值低于 65%。</p></article><article><span>续费用户典型路径</span><b>前 6 节完成 ≥ 5 节 → 续费率 71%</b><p>稳定完课用户的错题订正率比未续费用户高 19.4 个百分点。</p></article></div>`}
-    ${selectedUser ? "" : sessionDegradationPanel()}
-    ${selectedUser ? "" : boredomRenewalPanel()}
+    ${selectedUser ? "" : analysisProcessNav()}
+    <section id="analysis-step-01" class="analysis-step-section" data-analysis-section="01"><div class="continuity-section-head"><div><span>01 / 连续学表现</span><h2>用户学习行为的连续性表现</h2><p>从当前用户生命周期月份开始，每月连续观察四周 8 节常规课和 1 节月度加课。</p></div><em>当前用户生命周期月份开始</em></div>
+      <div class="analysis-toolbar"><div><span>当前用户生命周期月份开始</span><b>${lifecyclePeriod()[1]} · ${lifecyclePeriod()[2]} · ${courseFilterLabel()} · ${packageFilterLabel()} · ${courseStartLabel()}开课</b></div><label>周期<select data-lifecycle-period>${lifecyclePeriodOptions()}</select></label><span class="cohort-range">同批进入 2,384 人 · ${lifecyclePeriod()[1]} 共 9 节</span></div>
+      <div class="month-plan"><span><b>第 1 周</b>L01–L02</span><i></i><span><b>第 2 周</b>L03–L04</span><i></i><span><b>第 3 周</b>L05–L06</span><i></i><span><b>第 4 周</b>L07–L08</span><i></i><span class="extra"><b>月度加课</b>L09 综合挑战</span></div>
+      <div class="segment-tabs">${userGroups.map(g=>`<button class="${state.userGroup===g[0]?'active':''}" data-user-group="${g[0]}"><span>${g[1]}</span><b>${g[2]}</b></button>`).join("")}</div>
+      <div class="segment-definition"><b>潜在流失风险口径</b><span>未退费且未续费，并在最近 4 节中至少 2 节出现未参、参未完或跳出。</span></div>
+      ${selectedUser ? userLessonDetailTable(selectedUser) : matrix}
+    </section>
+    ${selectedUser ? insight(`<b>${selectedUser.name} 的月度行为：</b>异常标签已按题目阈值标记——≤15 秒为秒答，同题提交 ≥3 次为反复，≥100 秒为过长；可直接定位需要回放的题目。`) : groupAnalysis}
     ${drawerShell()}
   </section>`;
 }
@@ -1419,6 +1434,8 @@ function render() {
   // 上一视图移到 body 上的抽屉与原题浮层不会随 #content 重绘被清掉，先移除。
   document.querySelectorAll("body > .drawer-layer").forEach(el => el.remove());
   closeQuestionPop();
+  analysisStepObserver?.disconnect();
+  analysisStepObserver = null;
   document.body.style.overflow = "";
   document.getElementById("content").innerHTML = view.render();
   // 抽屉必须挂在 body 上：留在 .fade-in 内部时，动画期间的 transform 会让它
@@ -1431,6 +1448,25 @@ function render() {
     el.classList.toggle("parent-active", el.dataset.view === "users" && monitoringViews.includes(state.view));
   });
   document.querySelectorAll("[data-open]").forEach(el => el.addEventListener("click", () => navigate(el.dataset.open)));
+  const analysisJumpButtons = [...document.querySelectorAll("[data-analysis-jump]")];
+  const analysisSections = [...document.querySelectorAll("[data-analysis-section]")];
+  const activateAnalysisStep = targetId => {
+    analysisJumpButtons.forEach(button => button.classList.toggle("active", button.dataset.analysisJump === targetId));
+    analysisSections.forEach(section => section.classList.toggle("is-active-step", section.id === targetId));
+  };
+  analysisJumpButtons.forEach(button => button.addEventListener("click", () => {
+    const target = document.getElementById(button.dataset.analysisJump);
+    if (!target) return;
+    activateAnalysisStep(target.id);
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+  }));
+  if (analysisSections.length && "IntersectionObserver" in window) {
+    analysisStepObserver = new IntersectionObserver(entries => {
+      const current = entries.filter(entry => entry.isIntersecting).sort((a, b) => Math.abs(a.boundingClientRect.top - 178) - Math.abs(b.boundingClientRect.top - 178))[0];
+      if (current) activateAnalysisStep(current.target.id);
+    }, { rootMargin: "-170px 0px -62% 0px", threshold: [0, .05, .2] });
+    analysisSections.forEach(section => analysisStepObserver.observe(section));
+  }
   document.querySelectorAll("[data-toggle-voice]").forEach(button => button.addEventListener("click", () => {
     const card = button.closest(".reason-voice-evidence");
     const expanded = card.classList.toggle("open");
