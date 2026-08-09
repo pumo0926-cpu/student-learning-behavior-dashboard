@@ -54,6 +54,7 @@ svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.8; strok
 }
 .nav-item:hover { color: #fff; background: rgba(255,255,255,.055); }
 .nav-item.active { color: #12352d; background: var(--lime); font-weight: 600; box-shadow: 0 7px 20px rgba(4,20,17,.18); }
+.nav-item.parent-active { color: var(--lime); background: rgba(223,241,118,.08); font-weight: 600; }
 .nav-item svg { width: 17px; height: 17px; }
 .nav-index { display: grid; place-items: center; width: 20px; height: 20px; border: 1px solid currentColor; border-radius: 6px; font-size: 9px; font-weight: 700; }
 .nav-subgroup { position: relative; margin: 5px 0 0 21px; padding: 8px 0 4px 12px; border-left: 1px solid rgba(223,241,118,.25); }.nav-subgroup > span { display: block; margin: 0 0 5px 8px; color: #6f968e; font-size: 8px; letter-spacing: .08em; }.nav-item.nav-subitem { min-height: 32px; margin: 1px 0; padding: 0 8px; border-radius: 7px; font-size: 10px; }.nav-subitem i { width: 17px; height: 17px; display: grid; place-items: center; border-radius: 5px; color: #789b94; background: rgba(255,255,255,.06); font-size: 7px; font-style: normal; }.nav-subitem.active i { color: var(--mint-deep); background: rgba(255,255,255,.48); }

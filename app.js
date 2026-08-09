@@ -502,7 +502,7 @@ function lessonQuestionMetrics(lessonIndex) {
 
 function questionMetricTable(lessonIndex, compact = false) {
   const rows = lessonQuestionMetrics(lessonIndex);
-  return `<div class="table-wrap"><table class="event-table question-metric-table ${compact ? "compact" : ""}"><thead><tr><th>题目</th><th>题型</th><th>答题人数</th><th>答题时长</th><th>答题正确率</th><th>答题跳出率 <span title="进入该题后未提交即离开本课时的人数 / 进入该题人数">?</span></th><th>题目诊断</th></tr></thead><tbody>${rows.map(q => `<tr class="${q.tone === "risk" ? "question-risk-row" : ""}"><td><b>${q.no}</b></td><td><span class="question-type">${q.type}</span></td><td>${formatNumber(q.students)}</td><td><span class="question-value ${q.time >= 95 ? "is-risk" : ""}">${q.time}s</span></td><td><span class="metric-inline"><i style="--value:${q.accuracy}%"></i><b class="${Number(q.accuracy) < 60 ? "is-risk" : ""}">${q.accuracy}%</b></span></td><td><span class="metric-inline jump"><i style="--value:${Math.min(100, Number(q.jump) * 4)}%"></i><b class="${Number(q.jump) >= 15 ? "is-risk" : ""}">${q.jump}%</b></span></td><td><span class="cause-pill ${q.tone}">${q.diagnosis}</span></td></tr>`).join("")}</tbody></table></div>`;
+  return `<div class="table-wrap"><table class="event-table question-metric-table ${compact ? "compact" : ""}"><thead><tr><th>题目</th><th>题型</th><th>答题人数</th><th>答题时长</th><th>答题正确率</th><th>答题跳出率 <span title="进入该题后未提交即离开本课时的人数 / 进入该题人数">?</span></th><th>题目诊断</th></tr></thead><tbody>${rows.map((q, qi) => `<tr class="${q.tone === "risk" ? "question-risk-row" : ""}"><td><button class="question-open" data-question="${lessonIndex}-${qi}" title="点击查看原题">${q.no}</button></td><td><span class="question-type">${q.type}</span></td><td>${formatNumber(q.students)}</td><td><span class="question-value ${q.time >= 95 ? "is-risk" : ""}">${q.time}s</span></td><td><span class="metric-inline"><i style="--value:${q.accuracy}%"></i><b class="${Number(q.accuracy) < 60 ? "is-risk" : ""}">${q.accuracy}%</b></span></td><td><span class="metric-inline jump"><i style="--value:${Math.min(100, Number(q.jump) * 4)}%"></i><b class="${Number(q.jump) >= 15 ? "is-risk" : ""}">${q.jump}%</b></span></td><td><span class="cause-pill ${q.tone}">${q.diagnosis}</span></td></tr>`).join("")}</tbody></table></div>`;
 }
 
 function lessonAttributionRows() {
@@ -590,8 +590,137 @@ function userLessonRecord(user, lessonIndex) {
   };
 }
 
-function questionDetailCell(question, index) {
-  return `<td><div class="question-detail ${question.anomaly ? "has-anomaly" : ""}"><b>Q${index + 1} · ${question.seconds}s</b><small class="${question.correct ? "correct" : "wrong"}">${question.correct ? "✓ 正确" : "× 错误"}</small>${question.anomaly ? `<em class="${question.anomaly.includes("秒答") ? "instant" : question.anomaly.includes("反复") ? "repeat" : "slow"}">${question.anomaly}</em>` : ""}</div></td>`;
+// 原题题库：9 节课 × 6 题，题型与 questionTypeCycle（选/填/选/解/选/解）严格对齐。
+// options + answer(下标) 为选择题；仅 answer(字符串) 为填空与解答题。
+const questionBank = [
+  [ // L01 有理数与数轴
+    { stem: "−3 的相反数是（　）", options: ["3", "−3", "1/3", "−1/3"], answer: 0, analysis: "只有符号不同的两个数互为相反数，−3 的相反数是 3。" },
+    { stem: "计算：|−7| = ______", answer: "7", analysis: "负数的绝对值等于它的相反数，|−7| = 7。" },
+    { stem: "数轴上表示 −2 的点与表示 3 的点之间的距离是（　）", options: ["1", "5", "−5", "6"], answer: 1, analysis: "距离 = |3 −(−2)| = 5，距离恒为非负数。" },
+    { stem: "计算：(−2) + 7 − (−3)", answer: "8", analysis: "减去一个数等于加上它的相反数：−2 + 7 + 3 = 8。" },
+    { stem: "下列各数中最小的是（　）", options: ["−2", "0", "−1/2", "1"], answer: 0, analysis: "负数都小于 0，且 −2 < −1/2，故最小为 −2。" },
+    { stem: "把 −3、0、2、−1/2 在数轴上表示出来，并按从小到大排列", answer: "−3 < −1/2 < 0 < 2", analysis: "数轴上右边的数总比左边的大，按位置从左到右读出即可。" }
+  ],
+  [ // L02 整式的加减
+    { stem: "单项式 −3x²y 的系数与次数分别是（　）", options: ["−3，2", "3，3", "−3，3", "−3，1"], answer: 2, analysis: "系数为 −3；次数为各字母指数之和 2 + 1 = 3。" },
+    { stem: "合并同类项：5a − 3a = ______", answer: "2a", analysis: "同类项相加减，只把系数相加减，字母部分不变。" },
+    { stem: "化简 2(x − 1) + 3 的结果是（　）", options: ["2x + 1", "2x − 1", "2x + 2", "2x − 5"], answer: 0, analysis: "去括号得 2x − 2 + 3 = 2x + 1。" },
+    { stem: "化简：3(2a − b) − 2(a − 2b)", answer: "4a + b", analysis: "6a − 3b − 2a + 4b = 4a + b。注意第二个括号前是负号，去括号要变号。" },
+    { stem: "下列各式中，是单项式的是（　）", options: ["x + 1", "3ab", "(a+b)/2", "1/x"], answer: 1, analysis: "单项式是数与字母的积，3ab 符合；含加号或分母含字母的都不是。" },
+    { stem: "先化简再求值：2(x² − 3x) − (x² − 5x)，其中 x = 2", answer: "x² − x，值为 2", analysis: "2x² − 6x − x² + 5x = x² − x；代入 x=2 得 4 − 2 = 2。" }
+  ],
+  [ // L03 一元一次方程
+    { stem: "下列方程中，是一元一次方程的是（　）", options: ["x² = 1", "2x + 1 = 0", "xy = 1", "1/x = 2"], answer: 1, analysis: "一元一次方程只含一个未知数且未知数次数为 1。" },
+    { stem: "方程 3x − 6 = 0 的解是 x = ______", answer: "2", analysis: "移项得 3x = 6，两边同除以 3 得 x = 2。" },
+    { stem: "解方程 2(x − 1) = 4，得 x =（　）", options: ["2", "3", "4", "1"], answer: 1, analysis: "两边同除以 2 得 x − 1 = 2，故 x = 3。" },
+    { stem: "解方程：(x − 1)/2 − (x + 2)/3 = 1", answer: "x = 13", analysis: "两边乘 6 去分母：3(x−1) − 2(x+2) = 6，即 x − 7 = 6，x = 13。" },
+    { stem: "把 5x = 3x + 8 移项，正确的是（　）", options: ["5x − 3x = 8", "5x + 3x = 8", "5x = 8 − 3x", "5x − 8 = 3x"], answer: 0, analysis: "移项要变号：把 3x 从右边移到左边变为 −3x。" },
+    { stem: "某数的 3 倍减去 5 等于 16，求这个数", answer: "7", analysis: "设该数为 x，则 3x − 5 = 16，解得 x = 7。" }
+  ],
+  [ // L04 几何图形初步
+    { stem: "下列几何体中，属于柱体的是（　）", options: ["球", "圆锥", "三棱柱", "四棱锥"], answer: 2, analysis: "柱体上下两底面平行且全等，三棱柱符合。" },
+    { stem: "经过两点有且只有 ______ 条直线", answer: "一", answer_note: "两点确定一条直线", analysis: "这是直线的基本事实，也是「两点确定一条直线」的表述。" },
+    { stem: "一个角是 35°，它的余角是（　）", options: ["55°", "65°", "145°", "35°"], answer: 0, analysis: "两角互余，和为 90°：90° − 35° = 55°。" },
+    { stem: "已知 ∠AOB = 90°，OC 平分 ∠AOB，求 ∠AOC 的度数", answer: "45°", analysis: "角平分线把角分成两个相等的角，∠AOC = 90° ÷ 2 = 45°。" },
+    { stem: "线段 AB = 8 cm，M 是 AB 的中点，则 AM =（　）", options: ["2 cm", "4 cm", "8 cm", "16 cm"], answer: 1, analysis: "中点把线段平分，AM = 8 ÷ 2 = 4 cm。" },
+    { stem: "线段 AB = 10 cm，点 C 在 AB 上且 AC = 4 cm，D 是 BC 的中点，求 AD", answer: "7 cm", analysis: "BC = 10 − 4 = 6，D 为中点故 CD = 3，AD = AC + CD = 4 + 3 = 7 cm。" }
+  ],
+  [ // L05 相交线与平行线
+    { stem: "直线 a、b 被直线 c 所截，∠1 与 ∠2 位于截线两侧、两直线之间，它们是（　）", options: ["同位角", "内错角", "同旁内角", "对顶角"], answer: 1, analysis: "「两直线之间、截线两侧」正是内错角的位置特征。" },
+    { stem: "对顶角 ______", answer: "相等", analysis: "对顶角相等，是由邻补角互补推出的基本性质。" },
+    { stem: "若 a∥b，∠1 = 50°，则与 ∠1 同位的 ∠2 =（　）", options: ["40°", "50°", "130°", "90°"], answer: 1, analysis: "两直线平行，同位角相等，故 ∠2 = 50°。" },
+    { stem: "已知 ∠1 = ∠2（∠1、∠2 是内错角），判断 a 与 b 的位置关系并说明理由", answer: "a∥b", analysis: "内错角相等，两直线平行。这是平行线的判定定理。" },
+    { stem: "两直线平行，同旁内角（　）", options: ["相等", "互余", "互补", "不确定"], answer: 2, analysis: "两直线平行，同旁内角互补，即和为 180°。" },
+    { stem: "如图 AB∥CD，点 E 在两平行线之间，∠B = 60°，∠D = 40°，求 ∠BED", answer: "100°", analysis: "过 E 作 EF∥AB，则 ∠BEF = ∠B = 60°，∠DEF = ∠D = 40°，∠BED = 60° + 40° = 100°。" }
+  ],
+  [ // L06 实数
+    { stem: "√9 的值是（　）", options: ["±3", "3", "−3", "9"], answer: 1, analysis: "算术平方根只取非负值，√9 = 3；而 9 的平方根才是 ±3。" },
+    { stem: "4 的平方根是 ______", answer: "±2", analysis: "平方等于 4 的数有两个：2 和 −2，注意与算术平方根区分。" },
+    { stem: "下列各数中，是无理数的是（　）", options: ["0.5", "22/7", "√2", "−3"], answer: 2, analysis: "无理数是无限不循环小数，√2 符合；22/7 是分数，属于有理数。" },
+    { stem: "计算：√16 + ∛27", answer: "7", analysis: "√16 = 4，∛27 = 3，和为 7。" },
+    { stem: "比较大小：√5 ____ 2", options: [">", "<", "=", "无法比较"], answer: 0, analysis: "因为 5 > 4，所以 √5 > √4 = 2。" },
+    { stem: "计算：|√2 − 1| + (√2)² − ∛(−8)", answer: "√2 + 3", analysis: "√2 > 1 故 |√2−1| = √2−1；(√2)² = 2；∛(−8) = −2，减去得 +2。合计 √2 + 3。" }
+  ],
+  [ // L07 平面直角坐标系
+    { stem: "点 P(−2, 3) 位于第几象限（　）", options: ["第一象限", "第二象限", "第三象限", "第四象限"], answer: 1, analysis: "横坐标为负、纵坐标为正的点在第二象限。" },
+    { stem: "点 A(3, 0) 在 ______ 轴上", answer: "x", analysis: "纵坐标为 0 的点都在 x 轴上。" },
+    { stem: "点 (2, −5) 关于 x 轴对称的点是（　）", options: ["(−2, 5)", "(2, 5)", "(−2, −5)", "(5, −2)"], answer: 1, analysis: "关于 x 轴对称，横坐标不变、纵坐标取相反数。" },
+    { stem: "已知 A(1, 2)、B(4, 2)，求线段 AB 的长", answer: "3", analysis: "纵坐标相同，AB 平行于 x 轴，长度 = |4 − 1| = 3。" },
+    { stem: "若点 P(m, 2) 在第二象限，则 m（　）", options: ["> 0", "< 0", "= 0", "≥ 0"], answer: 1, analysis: "第二象限内点的横坐标为负，故 m < 0。" },
+    { stem: "已知点 M(a − 1, 2a + 3) 在 y 轴上，求点 M 的坐标", answer: "M(0, 5)", analysis: "在 y 轴上则横坐标为 0：a − 1 = 0，a = 1，代入得纵坐标 5。" }
+  ],
+  [ // L08 二元一次方程组
+    { stem: "下列各组方程中，是二元一次方程组的是（　）", options: ["x + y = 1，x² = 4", "x + y = 3，x − y = 1", "x = 1", "xy = 2，x + y = 3"], answer: 1, analysis: "需含两个未知数且每个未知数次数均为 1，B 符合。" },
+    { stem: "解方程组 x + y = 5，x − y = 1，得 x = ______", answer: "3", analysis: "两式相加得 2x = 6，x = 3（此时 y = 2）。" },
+    { stem: "由 x = y + 2 代入 2x + y = 7，可得（　）", options: ["3y + 4 = 7", "2y + 2 + y = 7", "2y + 4 + y = 7", "2y − 4 + y = 7"], answer: 2, analysis: "2(y + 2) + y = 2y + 4 + y，注意括号要整体代入。" },
+    { stem: "解方程组：2x + 3y = 12，x − y = 1", answer: "x = 3，y = 2", analysis: "由第二式 x = y + 1，代入第一式得 5y + 2 = 12，y = 2，x = 3。" },
+    { stem: "方程组 2x + 3y = 8 与 2x − y = 4 两式相减，得（　）", options: ["4y = 4", "4y = 12", "2y = 4", "4y = −4"], answer: 0, analysis: "x 的系数相同，相减消去 x：3y − (−y) = 4y，8 − 4 = 4。" },
+    { stem: "甲、乙两数的和为 10，差为 4，求这两个数", answer: "7 和 3", analysis: "设两数为 x、y，x + y = 10，x − y = 4，解得 x = 7，y = 3。" }
+  ],
+  [ // L09 月度综合挑战
+    { stem: "若 |a| = 3，则 a =（　）", options: ["3", "−3", "±3", "0"], answer: 2, analysis: "绝对值为 3 的数有两个，须同时考虑正负。" },
+    { stem: "化简：3x − (2x − 1) = ______", answer: "x + 1", analysis: "去括号变号：3x − 2x + 1 = x + 1。" },
+    { stem: "方程 2x − 1 = 5 的解是（　）", options: ["2", "3", "4", "−3"], answer: 1, analysis: "移项得 2x = 6，故 x = 3。" },
+    { stem: "已知 AB∥CD，∠1 = 110°，∠1 与 ∠2 是同旁内角，求 ∠2", answer: "70°", analysis: "两直线平行，同旁内角互补：180° − 110° = 70°。" },
+    { stem: "点 (−1, −4) 在第几象限（　）", options: ["第一象限", "第二象限", "第三象限", "第四象限"], answer: 2, analysis: "横纵坐标均为负的点在第三象限。" },
+    { stem: "解方程组：x + 2y = 8，3x − 2y = 0", answer: "x = 2，y = 3", analysis: "两式相加消去 y：4x = 8，x = 2，代回得 y = 3。" }
+  ]
+];
+
+const optionLabels = ["A", "B", "C", "D"];
+
+// 该生选了哪个选项：答对即正确项；答错时按题号确定性地取一个干扰项，保证多次渲染结果一致。
+function chosenOption(q, qIndex, mine) {
+  if (!q.options || !mine) return null;
+  return mine.correct ? q.answer : (q.answer + 1 + qIndex) % q.options.length;
+}
+
+function questionPopHtml(lessonIndex, qIndex, mine) {
+  const q = questionBank[lessonIndex][qIndex];
+  const type = questionTypeCycle[qIndex];
+  const stat = lessonQuestionMetrics(lessonIndex)[qIndex];
+  const chosen = chosenOption(q, qIndex, mine);
+  const body = q.options
+    ? `<ol class="qp-options">${q.options.map((o, i) => {
+        const tags = [];
+        if (i === q.answer) tags.push("is-answer");
+        if (chosen === i && i !== q.answer) tags.push("is-chosen");
+        return `<li class="${tags.join(" ")}"><b>${optionLabels[i]}</b><span>${o}</span>${i === q.answer ? '<em>正确答案</em>' : chosen === i ? '<em class="wrong">该生所选</em>' : ""}</li>`;
+      }).join("")}</ol>`
+    : `<div class="qp-answer"><span>参考答案</span><b>${q.answer}</b></div>`;
+  const mineRow = mine
+    ? `<div class="qp-mine"><span>该生作答</span><b class="${mine.correct ? "ok" : "no"}">${mine.correct ? "正确" : "错误"}</b><i>用时 ${mine.seconds}s</i>${mine.anomaly ? `<em>${mine.anomaly}</em>` : ""}</div>`
+    : "";
+  return `<header><div><span>${lessonRows[lessonIndex].name} · 第 ${qIndex + 1} 题</span><b>${type}</b></div><button data-close-pop aria-label="关闭">×</button></header>
+    <p class="qp-stem">${q.stem}</p>
+    ${body}
+    ${mineRow}
+    <div class="qp-stats"><span>班期正确率 <b>${stat.accuracy}%</b></span><span>中位耗时 <b>${stat.time}s</b></span><span>跳出率 <b>${stat.jump}%</b></span></div>
+    <p class="qp-analysis"><span>解析</span>${q.analysis}</p>`;
+}
+
+function closeQuestionPop() {
+  document.getElementById("questionPop")?.remove();
+}
+
+function openQuestionPop(anchor, lessonIndex, qIndex, mine) {
+  closeQuestionPop();
+  const pop = document.createElement("div");
+  pop.id = "questionPop";
+  pop.className = "question-pop";
+  pop.innerHTML = questionPopHtml(lessonIndex, qIndex, mine);
+  // 挂到 body：留在表格或 .fade-in 内部时，祖先的 transform 会让 fixed 定位失效。
+  document.body.appendChild(pop);
+  const r = anchor.getBoundingClientRect();
+  const w = pop.offsetWidth, h = pop.offsetHeight;
+  pop.style.left = `${Math.max(12, Math.min(r.left + r.width / 2 - w / 2, innerWidth - w - 12))}px`;
+  pop.style.top = `${r.bottom + 10 + h > innerHeight - 12 ? Math.max(12, r.top - h - 10) : r.bottom + 10}px`;
+  requestAnimationFrame(() => pop.classList.add("show"));
+  pop.querySelector("[data-close-pop]").addEventListener("click", closeQuestionPop);
+}
+
+function questionDetailCell(question, index, lessonIndex) {
+  return `<td><button class="question-detail ${question.anomaly ? "has-anomaly" : ""}" data-question="${lessonIndex}-${index}" title="点击查看原题"><b>Q${index + 1} · ${question.seconds}s</b><small class="${question.correct ? "correct" : "wrong"}">${question.correct ? "✓ 正确" : "× 错误"}</small>${question.anomaly ? `<em class="${question.anomaly.includes("秒答") ? "instant" : question.anomaly.includes("反复") ? "repeat" : "slow"}">${question.anomaly}</em>` : ""}</button></td>`;
 }
 
 // 单次会话的异常统计与情绪判定。会话回放和月度四步链共用这一个口径，
@@ -672,7 +801,7 @@ function lessonSessionReplay(user, lessonIndex, record) {
     events.push([
       mmss(learnEnd + slot * (i + 1)),
       q.anomaly ? `第 ${q.no} 题 · ${q.anomaly}` : `第 ${q.no} 题 · ${q.correct ? "答对" : "答错"}`,
-      `用时 ${q.seconds}s · ${q.correct ? "正确" : "错误"}`, tone
+      `用时 ${q.seconds}s · ${q.correct ? "正确" : "错误"}`, tone, `${lessonIndex}-${i}`
     ]);
   });
   if (isBreak) events.push([mmss(totalSec - 90), "静默无操作", "idle · 90 秒未响应", "warn"]);
@@ -696,7 +825,9 @@ function lessonSessionReplay(user, lessonIndex, record) {
     : type === "无聊型" ? "开放「我会了」跳测，直给挑战题"
       : repeat.length || slow.length ? `第 ${worst.no} 题（${worst.seconds}s）拆解为两问` : "保持当前内容梯度";
 
-  return `<tr class="session-replay-row"><td colspan="12"><div class="inline-session-replay"><header><div><span>单次会话回放</span><h4>${sessionId} · 行为还原</h4><p>${user.name} · ${lessonRows[lessonIndex].name} · ${record.time}</p></div><div class="session-replay-stats"><span><b>${record.duration}</b>会话时长</span><span class="${flagCount >= 4 ? "risk" : ""}"><b>${flagCount} 个</b>异常信号</span><span class="${score >= 60 ? "risk" : ""}"><b>${score} · ${type}</b>情绪识别</span></div></header><div class="session-event-track">${events.map(e => `<div class="session-event ${e[3] ? "is-" + e[3] : ""}"><time>${e[0]}</time><i></i><b>${e[1]}</b><small>${e[2]}</small></div>`).join("")}</div><footer><div><span>异常信号</span><b>${chain.length ? chain.join(" → ") : "全程无异常信号"}</b></div><i>→</i><div><span>情绪判断</span><b>${mood}</b></div><i>→</i><div class="optimize"><span>产品优化点</span><b>${optimize}</b></div></footer></div></td></tr>`;
+  return `<tr class="session-replay-row"><td colspan="12"><div class="inline-session-replay"><header><div><span>单次会话回放</span><h4>${sessionId} · 行为还原</h4><p>${user.name} · ${lessonRows[lessonIndex].name} · ${record.time}</p></div><div class="session-replay-stats"><span><b>${record.duration}</b>会话时长</span><span class="${flagCount >= 4 ? "risk" : ""}"><b>${flagCount} 个</b>异常信号</span><span class="${score >= 60 ? "risk" : ""}"><b>${score} · ${type}</b>情绪识别</span></div></header><div class="session-event-track">${events.map(e => e[4]
+      ? `<button class="session-event is-question ${e[3] ? "is-" + e[3] : ""}" data-question="${e[4]}" title="点击查看原题"><time>${e[0]}</time><i></i><b>${e[1]}</b><small>${e[2]}</small></button>`
+      : `<div class="session-event ${e[3] ? "is-" + e[3] : ""}"><time>${e[0]}</time><i></i><b>${e[1]}</b><small>${e[2]}</small></div>`).join("")}</div><footer><div><span>异常信号</span><b>${chain.length ? chain.join(" → ") : "全程无异常信号"}</b></div><i>→</i><div><span>情绪判断</span><b>${mood}</b></div><i>→</i><div class="optimize"><span>产品优化点</span><b>${optimize}</b></div></footer></div></td></tr>`;
 }
 
 function userLessonDetailTable(user) {
@@ -711,7 +842,7 @@ function userLessonDetailTable(user) {
       const week = i < 8 ? `第 ${Math.floor(i/2)+1} 周` : "月度加课";
       if (!r.attended) return `<tr class="unattended-row"><td><div class="lesson-row-title"><span class="session-toggle-placeholder"></span><div><span>${week}</span><b>${lessonRows[i].name}</b></div></div></td><td><span class="detail-status blank">未参</span></td>${Array(10).fill('<td class="blank-cell"></td>').join("")}</tr>`;
       const expanded = state.selectedLessonSession === i;
-      return `<tr class="${expanded ? "is-session-open" : ""}"><td><div class="lesson-row-title"><button data-toggle-user-session="${i}" aria-label="${expanded ? "收起" : "展开"}课时会话回放">${expanded ? "−" : "+"}</button><div><span>${week}</span><b>${lessonRows[i].name}</b><em>单次会话回放</em></div></div></td><td><span class="detail-status ${r.statusClass}">${r.status}</span></td><td class="study-time">${r.time}</td><td>${r.duration}</td><td class="${r.jump!=="—" ? "jump-node" : ""}">${r.jump}</td><td><b>${r.accuracy}</b></td>${r.questions.map(questionDetailCell).join("")}</tr>${expanded ? lessonSessionReplay(user,i,r) : ""}`;
+      return `<tr class="${expanded ? "is-session-open" : ""}"><td><div class="lesson-row-title"><button data-toggle-user-session="${i}" aria-label="${expanded ? "收起" : "展开"}课时会话回放">${expanded ? "−" : "+"}</button><div><span>${week}</span><b>${lessonRows[i].name}</b><em>单次会话回放</em></div></div></td><td><span class="detail-status ${r.statusClass}">${r.status}</span></td><td class="study-time">${r.time}</td><td>${r.duration}</td><td class="${r.jump!=="—" ? "jump-node" : ""}">${r.jump}</td><td><b>${r.accuracy}</b></td>${r.questions.map((q, qi) => questionDetailCell(q, qi, i)).join("")}</tr>${expanded ? lessonSessionReplay(user,i,r) : ""}`;
     }).join("")}</tbody></table></div>
   </article>`;
 }
@@ -722,7 +853,7 @@ function usersTemplate() {
   const matrix = `<article class="panel tracking-panel"><div class="panel-header"><div><h3>月度用户课时状态矩阵</h3><p>一个月 9 节：四周每周解锁 2 节，另加 1 节月度综合课；点击用户名查看完整课时明细</p></div><div class="status-legend"><span><i class="done"></i>完课</span><span><i class="learning"></i>参未完</span><span><i class="exit"></i>跳出</span><span><i class="missed"></i>未参</span></div></div>
       <div class="tracking-wrap"><table class="tracking-table month-tracking-table"><thead><tr class="week-band"><th rowspan="2">用户</th><th rowspan="2">结果状态</th><th colspan="2">第 1 周</th><th colspan="2">第 2 周</th><th colspan="2">第 3 周</th><th colspan="2">第 4 周</th><th>月度加课</th></tr><tr>${lessonRows.map((_,i)=>`<th>L${String(i+1).padStart(2,"0")}</th>`).join("")}</tr></thead><tbody>${visibleUsers.map(u=>`<tr><td><button class="student-name-button" data-select-user="${u.id}"><b>${u.name}</b><small>${u.id}</small><em>查看课时明细 →</em></button></td><td><span class="lifecycle ${u.churn?'churn':'active'}">${u.churn?'已退费':'未退费'}</span><span class="lifecycle ${u.renew?'renew':'no-renew'}">${u.renew?'已续费':'未续费'}</span></td>${u.states.map((s,i)=>`<td><button class="lesson-state ${statusMeta[s][1]}" data-user-detail="${u.id}" data-lesson="${i}" title="${u.name} · ${lessonRows[i].name} · ${statusMeta[s][0]}"><i></i><span>${s==="learning"||s==="exit"?"参未完":s==="missed"?"未参":"完课"}</span></button></td>`).join("")}</tr>`).join("")}</tbody></table></div>
     </article>`;
-  return `<section class="fade-in">${detailHeader("同批用户月度追踪", "以自然月为单元，连续追踪同批用户四周 8 节常规课和 1 节月度加课。", "点击用户名：切换课时多维表")}
+  return `<section class="fade-in">${detailHeader("同批用户月度追踪", "以自然月为单元，连续追踪同批用户四周 8 节常规课和 1 节月度加课，并把异常信号、情绪识别与断点优化串成一条诊断链。", "点击用户/课时：展开会话回放")}
     <div class="analysis-toolbar"><div><span>当前月度班期</span><b>2026 年 8 月 · 初一数学 A 班</b></div><label>月份<select><option>2026 年 8 月</option><option>2026 年 7 月</option><option>2026 年 6 月</option></select></label><span class="cohort-range">同批购买 2,384 人 · 本月 9 节</span></div>
     <div class="month-plan"><span><b>第 1 周</b>L01–L02</span><i></i><span><b>第 2 周</b>L03–L04</span><i></i><span><b>第 3 周</b>L05–L06</span><i></i><span><b>第 4 周</b>L07–L08</span><i></i><span class="extra"><b>月度加课</b>L09 综合挑战</span></div>
     <div class="segment-tabs">${userGroups.map(g=>`<button class="${state.userGroup===g[0]?'active':''}" data-user-group="${g[0]}"><span>${g[1]}</span><b>${g[2]}</b></button>`).join("")}</div>
@@ -833,17 +964,32 @@ function render() {
   const view = views[state.view];
   document.getElementById("pageTitle").textContent = view.title;
   document.getElementById("pageEyebrow").textContent = view.eyebrow;
-  // 上一视图移到 body 上的抽屉不会随 #content 重绘被清掉，先移除避免 id 重复。
+  // 上一视图移到 body 上的抽屉与原题浮层不会随 #content 重绘被清掉，先移除。
   document.querySelectorAll("body > .drawer-layer").forEach(el => el.remove());
+  closeQuestionPop();
   document.body.style.overflow = "";
   document.getElementById("content").innerHTML = view.render();
   // 抽屉必须挂在 body 上：留在 .fade-in 内部时，动画期间的 transform 会让它
   // 成为 position: fixed 的包含块，抽屉会贴着 section 定位而不是视口。
   const drawer = document.getElementById("detailDrawer");
   if (drawer) document.body.appendChild(drawer);
-  document.querySelectorAll(".nav-item").forEach(el => el.classList.toggle("active", el.dataset.view === state.view));
+  const monitoringViews = ["chain", "signal", "emotion"];
+  document.querySelectorAll(".nav-item").forEach(el => {
+    el.classList.toggle("active", el.dataset.view === state.view);
+    el.classList.toggle("parent-active", el.dataset.view === "users" && monitoringViews.includes(state.view));
+  });
   document.querySelectorAll("[data-open]").forEach(el => el.addEventListener("click", () => navigate(el.dataset.open)));
   document.querySelectorAll(".mini-tab").forEach(el => el.addEventListener("click", () => { el.parentElement.querySelectorAll(".mini-tab").forEach(x => x.classList.remove("active")); el.classList.add("active"); }));
+  document.querySelectorAll("[data-question]").forEach(el => el.addEventListener("click", event => {
+    event.stopPropagation();
+    const [lessonIndex, qIndex] = el.dataset.question.split("-").map(Number);
+    // 只在该学生自己的明细面板里才带上作答记录。用 DOM 上下文判断而不是 state.selectedUser：
+    // 后者切换视图后仍会残留，会把上一个学生的答题结果显示在与他无关的课时归因页上。
+    const inUserPanel = !!el.closest(".user-detail-panel");
+    const user = inUserPanel ? trackingUsers.find(u => u.id === state.selectedUser) : null;
+    const record = user ? userLessonRecord(user, lessonIndex) : null;
+    openQuestionPop(el, lessonIndex, qIndex, record && record.attended ? record.questions[qIndex] : null);
+  }));
   document.querySelectorAll("[data-toggle-lesson-questions]").forEach(el => {
     const toggle = () => {
       const lessonIndex = Number(el.dataset.toggleLessonQuestions);
@@ -858,7 +1004,16 @@ function render() {
     el.addEventListener("click", open);
     el.addEventListener("keydown", e => { if (e.key === "Enter") open(); });
   });
-  document.querySelectorAll("[data-user-detail]").forEach(el => el.addEventListener("click", () => openTrackingDetail(el.dataset.userDetail, Number(el.dataset.lesson))));
+  document.querySelectorAll("[data-user-detail]").forEach(el => el.addEventListener("click", () => {
+    const id = el.dataset.userDetail, lesson = Number(el.dataset.lesson);
+    const user = trackingUsers.find(u => u.id === id);
+    state.selectedUser = id;
+    // 未参课的课时没有会话可回放，退回到该生第一节参过的课，避免下钻后一片空白。
+    state.selectedLessonSession = user && user.states[lesson] !== "missed"
+      ? lesson
+      : user ? user.states.findIndex(s => s !== "missed") : lesson;
+    render();
+  }));
   document.querySelectorAll("[data-toggle-user-session]").forEach(el => el.addEventListener("click", () => { const i = Number(el.dataset.toggleUserSession); state.selectedLessonSession = state.selectedLessonSession === i ? null : i; render(); }));
   document.querySelectorAll("[data-select-user]").forEach(el => el.addEventListener("click", () => {
     state.selectedUser = el.dataset.selectUser;
@@ -892,6 +1047,11 @@ document.getElementById("exportButton").addEventListener("click", () => {
   const a = document.createElement("a"); a.href = url; a.download = `拾光学习_${views[state.view].title}.csv`; a.click(); URL.revokeObjectURL(url);
   const toast = document.getElementById("toast"); toast.classList.add("show"); setTimeout(() => toast.classList.remove("show"), 2200);
 });
+
+// 原题浮层：点空白处、按 Esc、页面滚动都收起（浮层按锚点定位，滚动后位置会失真）。
+document.addEventListener("click", e => { if (!e.target.closest("#questionPop")) closeQuestionPop(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeQuestionPop(); });
+window.addEventListener("scroll", closeQuestionPop, { passive: true });
 
 const sidebar = document.querySelector(".sidebar"), scrim = document.getElementById("scrim");
 function closeMenu() { sidebar.classList.remove("open"); scrim.classList.remove("show"); }
