@@ -198,7 +198,14 @@ function overviewTemplate() {
       <article class="refund-branch low-completion">
         <header><span class="branch-index">A</span><div><small>115 人 · 退费用户的 61.8%</small><h3>完课不好的退费用户</h3><p>核心判断：不是学了无效，而是学习没有真正发生。</p></div><strong>先解决<br>“学不进去”</strong></header>
         <div class="reason-list">
-          ${decisionReason("孩子不喜欢学", "兴趣不足", "启动次数少、首段早退", "重做首课体验，增加兴趣化入口与自主选题")}
+          ${decisionReason("孩子不喜欢学", "兴趣不足", "启动次数少、首段早退", "重做首课体验，增加兴趣化入口与自主选题", {
+            quote: "孩子现在一看到要上这个课就说不想学，觉得动画有点慢，后面的题也没什么意思，基本都是我们催了才打开。",
+            advisor: "指导师 WX-D09",
+            sample: "同类原声 28 条",
+            tags: ["孩子抵触", "内容没兴趣", "被动启动"],
+            behavior: ["主动启动 0.6 次/周", "首 3 分钟早退 42%", "视频快进 3.8 次/课"],
+            conclusion: "原声与低主动启动、首段早退和高快进行为一致，兴趣不足主要发生在首课节奏与内容入口。"
+          })}
           ${decisionReason("孩子作业多，顾不上来", "时间冲突", "工作日晚间短会话、频繁中断", "拆成 10–15 分钟小节，支持灵活完成")}
           ${decisionReason("孩子没时间，基本不怎么学", "低使用", "连续多日未启动、解锁后未参课", "提供低负担学习计划，先验证真实可用时间")}
         </div>
@@ -236,8 +243,9 @@ function overviewTemplate() {
   </section>`;
 }
 
-function decisionReason(title, tag, evidence, action) {
-  return `<div class="decision-reason"><span class="reason-dot"></span><div><h4>${title}<em>${tag}</em></h4><p><span>行为验证</span>${evidence}</p><p><span>建议动作</span>${action}</p></div></div>`;
+function decisionReason(title, tag, evidence, action, voice = null) {
+  const voiceEvidence = voice ? `<div class="reason-voice-evidence"><header><i>微</i><div><b>客户微信原声</b><small>${voice.advisor} · 已脱敏</small></div><em>${voice.sample}</em></header><blockquote>${voice.quote}</blockquote><div class="reason-voice-tags"><small>分类抽取</small>${voice.tags.map(t => `<span>${t}</span>`).join("")}</div><div class="reason-voice-behavior"><small>匹配到孩子真实学习行为</small>${voice.behavior.map(b => `<span>${b}</span>`).join("")}</div><footer><small>匹配结论</small><b>${voice.conclusion}</b></footer></div>` : "";
+  return `<div class="decision-reason ${voice ? "has-voice" : ""}"><span class="reason-dot"></span><div><h4>${title}<em>${tag}</em></h4><p><span>行为验证</span>${evidence}</p><p><span>建议动作</span>${action}</p>${voiceEvidence}</div></div>`;
 }
 
 function decisionPriority(level, group, reason, action, metric, color) {
