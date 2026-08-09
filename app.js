@@ -1,4 +1,4 @@
-const state = { view: "overview", period: "week", segment: "all", userGroup: "all", selectedUser: null, outcome: "refund", expandedLesson: 4 };
+const state = { view: "overview", period: "week", segment: "all", userGroup: "all", selectedUser: null, selectedLessonSession: null, outcome: "refund", expandedLesson: 4 };
 
 const icons = {
   open: '<svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 8h8M8 12h6"/></svg>',
@@ -560,7 +560,7 @@ function userLessonRecord(user, lessonIndex) {
   const status = user.states[lessonIndex];
   if (status === "missed") return { attended: false, status: "未参" };
   const seed = Number(user.id.slice(-2)) + lessonIndex * 7;
-  const duration = status === "done" ? 23 + lessonIndex + seed % 5 : status === "exit" ? 8 + seed % 7 : 14 + seed % 6;
+  const duration = status === "done" ? 23 + lessonIndex + seed % 5 : status === "exit" ? 27 : 14 + seed % 6;
   const day = String(Math.min(30, 2 + lessonIndex * 3)).padStart(2, "0");
   const hour = 19 + lessonIndex % 2;
   const minute = (seed * 3) % 48;
@@ -594,6 +594,111 @@ function questionDetailCell(question, index) {
   return `<td><div class="question-detail ${question.anomaly ? "has-anomaly" : ""}"><b>Q${index + 1} · ${question.seconds}s</b><small class="${question.correct ? "correct" : "wrong"}">${question.correct ? "✓ 正确" : "× 错误"}</small>${question.anomaly ? `<em class="${question.anomaly.includes("秒答") ? "instant" : question.anomaly.includes("反复") ? "repeat" : "slow"}">${question.anomaly}</em>` : ""}</div></td>`;
 }
 
+// 单次会话的异常统计与情绪判定。会话回放和月度四步链共用这一个口径，
+// 否则同一个学生在两处会给出互相矛盾的信号数与厌烦指数。
+function sessionEmotion(record) {
+  const isBreak = record.status === "参未完";
+  const qs = record.questions.map((q, i) => ({ ...q, no: i + 1 }));
+  const instant = qs.filter(q => q.anomaly === "秒答");
+  const repeat = qs.filter(q => q.anomaly.includes("反复"));
+  const slow = qs.filter(q => q.anomaly === "过长");
+  let streak = 0, maxStreak = 0;
+  qs.forEach(q => { streak = q.correct ? 0 : streak + 1; maxStreak = Math.max(maxStreak, streak); });
+  const flagCount = instant.length + repeat.length + slow.length + (isBreak ? 3 : 0);
+  const score = Math.min(96, (isBreak ? 46 : 12) + repeat.length * 9 + slow.length * 7 + maxStreak * 6 + instant.length * 4);
+  const type = score < 40 ? "投入型" : (repeat.length + slow.length + maxStreak) >= instant.length ? "受挫型" : "无聊型";
+  return { isBreak, qs, instant, repeat, slow, maxStreak, flagCount, score, type };
+}
+
+// 月度聚合：把该学生所有参课会话的判定汇总，四步链的每个数字都由此而来。
+function userMonthlyProfile(user) {
+  const records = lessonRows.map((_, i) => userLessonRecord(user, i)).filter(r => r.attended);
+  const items = records.map(r => ({ record: r, em: sessionEmotion(r) }));
+  const sum = (pick) => items.reduce((s, x) => s + pick(x.em), 0);
+  const slow = sum(e => e.slow.length), repeat = sum(e => e.repeat.length), instant = sum(e => e.instant.length);
+  const breaks = items.filter(x => x.em.isBreak).length;
+  const index = items.length ? Math.round(sum(e => e.score) / items.length) : 0;
+  const type = index < 40 ? "投入型" : (repeat + slow) >= instant ? "受挫型" : "无聊型";
+  const worst = [...items].sort((a, b) => b.em.score - a.em.score)[0];
+  return { records, items, slow, repeat, instant, breaks, index, type, worst };
+}
+
+function userMonitoringFlow(user = null) {
+  const attended = user ? user.states.filter(s => s !== "missed").length : null;
+  const completed = user ? user.states.filter(s => s === "done").length : null;
+  const p = user ? userMonthlyProfile(user) : null;
+  let signalText = null, moodText = null, fixText = null;
+  if (p) {
+    const parts = [];
+    if (p.slow) parts.push(`单题过长 ×${p.slow}`);
+    if (p.repeat) parts.push(`反复提交 ×${p.repeat}`);
+    if (p.instant) parts.push(`秒答 ×${p.instant}`);
+    signalText = parts.length ? `${parts.join(" · ")}${p.breaks ? ` · 断点 ${p.breaks} 次` : ""}` : "本月无异常信号";
+    moodText = `${p.type} · 厌烦指数 ${p.index}`;
+    const w = p.worst;
+    fixText = !w ? "暂无可定位的优化点"
+      : w.em.isBreak ? `优先：${w.record.jump} 前置台阶题`
+        : p.type === "无聊型" ? "优先：开放跳测 + 进阶题包"
+          : p.repeat || p.slow ? `优先：拆解第 ${[...w.em.qs].sort((a, b) => b.seconds - a.seconds)[0].no} 题` : "保持当前梯度，观察月度课";
+  }
+  const steps = [
+    ["01", "连续学习表现", user ? `${attended}/9 参课 · ${completed}/9 完课` : "月度 9 节状态 + 会话回放", "先还原每次打开到离开的真实过程", "chain"],
+    ["02", "异常信号", signalText || "断点前 5 分钟 · 12 类信号", "判断离开前发生了什么", "signal"],
+    ["03", "用户情绪识别", moodText || "受挫 / 无聊 / 涣散三型", "把连续行为转成可验证的情绪判断", "emotion"],
+    ["04", "断点优化点", fixText || "定位到动画秒段与具体题号", "将情绪原因落到可改的产品位置", "lesson"]
+  ];
+  return `<section class="user-monitoring-flow"><div class="monitor-flow-head"><div><span>用户追踪下的监测方案</span><h3>连续表现 → 异常信号 → 情绪识别 → 断点优化</h3><p>${user ? `当前聚焦 ${user.name}，所有结论均从其月度连续行为推导。` : "先选择用户或打开示例会话，再沿四步诊断链定位产品优化点。"}</p></div>${user ? "" : '<button data-example-session>打开会话样例 · SES-8842</button>'}</div><div class="monitor-flow-grid">${steps.map((s,i)=>`<button data-open="${s[4]}" class="monitor-flow-card"><i>${s[0]}</i><span><b>${s[1]}</b><strong>${s[2]}</strong><small>${s[3]}</small></span>${i<steps.length-1?'<em>→</em>':""}</button>`).join("")}</div></section>`;
+}
+
+// 会话回放全部由 record.questions 的真实逐题数据推导，不写死事件。
+// 否则完课的会话也会显示「连续答错、静默 142 秒」，与统计框和页脚结论互相矛盾。
+function lessonSessionReplay(user, lessonIndex, record) {
+  const isBreak = record.status === "参未完";
+  const sessionId = isBreak ? "SES-8842" : `SES-${8200 + lessonIndex * 37 + Number(user.id.slice(-2))}`;
+  const totalSec = parseInt(record.duration, 10) * 60;
+  const mmss = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.round(s % 60)).padStart(2, "0")}`;
+  const { qs, instant, repeat, slow, maxStreak, flagCount, score, type } = sessionEmotion(record);
+
+  const learnEnd = Math.round(totalSec * (isBreak ? .34 : .42));
+  const events = [["00:00", "打开课时", "session_start", ""], ["00:12", "进入动画", "play · 从 00:00 开始", ""]];
+  if (isBreak) {
+    events.push([mmss(learnEnd * .55), "暂停难点", "pause · 停在讲解难点处", "warn"]);
+    events.push([mmss(learnEnd * .78), "重复回看", "replay ×2 · 同一片段", "warn"]);
+  }
+  events.push([mmss(learnEnd), "切到练习", `stage_switch · 动画完成 ${isBreak ? 61 : 100}%`, ""]);
+  const slot = (totalSec - learnEnd) / (qs.length + 1);
+  qs.forEach((q, i) => {
+    const tone = q.anomaly === "过长" || q.anomaly.includes("反复") ? "danger" : q.anomaly === "秒答" ? "warn" : "";
+    events.push([
+      mmss(learnEnd + slot * (i + 1)),
+      q.anomaly ? `第 ${q.no} 题 · ${q.anomaly}` : `第 ${q.no} 题 · ${q.correct ? "答对" : "答错"}`,
+      `用时 ${q.seconds}s · ${q.correct ? "正确" : "错误"}`, tone
+    ]);
+  });
+  if (isBreak) events.push([mmss(totalSec - 90), "静默无操作", "idle · 90 秒未响应", "warn"]);
+  events.push([mmss(totalSec), isBreak ? "退出课时" : "完成学练改",
+    isBreak ? `exit · ${record.jump}` : "complete · 学练改闭环", isBreak ? "break" : "done"]);
+
+  const chain = [];
+  if (isBreak) chain.push("重复回看");
+  if (slow.length) chain.push(`单题过长 ×${slow.length}`);
+  if (repeat.length) chain.push(`反复提交 ×${repeat.length}`);
+  if (maxStreak >= 2) chain.push(`连续答错 ×${maxStreak}`);
+  if (instant.length) chain.push(`秒答 ×${instant.length}`);
+  if (isBreak) chain.push("静默");
+
+  const worst = [...qs].sort((a, b) => b.seconds - a.seconds)[0];
+  const mood = type === "受挫型" ? `多次尝试仍未通过，判为受挫型（指数 ${score}）`
+    : type === "无聊型" ? `作答过快且正确率不低，判为无聊型（指数 ${score}）`
+      : chain.length ? `仅偶发单点异常，未形成连续受挫，判为投入型（指数 ${score}）`
+        : `全程无异常信号，判为投入型（指数 ${score}）`;
+  const optimize = isBreak ? `${record.jump} 前置台阶题 + 该处讲解重录`
+    : type === "无聊型" ? "开放「我会了」跳测，直给挑战题"
+      : repeat.length || slow.length ? `第 ${worst.no} 题（${worst.seconds}s）拆解为两问` : "保持当前内容梯度";
+
+  return `<tr class="session-replay-row"><td colspan="12"><div class="inline-session-replay"><header><div><span>单次会话回放</span><h4>${sessionId} · 行为还原</h4><p>${user.name} · ${lessonRows[lessonIndex].name} · ${record.time}</p></div><div class="session-replay-stats"><span><b>${record.duration}</b>会话时长</span><span class="${flagCount >= 4 ? "risk" : ""}"><b>${flagCount} 个</b>异常信号</span><span class="${score >= 60 ? "risk" : ""}"><b>${score} · ${type}</b>情绪识别</span></div></header><div class="session-event-track">${events.map(e => `<div class="session-event ${e[3] ? "is-" + e[3] : ""}"><time>${e[0]}</time><i></i><b>${e[1]}</b><small>${e[2]}</small></div>`).join("")}</div><footer><div><span>异常信号</span><b>${chain.length ? chain.join(" → ") : "全程无异常信号"}</b></div><i>→</i><div><span>情绪判断</span><b>${mood}</b></div><i>→</i><div class="optimize"><span>产品优化点</span><b>${optimize}</b></div></footer></div></td></tr>`;
+}
+
 function userLessonDetailTable(user) {
   const records = lessonRows.map((_, index) => userLessonRecord(user, index));
   const attended = records.filter(r => r.attended).length;
@@ -604,8 +709,9 @@ function userLessonDetailTable(user) {
     <div class="detail-rule"><i></i><span>未参课仅保留状态，其余字段为空；参未完和完课均展示实际学习行为。</span></div>
     <div class="tracking-wrap"><table class="lesson-detail-table"><thead><tr><th>周次 / 课时</th><th>状态</th><th>学习时间</th><th>学习时长</th><th>跳出节点</th><th>正确率</th>${[1,2,3,4,5,6].map(i=>`<th>第 ${i} 题</th>`).join("")}</tr></thead><tbody>${records.map((r,i)=> {
       const week = i < 8 ? `第 ${Math.floor(i/2)+1} 周` : "月度加课";
-      if (!r.attended) return `<tr class="unattended-row"><td><span>${week}</span><b>${lessonRows[i].name}</b></td><td><span class="detail-status blank">未参</span></td>${Array(10).fill('<td class="blank-cell"></td>').join("")}</tr>`;
-      return `<tr><td><span>${week}</span><b>${lessonRows[i].name}</b></td><td><span class="detail-status ${r.statusClass}">${r.status}</span></td><td class="study-time">${r.time}</td><td>${r.duration}</td><td class="${r.jump!=="—" ? "jump-node" : ""}">${r.jump}</td><td><b>${r.accuracy}</b></td>${r.questions.map(questionDetailCell).join("")}</tr>`;
+      if (!r.attended) return `<tr class="unattended-row"><td><div class="lesson-row-title"><span class="session-toggle-placeholder"></span><div><span>${week}</span><b>${lessonRows[i].name}</b></div></div></td><td><span class="detail-status blank">未参</span></td>${Array(10).fill('<td class="blank-cell"></td>').join("")}</tr>`;
+      const expanded = state.selectedLessonSession === i;
+      return `<tr class="${expanded ? "is-session-open" : ""}"><td><div class="lesson-row-title"><button data-toggle-user-session="${i}" aria-label="${expanded ? "收起" : "展开"}课时会话回放">${expanded ? "−" : "+"}</button><div><span>${week}</span><b>${lessonRows[i].name}</b><em>单次会话回放</em></div></div></td><td><span class="detail-status ${r.statusClass}">${r.status}</span></td><td class="study-time">${r.time}</td><td>${r.duration}</td><td class="${r.jump!=="—" ? "jump-node" : ""}">${r.jump}</td><td><b>${r.accuracy}</b></td>${r.questions.map(questionDetailCell).join("")}</tr>${expanded ? lessonSessionReplay(user,i,r) : ""}`;
     }).join("")}</tbody></table></div>
   </article>`;
 }
@@ -621,6 +727,7 @@ function usersTemplate() {
     <div class="month-plan"><span><b>第 1 周</b>L01–L02</span><i></i><span><b>第 2 周</b>L03–L04</span><i></i><span><b>第 3 周</b>L05–L06</span><i></i><span><b>第 4 周</b>L07–L08</span><i></i><span class="extra"><b>月度加课</b>L09 综合挑战</span></div>
     <div class="segment-tabs">${userGroups.map(g=>`<button class="${state.userGroup===g[0]?'active':''}" data-user-group="${g[0]}"><span>${g[1]}</span><b>${g[2]}</b></button>`).join("")}</div>
     ${selectedUser ? userLessonDetailTable(selectedUser) : matrix}
+    ${userMonitoringFlow(selectedUser)}
     ${selectedUser ? insight(`<b>${selectedUser.name} 的月度行为：</b>异常标签已按题目阈值标记——≤15 秒为秒答，同题提交 ≥3 次为反复，≥100 秒为过长；可直接定位需要回放的题目。`) : `<div class="compare-grid"><article><span>退费用户典型路径</span><b>连续 2 节未参课 → 退费风险升高</b><p>首次跳出多集中于 L03、L05，且跳出前一节正确率均值低于 65%。</p></article><article><span>续费用户典型路径</span><b>前 6 节完成 ≥ 5 节 → 续费率 71%</b><p>稳定完课用户的错题订正率比未续费用户高 19.4 个百分点。</p></article></div>`}
     ${selectedUser ? "" : sessionDegradationPanel()}
     ${selectedUser ? "" : boredomRenewalPanel()}
@@ -696,7 +803,7 @@ function modelTemplate() {
     ["09", "内容质量表", "content_quality", "知识点 × 内容版本 × 日", ["动画ID / 版本", "题集ID / 版本", "break_session_rate · 断点率", "top_break_position · 断点热区", "难度 / 退出指标", "掌握指标"], "评估层", false],
     ["10", "用户结果决策表", "user_outcome_decisions", "一次退费/续费结果一行，冻结当时完课表现与反馈原因", ["outcome_type · 决策类型", "outcome_status · 结果状态", "completion_band · 完课分层", "completion_rate · 当时完课率", "primary_reason_code · 原因", "feedback_source · 反馈来源"], "结果决策层", true]
   ];
-  return `<section class="fade-in">${detailHeader("底层数据模型", "十张表把用户结果、反馈原因、连续行为、异常信号、情绪状态与内容质量串起来。", "10 张表 · 18 类事件 · 11 个视图")}
+  return `<section class="fade-in">${detailHeader("底层数据模型", "十张表把用户结果、反馈原因、连续行为、异常信号、情绪状态与内容质量串起来。", "10 张表 · 18 类事件 · 12 个视图")}
     <div class="model-flow"><span>结果决策</span><i>定位人群</i><span>学生画像</span><i>1 : N</i><span class="is-new">学习会话</span><i>1 : N</i><span class="is-new">行为事件</span><i>规则判定</i><span class="is-new">异常信号</span><i>加权</i><span class="is-new">情绪状态</span><i>验证</i><span>课节结果</span></div>
     <div class="model-grid">${models.map(m => `<article class="model-card ${m[6] ? "is-new" : ""}"><header><span>${m[0]}</span><div><h3>${m[1]}</h3><code>${m[2]}</code></div></header><p>${m[3]}</p><div class="field-list">${m[4].map(f => `<span>${f}</span>`).join("")}</div><footer><i></i>${m[5]}${m[6] ? " · 本次新增" : ""}</footer></article>`).join("")}</div>
     <div class="panel panel-full" style="margin-top:18px"><div class="panel-header"><div><h3>埋点事件口径</h3><p>同一 session_id 内按 event_sequence 排序，即可完整还原一次连续使用行为</p></div><span class="panel-tag">18 类事件 · 7 类新增</span></div><div class="table-wrap"><table class="event-table"><thead><tr><th>事件名</th><th>触发时机</th><th>关键属性</th><th>支持指标</th><th>状态</th></tr></thead><tbody>${eventRows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4] ? '<span class="status-dot is-new">待埋点</span>' : '<span class="status-dot">已上报</span>'}</td></tr>`).join("")}</tbody></table></div></div>
@@ -752,9 +859,17 @@ function render() {
     el.addEventListener("keydown", e => { if (e.key === "Enter") open(); });
   });
   document.querySelectorAll("[data-user-detail]").forEach(el => el.addEventListener("click", () => openTrackingDetail(el.dataset.userDetail, Number(el.dataset.lesson))));
-  document.querySelectorAll("[data-select-user]").forEach(el => el.addEventListener("click", () => { state.selectedUser = el.dataset.selectUser; render(); }));
-  document.querySelectorAll("[data-back-users]").forEach(el => el.addEventListener("click", () => { state.selectedUser = null; render(); }));
-  document.querySelectorAll("[data-user-group]").forEach(el => el.addEventListener("click", () => { state.userGroup = el.dataset.userGroup; state.selectedUser = null; render(); }));
+  document.querySelectorAll("[data-toggle-user-session]").forEach(el => el.addEventListener("click", () => { const i = Number(el.dataset.toggleUserSession); state.selectedLessonSession = state.selectedLessonSession === i ? null : i; render(); }));
+  document.querySelectorAll("[data-select-user]").forEach(el => el.addEventListener("click", () => {
+    state.selectedUser = el.dataset.selectUser;
+    const user = trackingUsers.find(u => u.id === state.selectedUser);
+    const firstBreak = user.states.findIndex(s => s === "exit" || s === "learning");
+    state.selectedLessonSession = firstBreak >= 0 ? firstBreak : 0;
+    render();
+  }));
+  document.querySelectorAll("[data-example-session]").forEach(el => el.addEventListener("click", () => { state.selectedUser = "STU-1132"; state.selectedLessonSession = 3; render(); }));
+  document.querySelectorAll("[data-back-users]").forEach(el => el.addEventListener("click", () => { state.selectedUser = null; state.selectedLessonSession = null; render(); }));
+  document.querySelectorAll("[data-user-group]").forEach(el => el.addEventListener("click", () => { state.userGroup = el.dataset.userGroup; state.selectedUser = null; state.selectedLessonSession = null; render(); }));
   document.querySelectorAll("[data-outcome]").forEach(el => el.addEventListener("click", () => { state.outcome = el.dataset.outcome; render(); }));
   document.querySelectorAll("[data-close-drawer]").forEach(el => el.addEventListener("click", closeDrawer));
 }

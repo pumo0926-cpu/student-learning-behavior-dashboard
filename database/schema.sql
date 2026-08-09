@@ -1,4 +1,4 @@
--- 拾光学习用户行为监测数据模型 v2.1
+-- 拾光学习用户行为监测数据模型 v2.2
 -- SQLite 3.x；所有学生标识均应使用业务侧生成的匿名 ID。
 --
 -- v2.0 变更要点：从「课时维度聚合」升级为「会话维度连续行为序列」。
@@ -7,6 +7,7 @@
 --   新增：learning_sessions（会话与断点）、anomaly_signal_dict（异常信号字典）、
 --         session_anomaly_signals（断点前异常明细）、student_emotion_states（厌烦情绪状态）。
 --   v2.1 新增：用户结果决策表，从退费/续费结果反向关联完课表现与反馈原因。
+--   v2.2 新增：用户会话级归因视图，把连续表现、异常信号、情绪与断点优化串成一条链。
 
 PRAGMA foreign_keys = ON;
 
@@ -662,5 +663,70 @@ LEFT JOIN break_stats b
   ON b.course_id = a.course_id
  AND b.lesson_id = a.lesson_id
  AND b.question_id = a.question_id;
+
+-- 用户追踪诊断链：一行对应一次学习会话，既能回放 SES 行为序列，
+-- 也能把「异常发生在哪里 → 推断何种情绪 → 优先优化什么」直接交给产品迭代。
+CREATE VIEW IF NOT EXISTS v_user_breakpoint_emotion_attribution AS
+SELECT
+    s.cohort_code,
+    ls.student_id,
+    ls.session_id,
+    ls.course_id,
+    ls.lesson_id,
+    ls.started_at,
+    ls.ended_at,
+    ls.duration_seconds,
+    ls.event_count,
+    ls.stage_reached,
+    ls.is_break,
+    ls.break_stage,
+    ls.break_position_label,
+    ls.break_video_seconds,
+    ls.break_question_index,
+    ls.anomaly_signal_count,
+    ls.boredom_score AS session_boredom_score,
+    ls.emotion_type AS session_emotion_type,
+    (
+        SELECT GROUP_CONCAT(signal_name, ' → ')
+        FROM (
+            SELECT d.signal_name
+            FROM session_anomaly_signals a
+            JOIN anomaly_signal_dict d ON d.signal_code = a.signal_code
+            WHERE a.session_id = ls.session_id
+            ORDER BY a.detected_at
+        )
+    ) AS anomaly_signal_chain,
+    (
+        SELECT GROUP_CONCAT(position_label, ' → ')
+        FROM (
+            SELECT a.position_label
+            FROM session_anomaly_signals a
+            WHERE a.session_id = ls.session_id
+              AND a.position_label IS NOT NULL
+            ORDER BY a.detected_at
+        )
+    ) AS anomaly_position_chain,
+    es.boredom_index AS weekly_boredom_index,
+    es.emotion_type AS weekly_emotion_type,
+    es.alert_level,
+    es.suggested_action,
+    CASE
+        WHEN ls.break_stage = 'learn' THEN '优化动画断点片段、节奏与解释方式'
+        WHEN ls.break_stage = 'practice' THEN '优化断点题目及前置难度梯度'
+        WHEN ls.break_stage = 'correct' THEN '优化订正入口、提示与反馈'
+        WHEN ls.break_stage = 'extension' THEN '优化延展题难度与退出提示'
+        WHEN ls.anomaly_signal_count >= 3 THEN '复核高频异常会话并安排对照实验'
+        ELSE '继续观察连续学习趋势'
+    END AS optimization_direction
+FROM students s
+JOIN learning_sessions ls ON ls.student_id = s.student_id
+LEFT JOIN student_emotion_states es
+  ON es.student_id = ls.student_id
+ AND es.week_start = (
+       SELECT MAX(e2.week_start)
+       FROM student_emotion_states e2
+       WHERE e2.student_id = ls.student_id
+         AND e2.week_start <= date(ls.started_at)
+   );
 
 COMMIT;

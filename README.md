@@ -26,7 +26,7 @@
 另有两个直接服务迭代的归因视图：
 
 - **课时归因**：课时表现对比与下钻，并把断点定位到动画的某 30 秒、练习的某一题，附改版效果验证。
-- **用户追踪**：以自然月为单元，四周每周 2 节并加 1 节月度课，共 9 节；点击用户名后原表切换为该学生的课时多维明细，展示学习时间、时长、跳出节点、正确率以及逐题秒答/反复/过长标签。
+- **用户追踪**：以自然月为单元，四周每周 2 节并加 1 节月度课，共 9 节；点击用户名后原表切换为该学生的课时多维明细。参课课时可继续展开单次会话回放（含 `SES-8842` 行为还原），并沿「连续表现 → 异常信号 → 情绪识别 → 断点优化」定位产品机会。
 
 ## 关键口径
 
@@ -65,7 +65,7 @@ node build-standalone.mjs
 
 ## 数据库
 
-[`database/schema.sql`](database/schema.sql) 是可直接执行的 SQLite 数据模型（v2.1），10 张表：
+[`database/schema.sql`](database/schema.sql) 是可直接执行的 SQLite 数据模型（v2.2），10 张表：
 
 | 层 | 表 | 说明 |
 | --- | --- | --- |
@@ -79,11 +79,11 @@ node build-standalone.mjs
 | 评估 | `content_quality` | 知识点 × 内容版本的质量快照 |
 | 决策 | `user_outcome_decisions` | 退费/续费结果、当时完课分层与反馈原因快照 |
 
-外加 11 个语义视图：
+外加 12 个语义视图：
 
 - 结果决策：`v_user_outcome_decision`（结果状态 → 完课分层 → 反馈原因）
 - 连续行为：`v_breakpoint_distribution`（断点分布）、`v_pre_exit_signal_lift`（信号提升度）、`v_session_continuity`（断后回归）、`v_emotion_cohort`（情绪分层）
-- 迭代归因：`v_lesson_attribution`（课时归因）、`v_cohort_lesson_tracking`（班期用户追踪）、`v_question_duration`（单次作答）、`v_lesson_question_performance`（课时 × 题目的耗时/正确率/跳出率）
+- 迭代归因：`v_lesson_attribution`（课时归因）、`v_cohort_lesson_tracking`（班期用户追踪）、`v_question_duration`（单次作答）、`v_lesson_question_performance`（课时 × 题目的耗时/正确率/跳出率）、`v_user_breakpoint_emotion_attribution`（会话异常 → 情绪 → 断点优化）
 - 原有：`v_weekly_learning_monitor`、`v_lesson_funnel`
 
 ```bash
