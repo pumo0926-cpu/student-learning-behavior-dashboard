@@ -17,10 +17,10 @@ const icons = {
 };
 
 const periodFactors = { week: 1, lastWeek: .94, month: 3.82 };
-const segmentFactors = { all: 1, new: .31, risk: .14 };
+const segmentFactors = { all: 1, refunded: .078, notRefunded: .922, renewed: .456, notRefundedNotRenewed: .466, risk: .14 };
 const formatNumber = (value) => Math.round(value).toLocaleString("zh-CN");
 const scaled = (value) => formatNumber(value * periodFactors[state.period] * segmentFactors[state.segment]);
-const pctShift = () => state.segment === "risk" ? -11.2 : state.segment === "new" ? 3.1 : 0;
+const pctShift = () => ({ refunded: -13.8, notRefunded: 1.2, renewed: 7.4, notRefundedNotRenewed: -4.6, risk: -11.2 }[state.segment] || 0);
 // invert = true 用于「越低越好」的指标（断点率、异常命中率等），风险人群应当更高而不是更低。
 const pct = (value, invert = false) => {
   const shifted = value + (invert ? -pctShift() : pctShift());
@@ -579,7 +579,12 @@ const trackingUsers = [
 ];
 
 const userGroups = [
-  ["all","全部用户","2,384"],["churn","退费用户","186"],["active","未退费用户","2,198"],["renewed","续费用户","1,086"],["notRenewed","未续费用户","1,298"]
+  ["all","全部用户","2,384"],
+  ["refunded","退费用户","186"],
+  ["notRefunded","未退费用户","2,198"],
+  ["renewed","续费用户","1,086"],
+  ["notRefundedNotRenewed","未退费未续费用户","1,112"],
+  ["risk","潜在流失风险用户","334"]
 ];
 const statusMeta = { done:["完课","done"], learning:["参课中","learning"], exit:["跳出","exit"], missed:["未参课","missed"] };
 
@@ -607,8 +612,19 @@ function lessonTemplate() {
   </section>`;
 }
 
+function isPotentialRisk(user) {
+  return !user.churn && !user.renew
+    && user.states.slice(-4).filter(s => s === "missed" || s === "exit" || s === "learning").length >= 2;
+}
+
 function userMatchesGroup(user) {
-  return state.userGroup === "all" || (state.userGroup === "churn" && user.churn) || (state.userGroup === "active" && !user.churn) || (state.userGroup === "renewed" && user.renew) || (state.userGroup === "notRenewed" && !user.renew);
+  const potentialRisk = isPotentialRisk(user);
+  return state.userGroup === "all"
+    || (state.userGroup === "refunded" && user.churn)
+    || (state.userGroup === "notRefunded" && !user.churn)
+    || (state.userGroup === "renewed" && user.renew)
+    || (state.userGroup === "notRefundedNotRenewed" && !user.churn && !user.renew)
+    || (state.userGroup === "risk" && potentialRisk);
 }
 
 function userLessonRecord(user, lessonIndex) {
@@ -1069,12 +1085,13 @@ function usersTemplate() {
   const visibleUsers = trackingUsers.filter(userMatchesGroup);
   const selectedUser = trackingUsers.find(user => user.id === state.selectedUser);
   const matrix = `<article class="panel tracking-panel"><div class="panel-header"><div><h3>月度用户课时状态矩阵</h3><p>一个月 9 节：四周每周解锁 2 节，另加 1 节月度综合课；点击用户名查看完整课时明细</p></div><div class="status-legend"><span><i class="done"></i>完课</span><span><i class="learning"></i>参未完</span><span><i class="exit"></i>跳出</span><span><i class="missed"></i>未参</span></div></div>
-      <div class="tracking-wrap"><table class="tracking-table month-tracking-table"><thead><tr class="week-band"><th rowspan="2">用户</th><th rowspan="2">结果状态</th><th colspan="2">第 1 周</th><th colspan="2">第 2 周</th><th colspan="2">第 3 周</th><th colspan="2">第 4 周</th><th>月度加课</th></tr><tr>${lessonRows.map((_,i)=>`<th>L${String(i+1).padStart(2,"0")}</th>`).join("")}</tr></thead><tbody>${visibleUsers.map(u=>`<tr><td><button class="student-name-button" data-select-user="${u.id}"><b>${u.name}</b><small>${u.id}</small><em>查看课时明细 →</em></button></td><td><span class="lifecycle ${u.churn?'churn':'active'}">${u.churn?'已退费':'未退费'}</span><span class="lifecycle ${u.renew?'renew':'no-renew'}">${u.renew?'已续费':'未续费'}</span></td>${u.states.map((s,i)=>`<td><button class="lesson-state ${statusMeta[s][1]}" data-user-detail="${u.id}" data-lesson="${i}" title="${u.name} · ${lessonRows[i].name} · ${statusMeta[s][0]}"><i></i><span>${s==="learning"||s==="exit"?"参未完":s==="missed"?"未参":"完课"}</span></button></td>`).join("")}</tr>`).join("")}</tbody></table></div>
+      <div class="tracking-wrap"><table class="tracking-table month-tracking-table"><thead><tr class="week-band"><th rowspan="2">用户</th><th rowspan="2">结果状态</th><th colspan="2">第 1 周</th><th colspan="2">第 2 周</th><th colspan="2">第 3 周</th><th colspan="2">第 4 周</th><th>月度加课</th></tr><tr>${lessonRows.map((_,i)=>`<th>L${String(i+1).padStart(2,"0")}</th>`).join("")}</tr></thead><tbody>${visibleUsers.map(u=>`<tr><td><button class="student-name-button" data-select-user="${u.id}"><b>${u.name}</b><small>${u.id}</small><em>查看课时明细 →</em></button></td><td><span class="lifecycle ${u.churn?'churn':'active'}">${u.churn?'已退费':'未退费'}</span><span class="lifecycle ${u.renew?'renew':'no-renew'}">${u.renew?'已续费':'未续费'}</span>${isPotentialRisk(u)?'<span class="lifecycle risk">潜在风险</span>':''}</td>${u.states.map((s,i)=>`<td><button class="lesson-state ${statusMeta[s][1]}" data-user-detail="${u.id}" data-lesson="${i}" title="${u.name} · ${lessonRows[i].name} · ${statusMeta[s][0]}"><i></i><span>${s==="learning"||s==="exit"?"参未完":s==="missed"?"未参":"完课"}</span></button></td>`).join("")}</tr>`).join("")}</tbody></table></div>
     </article>`;
   return `<section class="fade-in">${detailHeader("同批用户月度追踪", "以自然月为单元，连续追踪同批用户四周 8 节常规课和 1 节月度加课，并把异常信号、情绪识别与断点优化串成一条诊断链。", "点击用户/课时：展开会话回放")}
     <div class="analysis-toolbar"><div><span>当前月度班期</span><b>2026 年 8 月 · 初一数学 A 班</b></div><label>月份<select><option>2026 年 8 月</option><option>2026 年 7 月</option><option>2026 年 6 月</option></select></label><span class="cohort-range">同批购买 2,384 人 · 本月 9 节</span></div>
     <div class="month-plan"><span><b>第 1 周</b>L01–L02</span><i></i><span><b>第 2 周</b>L03–L04</span><i></i><span><b>第 3 周</b>L05–L06</span><i></i><span><b>第 4 周</b>L07–L08</span><i></i><span class="extra"><b>月度加课</b>L09 综合挑战</span></div>
     <div class="segment-tabs">${userGroups.map(g=>`<button class="${state.userGroup===g[0]?'active':''}" data-user-group="${g[0]}"><span>${g[1]}</span><b>${g[2]}</b></button>`).join("")}</div>
+    <div class="segment-definition"><b>潜在流失风险口径</b><span>未退费且未续费，并在最近 4 节中至少 2 节出现未参、参未完或跳出。</span></div>
     ${selectedUser ? userLessonDetailTable(selectedUser) : matrix}
     ${userMonitoringFlow(selectedUser)}
     ${selectedUser ? insight(`<b>${selectedUser.name} 的月度行为：</b>异常标签已按题目阈值标记——≤15 秒为秒答，同题提交 ≥3 次为反复，≥100 秒为过长；可直接定位需要回放的题目。`) : `<div class="compare-grid"><article><span>退费用户典型路径</span><b>连续 2 节未参课 → 退费风险升高</b><p>首次跳出多集中于 L03、L05，且跳出前一节正确率均值低于 65%。</p></article><article><span>续费用户典型路径</span><b>前 6 节完成 ≥ 5 节 → 续费率 71%</b><p>稳定完课用户的错题订正率比未续费用户高 19.4 个百分点。</p></article></div>`}
@@ -1181,6 +1198,7 @@ const views = {
 
 function render() {
   const view = views[state.view];
+  document.getElementById("segmentSelect").value = state.segment;
   document.getElementById("pageTitle").textContent = view.title;
   document.getElementById("pageEyebrow").textContent = view.eyebrow;
   // 上一视图移到 body 上的抽屉与原题浮层不会随 #content 重绘被清掉，先移除。
@@ -1243,7 +1261,7 @@ function render() {
   }));
   document.querySelectorAll("[data-example-session]").forEach(el => el.addEventListener("click", () => { state.selectedUser = "STU-1132"; state.selectedLessonSession = 3; render(); }));
   document.querySelectorAll("[data-back-users]").forEach(el => el.addEventListener("click", () => { state.selectedUser = null; state.selectedLessonSession = null; render(); }));
-  document.querySelectorAll("[data-user-group]").forEach(el => el.addEventListener("click", () => { state.userGroup = el.dataset.userGroup; state.selectedUser = null; state.selectedLessonSession = null; render(); }));
+  document.querySelectorAll("[data-user-group]").forEach(el => el.addEventListener("click", () => { state.userGroup = el.dataset.userGroup; state.segment = el.dataset.userGroup; state.selectedUser = null; state.selectedLessonSession = null; render(); }));
   document.querySelectorAll("[data-outcome]").forEach(el => el.addEventListener("click", () => { state.outcome = el.dataset.outcome; render(); }));
   document.querySelectorAll("[data-close-drawer]").forEach(el => el.addEventListener("click", closeDrawer));
 }
@@ -1257,7 +1275,7 @@ function navigate(view) {
 
 document.querySelectorAll(".nav-item").forEach(el => el.addEventListener("click", () => navigate(el.dataset.view)));
 document.getElementById("periodSelect").addEventListener("change", e => { state.period = e.target.value; render(); });
-document.getElementById("segmentSelect").addEventListener("change", e => { state.segment = e.target.value; render(); });
+document.getElementById("segmentSelect").addEventListener("change", e => { state.segment = e.target.value; state.userGroup = e.target.value; state.selectedUser = null; state.selectedLessonSession = null; render(); });
 document.getElementById("exportButton").addEventListener("click", () => {
   const headers = ["方案", "指标", "当前值", "周期", "人群"];
   const rows = [[views[state.view].title, "页面数据快照", new Date().toLocaleString("zh-CN"), state.period, state.segment]];

@@ -581,6 +581,21 @@ SELECT
     s.churn_status,
     s.refund_status,
     s.renewal_status,
+    CASE WHEN s.refund_status = 'refunded' THEN 1 ELSE 0 END AS is_refunded_user,
+    CASE WHEN s.refund_status = 'not_refunded' THEN 1 ELSE 0 END AS is_not_refunded_user,
+    CASE WHEN s.renewal_status = 'renewed' THEN 1 ELSE 0 END AS is_renewed_user,
+    CASE WHEN s.refund_status = 'not_refunded' AND s.renewal_status = 'not_renewed'
+         THEN 1 ELSE 0 END AS is_not_refunded_not_renewed_user,
+    CASE WHEN s.refund_status = 'not_refunded'
+               AND s.renewal_status = 'not_renewed'
+               AND COALESCE((
+                   SELECT CASE WHEN w.risk_level IN ('watch', 'high') THEN 1 ELSE 0 END
+                   FROM user_weekly_summaries w
+                   WHERE w.student_id = s.student_id
+                   ORDER BY w.week_start DESC
+                   LIMIT 1
+               ), 0) = 1
+         THEN 1 ELSE 0 END AS is_potential_churn_risk_user,
     r.course_id,
     r.lesson_id,
     r.lesson_title,
