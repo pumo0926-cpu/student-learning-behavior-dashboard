@@ -7,7 +7,11 @@
     <title>拾光学习 · 用户结果决策中心</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <!-- 字体异步加载：默认 media="print" 不阻塞首屏，onload 后再切回 all。
+         取不到 Google Fonts 的网络环境（如国内）会立刻回落到系统字体，
+         而不是先白屏等它超时——这个文件要发给别人离线打开，不能阻塞渲染。 -->
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+    <noscript><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" /></noscript>
     <style>
 :root {
   --ink: #152a35;
