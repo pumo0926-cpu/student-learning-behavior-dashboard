@@ -60,7 +60,9 @@ const segmentLabels = { all: "全部", refunded: "退费", notRefunded: "未退�
 const segmentFilterLabel = () => segmentLabels[state.segment] || segmentLabels.all;
 const segmentFactors = { all: 1, refunded: .078, notRefunded: .922, renewed: .456, notRenewed: .544 };
 const formatNumber = (value) => Math.round(value).toLocaleString("zh-CN");
-const scaled = (value) => formatNumber(value * periodFactors[state.period] * segmentFactors[state.segment]);
+// 因子取不到时回落到 1 而不是 undefined：否则一个越界的 state.period/segment
+// 会让整个看板的每个数字都变成 NaN，而不是只错一处。
+const scaled = (value) => formatNumber(value * (periodFactors[state.period] ?? 1) * (segmentFactors[state.segment] ?? 1));
 const pctShift = () => ({ refunded: -13.8, notRefunded: 1.2, renewed: 7.4, notRenewed: -4.6 }[state.segment] || 0);
 // invert = true 用于「越低越好」的指标（断点率、异常命中率等），风险人群应当更高而不是更低。
 const pct = (value, invert = false) => {
@@ -1023,7 +1025,7 @@ function userMonitoringFlow(user = null) {
     ["03", "用户情绪识别", moodText || "受挫 / 无聊 / 涣散 / 正向", "把连续行为转成可验证的情绪判断", "emotion"],
     ["04", "断点优化点", fixText || "定位到动画秒段与具体题号", "将情绪原因落到可改的产品位置", "lesson"]
   ];
-  return `<section class="user-monitoring-flow"><div class="monitor-flow-head"><div><span>用户行为归因下的监测方案</span><h3>连续表现 → 异常信号 → 情绪识别 → 断点优化</h3><p>${user ? `当前聚焦 ${user.name}，所有结论均从其月度连续行为推导。` : "先选择用户或打开示例会话，再沿四步诊断链定位产品优化点。"}</p></div>${user ? "" : '<button data-example-session>打开会话样例 · SES-8842</button>'}</div><div class="monitor-flow-grid">${steps.map((s,i)=>`<button data-open="${s[4]}" class="monitor-flow-card"><i>${s[0]}</i><span><b>${s[1]}</b><strong>${s[2]}</strong><small>${s[3]}</small></span>${i<steps.length-1?'<em>→</em>':""}</button>`).join("")}</div></section>`;
+  return `<section class="user-monitoring-flow is-primary-flow"><div class="monitor-flow-head"><div><span>用户行为归因 · 主要四步</span><h3>连续表现 → 异常信号 → 情绪识别 → 断点优化</h3><p>${user ? `当前聚焦 ${user.name}，按四步从月度连续行为下钻到可执行优化点。` : "本页所有用户矩阵、异常分布、情绪聚类与断点分析，均按以下四步展开。"}</p></div>${user ? "" : '<button data-example-session>打开会话样例 · SES-8842</button>'}</div><div class="monitor-flow-grid">${steps.map((s,i)=>`<button data-open="${s[4]}" class="monitor-flow-card"><i>${s[0]}</i><span><b>${s[1]}</b><strong>${s[2]}</strong><small>${s[3]}</small></span>${i<steps.length-1?'<em>→</em>':""}</button>`).join("")}</div><div class="primary-flow-guide"><span>主分析框架</span><i></i><b>以下内容按 01 → 04 逐步展开</b></div></section>`;
 }
 
 function signalDistributionPanel() {
@@ -1289,13 +1291,13 @@ function usersTemplate() {
       <div class="tracking-wrap"><table class="tracking-table month-tracking-table"><thead><tr class="week-band"><th rowspan="2">用户</th><th rowspan="2">结果状态</th><th colspan="2">第 1 周</th><th colspan="2">第 2 周</th><th colspan="2">第 3 周</th><th colspan="2">第 4 周</th><th>月度加课</th></tr><tr>${lessonRows.map((_,i)=>`<th>L${String(i+1).padStart(2,"0")}</th>`).join("")}</tr></thead><tbody>${visibleUsers.map(u=>`<tr><td><button class="student-name-button" data-select-user="${u.id}"><b>${u.name}</b><small>${u.id} · ${u.city} · ${u.channel}</small><em>查看课时明细 →</em></button></td><td><span class="lifecycle ${u.churn?'churn':'active'}">${u.churn?'已退费':'未退费'}</span><span class="lifecycle ${u.renew?'renew':'no-renew'}">${u.renew?'已续费':'未续费'}</span>${isPotentialRisk(u)?'<span class="lifecycle risk">潜在风险</span>':''}</td>${u.states.map((s,i)=>`<td><button class="lesson-state ${statusMeta[s][1]}" data-user-detail="${u.id}" data-lesson="${i}" title="${u.name} · ${lessonRows[i].name} · ${statusMeta[s][0]}"><i></i><span>${s==="learning"||s==="exit"?"参未完":s==="missed"?"未参":"完课"}</span></button></td>`).join("")}</tr>`).join("")}</tbody></table></div>
     </article>`;
   return `<section class="fade-in">${detailHeader("用户学习行为的连续性表现", `按用户进入产品后的月份追踪：${lifecyclePeriod()[1]} 为${lifecyclePeriod()[2]}。每个月连续观察四周 8 节常规课和 1 节月度加课。`, "点击用户/课时：展开会话回放")}
+    ${userMonitoringFlow(selectedUser)}
     <div class="analysis-toolbar"><div><span>当前生命周期月份</span><b>${lifecyclePeriod()[1]} · ${lifecyclePeriod()[2]} · ${courseFilterLabel()} · ${packageFilterLabel()} · ${courseStartLabel()}开课</b></div><label>周期<select data-lifecycle-period>${lifecyclePeriodOptions()}</select></label><span class="cohort-range">同批进入 2,384 人 · ${lifecyclePeriod()[1]} 共 9 节</span></div>
     <div class="month-plan"><span><b>第 1 周</b>L01–L02</span><i></i><span><b>第 2 周</b>L03–L04</span><i></i><span><b>第 3 周</b>L05–L06</span><i></i><span><b>第 4 周</b>L07–L08</span><i></i><span class="extra"><b>月度加课</b>L09 综合挑战</span></div>
     <div class="segment-tabs">${userGroups.map(g=>`<button class="${state.userGroup===g[0]?'active':''}" data-user-group="${g[0]}"><span>${g[1]}</span><b>${g[2]}</b></button>`).join("")}</div>
     <div class="segment-definition"><b>潜在流失风险口径</b><span>未退费且未续费，并在最近 4 节中至少 2 节出现未参、参未完或跳出。</span></div>
     ${selectedUser ? userLessonDetailTable(selectedUser) : matrix}
     ${selectedUser ? "" : userEmotionAndWarningPanel(visibleUsers)}
-    ${userMonitoringFlow(selectedUser)}
     ${selectedUser ? "" : signalDistributionPanel()}
     ${selectedUser ? insight(`<b>${selectedUser.name} 的月度行为：</b>异常标签已按题目阈值标记——≤15 秒为秒答，同题提交 ≥3 次为反复，≥100 秒为过长；可直接定位需要回放的题目。`) : `<div class="compare-grid"><article><span>退费用户典型路径</span><b>连续 2 节未参课 → 退费风险升高</b><p>首次跳出多集中于 L03、L05，且跳出前一节正确率均值低于 65%。</p></article><article><span>续费用户典型路径</span><b>前 6 节完成 ≥ 5 节 → 续费率 71%</b><p>稳定完课用户的错题订正率比未续费用户高 19.4 个百分点。</p></article></div>`}
     ${selectedUser ? "" : sessionDegradationPanel()}
