@@ -106,7 +106,7 @@ CREATE TABLE IF NOT EXISTS learning_events (
                                    'play', 'pause', 'seek_forward', 'replay',
                                    'stage_switch', 'answer', 'answer_change', 'correction',
                                    'hint_view', 'idle', 'app_background', 'app_foreground',
-                                   'exit', 'complete'
+                                   'playback_rate', 'exit', 'complete'
                                  )),
     event_at                   TEXT NOT NULL,
     event_sequence             INTEGER NOT NULL DEFAULT 1 CHECK (event_sequence > 0),
@@ -123,6 +123,7 @@ CREATE TABLE IF NOT EXISTS learning_events (
     question_index             INTEGER CHECK (question_index IS NULL OR question_index > 0),
     video_position_seconds     INTEGER CHECK (video_position_seconds IS NULL OR video_position_seconds >= 0),
     duration_seconds           INTEGER CHECK (duration_seconds IS NULL OR duration_seconds >= 0),
+    playback_rate              REAL CHECK (playback_rate IS NULL OR playback_rate > 0),  -- 倍速快进：不跳过内容，只是加速
     countdown_total_seconds    INTEGER CHECK (countdown_total_seconds IS NULL OR countdown_total_seconds > 0),
     countdown_remaining_seconds INTEGER CHECK (
                                    countdown_remaining_seconds IS NULL OR countdown_remaining_seconds >= 0

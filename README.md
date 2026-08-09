@@ -71,7 +71,7 @@ node build-standalone.mjs
 | --- | --- | --- |
 | 基础 | `students` | 学生画像、套餐、班期、流失与续费状态 |
 | 连续行为 | `learning_sessions` | **一次打开到离开一行**，断点定位主表 |
-| 连续行为 | `learning_events` | 18 类事件明细，按 `event_sequence` 还原序列 |
+| 连续行为 | `learning_events` | 19 类事件明细，按 `event_sequence` 还原序列 |
 | 信号 | `anomaly_signal_dict` | 20 类信号的判定规则、阈值与权重（含种子数据） |
 | 信号 | `session_anomaly_signals` | 会话命中的异常明细，含距断点的秒数与步数 |
 | 情绪 | `student_emotion_states` | 学生 × 周的厌烦指数、分型与预警等级 |

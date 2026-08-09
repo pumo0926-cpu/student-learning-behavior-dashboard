@@ -1126,7 +1126,8 @@ const eventRows = [
   ["session_start / session_end", "会话开始与结束", "session_id、设备、入口来源", "会话数 / 单次时长", "新增"],
   ["open / unlock", "打开产品、课程解锁", "课程ID、课节ID、解锁周", "活跃 / 解锁率", ""],
   ["play / pause", "动画播放与暂停", "动画ID、版本、播放位置", "观看时长 / 内容卡点", ""],
-  ["seek_forward", "动画向前拖动", "起止位置、连续次数", "快进率 / 跳过区间", ""],
+  ["seek_forward", "动画向前拖动", "起止位置、连续次数", "拖拽跳过率 / 跳过区间", ""],
+  ["playback_rate", "切换倍速播放", "倍速值、起始播放位置", "倍速快进率 / 嫌慢信号", "新增"],
   ["replay", "回看已播片段", "区间起止、重复次数", "重复回看信号", "新增"],
   ["stage_switch", "学 / 练 / 改环节切换", "来源环节、目标环节、当前进度", "跳过讲解 / 来回横跳信号", "新增"],
   ["answer", "提交题目答案", "题目ID、题序、尝试次数、正误、耗时、倒计时剩余", "秒答 / 临近倒计时 / 正确率 / 反复提交", ""],
@@ -1143,7 +1144,7 @@ function modelTemplate() {
   const models = [
     ["01", "用户基础表", "students", "同班期画像、购买与结果状态分群", ["student_id · 学生ID", "cohort_code · 班期", "refund_status · 退费状态", "renewal_status · 续费状态", "package_code · 套餐", "device_type · 设备"], "基础层", false],
     ["02", "学习会话表", "learning_sessions", "一次打开到离开为一行 · 断点定位主表", ["session_id · 会话ID", "is_break · 是否断点", "break_stage · 断点环节", "break_position_label · 断点位置", "resume_mode · 续接方式", "boredom_score · 厌烦指数"], "连续行为层", true],
-    ["03", "学习事件明细表", "learning_events", "原始行为事实 · 按 event_sequence 还原序列", ["event_name · 18 类事件", "stage · 所属环节", "prev_event_gap_seconds · 距上一步", "question_index · 题序", "answer_attempt · 尝试次数", "properties_json · 扩展"], "连续行为层", true],
+    ["03", "学习事件明细表", "learning_events", "原始行为事实 · 按 event_sequence 还原序列", ["event_name · 19 类事件", "stage · 所属环节", "prev_event_gap_seconds · 距上一步", "question_index · 题序", "answer_attempt · 尝试次数", "properties_json · 扩展"], "连续行为层", true],
     ["04", "异常信号字典", "anomaly_signal_dict", "20 类信号的判定规则与权重 · 可配置", ["signal_code · 信号编码", "detect_rule · 判定规则", "threshold_json · 阈值", "emotion_type · 情绪归属", "weight · 权重", "reference_lift · 参考提升度"], "信号层", true],
     ["05", "会话异常明细表", "session_anomaly_signals", "一次会话命中一个信号一行", ["session_id · 会话ID", "signal_code · 信号编码", "seconds_before_break · 距断点秒数", "steps_before_break · 距断点步数", "position_label · 命中位置", "intensity · 强度"], "信号层", true],
     ["06", "学生情绪状态表", "student_emotion_states", "学生 × 自然周 · 厌烦指数与分型", ["boredom_index · 厌烦指数", "emotion_type · 情绪分型", "frustration / boredom / distraction", "top_signal_codes · 主导信号", "alert_level · 预警等级", "suggested_action · 建议动作"], "情绪层", true],
@@ -1152,10 +1153,10 @@ function modelTemplate() {
     ["09", "内容质量表", "content_quality", "知识点 × 内容版本 × 日", ["动画ID / 版本", "题集ID / 版本", "break_session_rate · 断点率", "top_break_position · 断点热区", "难度 / 退出指标", "掌握指标"], "评估层", false],
     ["10", "用户结果决策表", "user_outcome_decisions", "一次退费/续费结果一行，冻结当时完课表现与反馈原因", ["outcome_type · 决策类型", "outcome_status · 结果状态", "completion_band · 完课分层", "completion_rate · 当时完课率", "primary_reason_code · 原因", "feedback_source · 反馈来源"], "结果决策层", true]
   ];
-  return `<section class="fade-in">${detailHeader("底层数据模型", "十张表把用户结果、反馈原因、连续行为、异常信号、情绪状态与内容质量串起来。", "10 张表 · 18 类事件 · 15 个视图")}
+  return `<section class="fade-in">${detailHeader("底层数据模型", "十张表把用户结果、反馈原因、连续行为、异常信号、情绪状态与内容质量串起来。", "10 张表 · 19 类事件 · 15 个视图")}
     <div class="model-flow"><span>结果决策</span><i>定位人群</i><span>学生画像</span><i>1 : N</i><span class="is-new">学习会话</span><i>1 : N</i><span class="is-new">行为事件</span><i>规则判定</i><span class="is-new">异常信号</span><i>加权</i><span class="is-new">情绪状态</span><i>验证</i><span>课节结果</span></div>
     <div class="model-grid">${models.map(m => `<article class="model-card ${m[6] ? "is-new" : ""}"><header><span>${m[0]}</span><div><h3>${m[1]}</h3><code>${m[2]}</code></div></header><p>${m[3]}</p><div class="field-list">${m[4].map(f => `<span>${f}</span>`).join("")}</div><footer><i></i>${m[5]}${m[6] ? " · 本次新增" : ""}</footer></article>`).join("")}</div>
-    <div class="panel panel-full" style="margin-top:18px"><div class="panel-header"><div><h3>埋点事件口径</h3><p>同一 session_id 内按 event_sequence 排序，即可完整还原一次连续使用行为</p></div><span class="panel-tag">18 类事件 · 7 类新增</span></div><div class="table-wrap"><table class="event-table"><thead><tr><th>事件名</th><th>触发时机</th><th>关键属性</th><th>支持指标</th><th>状态</th></tr></thead><tbody>${eventRows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4] ? '<span class="status-dot is-new">待埋点</span>' : '<span class="status-dot">已上报</span>'}</td></tr>`).join("")}</tbody></table></div></div>
+    <div class="panel panel-full" style="margin-top:18px"><div class="panel-header"><div><h3>埋点事件口径</h3><p>同一 session_id 内按 event_sequence 排序，即可完整还原一次连续使用行为</p></div><span class="panel-tag">19 类事件 · 8 类新增</span></div><div class="table-wrap"><table class="event-table"><thead><tr><th>事件名</th><th>触发时机</th><th>关键属性</th><th>支持指标</th><th>状态</th></tr></thead><tbody>${eventRows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4] ? '<span class="status-dot is-new">待埋点</span>' : '<span class="status-dot">已上报</span>'}</td></tr>`).join("")}</tbody></table></div></div>
     <div class="panel panel-full" style="margin-top:18px"><div class="panel-header"><div><h3>落地节奏建议</h3><p>不必等全部埋点齐了再开始</p></div><span class="panel-tag">3 期</span></div>
       <div class="phase-grid">
         <div class="phase-card"><span>第 1 期 · 2 周</span><b>把会话补上</b><p>先埋 session_start / session_end / exit / stage_switch 四个事件，建 learning_sessions 表。这一步做完就能回答「断在哪个环节、断后有没有回来」，价值最大、成本最低。</p></div>
