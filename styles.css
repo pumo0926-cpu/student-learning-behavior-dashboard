@@ -77,11 +77,14 @@ svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.8; strok
 }
 .eyebrow { margin: 0 0 5px; color: var(--mint); font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
 h1 { margin: 0; font-size: 23px; letter-spacing: -.035em; line-height: 1.15; }
-.top-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 10px; }
+.top-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
 .select-wrap { height: 43px; display: flex; align-items: center; gap: 7px; padding: 0 11px; border: 1px solid var(--line); border-radius: 10px; background: white; }
 .select-wrap span { color: var(--faint); font-size: 10px; }
 .select-wrap select, .select-wrap input { max-width: 170px; border: 0; outline: 0; color: var(--ink); background: transparent; font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
-.select-wrap.package-filter select { max-width: 145px; }
+.select-wrap.compact-filter select { max-width: 74px; }
+.select-wrap.package-filter select { max-width: 82px; }
+.select-wrap.cycle-filter select { max-width: 112px; }
+.select-wrap.segment-filter select { max-width: 78px; }
 .select-wrap input[type="date"] { width: 116px; }
 .icon-button, .mobile-menu { width: 43px; height: 43px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 10px; background: white; cursor: pointer; transition: .2s; }
 .icon-button:hover { color: white; border-color: var(--mint); background: var(--mint); }

@@ -92,11 +92,14 @@ svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.8; strok
 }
 .eyebrow { margin: 0 0 5px; color: var(--mint); font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
 h1 { margin: 0; font-size: 23px; letter-spacing: -.035em; line-height: 1.15; }
-.top-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 10px; }
+.top-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
 .select-wrap { height: 43px; display: flex; align-items: center; gap: 7px; padding: 0 11px; border: 1px solid var(--line); border-radius: 10px; background: white; }
 .select-wrap span { color: var(--faint); font-size: 10px; }
 .select-wrap select, .select-wrap input { max-width: 170px; border: 0; outline: 0; color: var(--ink); background: transparent; font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
-.select-wrap.package-filter select { max-width: 145px; }
+.select-wrap.compact-filter select { max-width: 74px; }
+.select-wrap.package-filter select { max-width: 82px; }
+.select-wrap.cycle-filter select { max-width: 112px; }
+.select-wrap.segment-filter select { max-width: 78px; }
 .select-wrap input[type="date"] { width: 116px; }
 .icon-button, .mobile-menu { width: 43px; height: 43px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 10px; background: white; cursor: pointer; transition: .2s; }
 .icon-button:hover { color: white; border-color: var(--mint); background: var(--mint); }
@@ -409,10 +412,10 @@ h1 { margin: 0; font-size: 23px; letter-spacing: -.035em; line-height: 1.15; }
 .decision-reason p span { color: var(--faint); }
 .decision-reason.has-voice { padding-bottom: 15px; }
 .reason-voice-evidence { overflow: hidden; margin-top: 11px; border: 1px solid #cfe3db; border-radius: 10px; background: #fbfdfc; box-shadow: 0 5px 14px rgba(24,84,68,.05); }
-.reason-voice-evidence > header { display: flex; align-items: center; gap: 8px; padding: 9px 10px; background: #edf8f3; }.reason-voice-evidence > header > i { flex: none; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 6px; color: white; background: #45b879; font-size: 8px; font-style: normal; font-weight: 700; }.reason-voice-evidence > header b,.reason-voice-evidence > header small { display: block; }.reason-voice-evidence > header b { color: var(--mint-deep); font-size: 8px; }.reason-voice-evidence > header small { margin-top: 2px; color: var(--faint); font-size: 7px; }.reason-voice-evidence > header em { margin-left: auto; padding: 3px 6px; border-radius: 5px; color: var(--mint); background: white; font-size: 7px; font-style: normal; font-weight: 600; }
+.reason-voice-toggle { width: 100%; display: flex; align-items: center; gap: 8px; padding: 9px 10px; border: 0; color: var(--ink); background: #edf8f3; text-align: left; cursor: pointer; }.reason-voice-toggle > i { flex: none; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 6px; color: white; background: #45b879; font-size: 8px; font-style: normal; font-weight: 700; }.reason-voice-toggle b,.reason-voice-toggle small { display: block; }.reason-voice-toggle b { color: var(--mint-deep); font-size: 8px; }.reason-voice-toggle small { margin-top: 2px; color: var(--faint); font-size: 7px; }.reason-voice-toggle > em { margin-left: auto; padding: 3px 6px; border-radius: 5px; color: var(--mint); background: white; font-size: 7px; font-style: normal; font-weight: 600; }.reason-voice-toggle > span { color: var(--mint); font-size: 7px; font-weight: 600; }.reason-voice-toggle svg { width: 13px; color: var(--mint); transition: transform .2s; }.reason-voice-evidence.open .reason-voice-toggle svg { transform: rotate(180deg); }.reason-voice-content { display: none; }.reason-voice-evidence.open .reason-voice-content { display: block; }
 .reason-voice-evidence blockquote { position: relative; margin: 0; padding: 11px 12px 9px 24px; color: var(--ink); font-size: 8px; font-weight: 500; line-height: 1.7; }.reason-voice-evidence blockquote::before { content: "“"; position: absolute; left: 10px; top: 13px; color: #45b879; font-size: 18px; line-height: 1; }
-.reason-voice-tags,.reason-voice-behavior { padding: 8px 10px; border-top: 1px dashed var(--line); }.reason-voice-tags small,.reason-voice-behavior small,.reason-voice-evidence > footer small { display: block; margin-bottom: 6px; color: var(--faint); font-size: 7px; }.reason-voice-tags span,.reason-voice-behavior span { display: inline-block; margin: 0 4px 4px 0; padding: 3px 6px; border-radius: 5px; font-size: 7px; }.reason-voice-tags span { color: #b6503d; background: #fff0ed; }.reason-voice-behavior span { color: var(--mint-deep); background: #edf8f3; }
-.reason-voice-evidence > footer { padding: 9px 10px 10px; border-top: 1px solid var(--line); background: #f8faf9; }.reason-voice-evidence > footer b { display: block; color: var(--ink); font-size: 8px; font-weight: 500; line-height: 1.6; }
+.reason-voice-tags,.reason-voice-behavior { padding: 8px 10px; border-top: 1px dashed var(--line); }.reason-voice-tags small,.reason-voice-behavior small,.reason-voice-content > footer small { display: block; margin-bottom: 6px; color: var(--faint); font-size: 7px; }.reason-voice-tags span,.reason-voice-behavior span { display: inline-block; margin: 0 4px 4px 0; padding: 3px 6px; border-radius: 5px; font-size: 7px; }.reason-voice-tags span { color: #b6503d; background: #fff0ed; }.reason-voice-behavior span { color: var(--mint-deep); background: #edf8f3; }
+.reason-voice-content > footer { padding: 9px 10px 10px; border-top: 1px solid var(--line); background: #f8faf9; }.reason-voice-content > footer b { display: block; color: var(--ink); font-size: 8px; font-weight: 500; line-height: 1.6; }.renewal-card .reason-voice-evidence { margin-top: 13px; }.renewal-card .reason-voice-toggle { background: #f3f8f6; }.renewal-card .reason-voice-content > footer { display: block; margin-top: 0; }
 
 .renewal-compare { display: grid; grid-template-columns: minmax(0, 1fr) 52px minmax(0, 1fr); align-items: stretch; gap: 8px; }
 .renewal-card { padding: 19px; border: 1px solid var(--line); border-radius: 16px; background: white; box-shadow: var(--shadow); }
@@ -924,11 +927,12 @@ h1 { margin: 0; font-size: 23px; letter-spacing: -.035em; line-height: 1.15; }
             <h1 id="pageTitle">客户决策行为背后的可能性主因</h1>
           </div>
           <div class="top-actions">
-            <label class="select-wrap"><span>年级-学科</span><select id="gradeSubjectSelect"><option value="g7_chinese">初一 · 语文</option><option value="g7_math" selected>初一 · 数学</option><option value="g7_english">初一 · 英语</option><option value="g8_english">初二 · 英语</option><option value="g9_english">初三 · 英语</option><option value="g8_math">初二 · 数学</option><option value="g9_math">初三 · 数学</option><option value="all">全部年级 · 全部学科</option></select></label>
-            <label class="select-wrap package-filter"><span>课包属性</span><select id="packageTypeSelect"><option value="annual">全年包</option><optgroup label="半年包"><option value="half_summer_autumn" selected>半年包 · 暑秋班</option><option value="half_autumn_winter">半年包 · 秋寒班</option><option value="half_winter_spring">半年包 · 寒春班</option><option value="half_spring_summer">半年包 · 春暑班</option></optgroup></select></label>
-            <label class="select-wrap date-filter"><span>开课时间</span><input id="courseStartDate" type="date" value="2026-08-01" aria-label="开课时间，年月日" /></label>
-            <label class="select-wrap"><span>人群</span><select id="segmentSelect"><option value="all">全部用户</option><option value="refunded">退费用户</option><option value="notRefunded">未退费用户</option><option value="renewed">续费用户</option><option value="notRefundedNotRenewed">未退费未续费用户</option><option value="risk">潜在流失风险用户</option></select></label>
-            <label class="select-wrap"><span>周期</span><select id="periodSelect"><option value="m1">M1 · 进入后第1个月</option><option value="m2">M2 · 进入后第2个月</option><option value="m3">M3 · 进入后第3个月</option><option value="m4">M4 · 进入后第4个月</option><option value="m5">M5 · 进入后第5个月</option><option value="m6">M6 · 进入后第6个月</option></select></label>
+            <label class="select-wrap compact-filter"><span>年级</span><select id="gradeSelect"><option value="g6">六年级</option><option value="g7" selected>初一</option><option value="g8">初二</option><option value="g9">初三</option></select></label>
+            <label class="select-wrap compact-filter"><span>学科</span><select id="subjectSelect"><option value="chinese">语文</option><option value="math" selected>数学</option><option value="english">英语</option></select></label>
+            <label class="select-wrap compact-filter package-filter"><span>课包</span><select id="packageTypeSelect"><option value="half" selected>半年包</option><option value="annual">全年包</option></select></label>
+            <label class="select-wrap date-filter"><span>同批次开班班期</span><input id="courseStartDate" type="date" value="2026-08-01" aria-label="同批次开班班期，开班时间" /></label>
+            <label class="select-wrap cycle-filter"><span>分析周期</span><select id="analysisCycleSelect"><option value="month">分月</option><option value="product" selected>分产品周期</option></select></label>
+            <label class="select-wrap segment-filter"><span>针对人群</span><select id="segmentSelect"><option value="all">全部</option><option value="refunded">退费</option><option value="notRefunded">未退费</option><option value="renewed">续费</option><option value="notRenewed">未续费</option></select></label>
             <button class="icon-button" id="exportButton" title="导出本页数据" aria-label="导出本页数据">
               <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 18v2h14v-2"/></svg>
             </button>
@@ -942,7 +946,7 @@ h1 { margin: 0; font-size: 23px; letter-spacing: -.035em; line-height: 1.15; }
     <div class="toast" id="toast" role="status"><span>✓</span><p>报表已导出</p></div>
     <div class="scrim" id="scrim"></div>
     <script>
-const state = { view: "overview", period: "m1", segment: "all", gradeSubject: "g7_math", packageType: "half_summer_autumn", courseStartDate: "2026-08-01", userGroup: "all", selectedUser: null, selectedLessonSession: null, outcome: "refund", expandedLesson: 4 };
+const state = { view: "overview", period: "m1", analysisCycle: "product", segment: "all", grade: "g7", subject: "math", packageType: "half", courseStartDate: "2026-08-01", userGroup: "all", selectedUser: null, selectedLessonSession: null, outcome: "refund", expandedLesson: 4 };
 
 const icons = {
   open: '<svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 8h8M8 12h6"/></svg>',
@@ -976,33 +980,36 @@ const lifecyclePeriods = [
 ];
 const periodFactors = Object.fromEntries(lifecyclePeriods.map(p => [p[0], p[3]]));
 const lifecyclePeriod = () => lifecyclePeriods.find(p => p[0] === state.period) || lifecyclePeriods[0];
-const isHalfYearPackage = () => state.packageType.startsWith("half_");
+const isHalfYearPackage = () => state.packageType === "half";
 const availableLifecyclePeriods = () => lifecyclePeriods.slice(0, isHalfYearPackage() ? 6 : 12);
 const lifecyclePeriodOptions = () => availableLifecyclePeriods().map(p => `<option value="${p[0]}" ${state.period === p[0] ? "selected" : ""}>${p[1]} · ${p[2]}</option>`).join("");
 const packageLabels = {
   annual: "全年包",
-  half_summer_autumn: "半年包 · 暑秋班",
-  half_autumn_winter: "半年包 · 秋寒班",
-  half_winter_spring: "半年包 · 寒春班",
-  half_spring_summer: "半年包 · 春暑班"
+  half: "半年包"
 };
-const packageFilterLabel = () => packageLabels[state.packageType] || packageLabels.half_summer_autumn;
-const courseFilters = {
-  g7_chinese: ["初一", "语文"], g7_math: ["初一", "数学"], g7_english: ["初一", "英语"],
-  g8_english: ["初二", "英语"], g9_english: ["初三", "英语"],
-  g8_math: ["初二", "数学"], g9_math: ["初三", "数学"],
-  all: ["全部年级", "全部学科"]
-};
-const courseFilter = () => courseFilters[state.gradeSubject] || courseFilters.g7_math;
-const courseFilterLabel = () => `${courseFilter()[0]} · ${courseFilter()[1]}`;
+const packageFilterLabel = () => packageLabels[state.packageType] || packageLabels.half;
+const gradeLabels = { g6: "六年级", g7: "初一", g8: "初二", g9: "初三" };
+const subjectLabels = { chinese: "语文", math: "数学", english: "英语" };
+const gradeFilterLabel = () => gradeLabels[state.grade] || gradeLabels.g7;
+const subjectFilterLabel = () => subjectLabels[state.subject] || subjectLabels.math;
+const courseFilterLabel = () => `${gradeFilterLabel()} · ${subjectFilterLabel()}`;
 const courseStartLabel = () => {
   const [year, month, day] = state.courseStartDate.split("-").map(Number);
   return `${year} 年 ${month} 月 ${day} 日`;
 };
-const segmentFactors = { all: 1, refunded: .078, notRefunded: .922, renewed: .456, notRefundedNotRenewed: .466, risk: .14 };
+const calendarMonthLabel = () => {
+  const [year, month] = state.courseStartDate.split("-").map(Number);
+  const date = new Date(year, month - 1 + Number(state.period.slice(1)) - 1, 1);
+  return `${date.getFullYear()} 年 ${date.getMonth() + 1} 月`;
+};
+const analysisCycleLabel = () => state.analysisCycle === "month" ? "分月" : "分产品周期";
+const analysisPeriodLabel = () => state.analysisCycle === "month" ? `${analysisCycleLabel()} · ${calendarMonthLabel()}` : `${analysisCycleLabel()} · ${lifecyclePeriod()[1]}`;
+const segmentLabels = { all: "全部", refunded: "退费", notRefunded: "未退费", renewed: "续费", notRenewed: "未续费" };
+const segmentFilterLabel = () => segmentLabels[state.segment] || segmentLabels.all;
+const segmentFactors = { all: 1, refunded: .078, notRefunded: .922, renewed: .456, notRenewed: .544 };
 const formatNumber = (value) => Math.round(value).toLocaleString("zh-CN");
 const scaled = (value) => formatNumber(value * periodFactors[state.period] * segmentFactors[state.segment]);
-const pctShift = () => ({ refunded: -13.8, notRefunded: 1.2, renewed: 7.4, notRefundedNotRenewed: -4.6, risk: -11.2 }[state.segment] || 0);
+const pctShift = () => ({ refunded: -13.8, notRefunded: 1.2, renewed: 7.4, notRenewed: -4.6 }[state.segment] || 0);
 // invert = true 用于「越低越好」的指标（断点率、异常命中率等），风险人群应当更高而不是更低。
 const pct = (value, invert = false) => {
   const shifted = value + (invert ? -pctShift() : pctShift());
@@ -1103,15 +1110,15 @@ function rankList(rows, color) {
 
 function frameworkTemplate() {
   const layers = [
-    { no: "01", tone: "scope", title: "先定比较口径", question: "谁和谁比，在哪段生命周期比？", items: [`${courseFilterLabel()}`, packageFilterLabel(), `${courseStartLabel()}开课`, `${lifecyclePeriod()[1]} · ${lifecyclePeriod()[2]}`, "结果人群 / 风险人群"] },
+    { no: "01", tone: "scope", title: "先定比较口径", question: "谁和谁比，在哪段生命周期比？", items: [`年级：${gradeFilterLabel()}`, `学科：${subjectFilterLabel()}`, `课包：${packageFilterLabel()}`, `同批次开班班期：${courseStartLabel()}`, `分析周期：${analysisPeriodLabel()}`, `针对人群：${segmentFilterLabel()}`] },
     { no: "02", tone: "data", title: "还原学习事实", question: "孩子实际上做了什么？", items: ["学生与课包画像", "课时结果与周度汇总", "会话回放与事件序列", "动画 / 题目内容版本", "家长微信原声"] },
     { no: "03", tone: "diagnose", title: "连续诊断与下钻", question: "异常发生在哪里、之前发生了什么？", items: ["用户 → 课时 → 会话 → 事件", "学：暂停 / 拖拽 / 快进 / 跳出", "练：秒答 / 超时 / 反复 / 正确率", "改：错题1/2/3掌握", "异常信号 → 情绪识别"] },
     { no: "04", tone: "attribute", title: "形成可能性归因", question: "哪类原因最值得优先验证？", items: ["课时维度：扫除内容硬伤", "用户维度：连续断点归因", "客户决策：退费 / 续费主因", "行为证据 × 家长原声", "相关性结论，不冒充因果"] },
     { no: "05", tone: "action", title: "迭代并验证", question: "改什么，怎样证明改对了？", items: ["内容 / 题目 / 节奏改版", "提醒 / 续学 / 指导策略", "效果证明与家长沟通", "绑定成功指标与护栏指标", "A/B或版本前后对照"] }
   ];
   return `<section class="fade-in framework-page">${detailHeader("分析框架导图", "用同一套证据链把学习事实、异常信号、用户与课时归因、客户决策结果串成可验证的产品迭代闭环。", "读图：从左向右，再回到验证")}
-    <div class="framework-principles"><article><span>原则 01</span><b>先结果，后过程</b><p>从退费、续费或体验异常出发，避免为了看指标而看指标。</p></article><article><span>原则 02</span><b>同批连续追踪</b><p>固定年级学科、课包与开课日期，再按生命周期 M 月比较。</p></article><article><span>原则 03</span><b>逐层下钻</b><p>用户 → 课时 → 会话 → 事件 / 题目，直到能对应产品触点。</p></article><article><span>原则 04</span><b>归因必须验证</b><p>行为与原声形成“可能性主因”，最终用实验确认因果。</p></article></div>
-    <article class="panel framework-canvas"><header class="framework-canvas-head"><div><span>ANALYSIS LOGIC</span><h3>从“发生了什么”到“应该改什么”</h3><p>每一层都有明确输入、分析动作和输出；没有证据的猜测不会进入迭代清单。</p></div><em>当前筛选：${courseFilterLabel()} · ${packageFilterLabel()} · ${lifecyclePeriod()[1]}</em></header>
+    <div class="framework-principles"><article><span>原则 01</span><b>先结果，后过程</b><p>从退费、续费或体验异常出发，避免为了看指标而看指标。</p></article><article><span>原则 02</span><b>同批连续追踪</b><p>固定年级、学科、课包与开班时间，再按月或产品周期比较。</p></article><article><span>原则 03</span><b>逐层下钻</b><p>用户 → 课时 → 会话 → 事件 / 题目，直到能对应产品触点。</p></article><article><span>原则 04</span><b>归因必须验证</b><p>行为与原声形成“可能性主因”，最终用实验确认因果。</p></article></div>
+    <article class="panel framework-canvas"><header class="framework-canvas-head"><div><span>ANALYSIS LOGIC</span><h3>从“发生了什么”到“应该改什么”</h3><p>每一层都有明确输入、分析动作和输出；没有证据的猜测不会进入迭代清单。</p></div><em>当前筛选：${courseFilterLabel()} · ${packageFilterLabel()} · ${analysisPeriodLabel()} · ${segmentFilterLabel()}</em></header>
       <div class="framework-map">${layers.map((layer, index) => `<section class="framework-layer is-${layer.tone}"><header><i>${layer.no}</i><div><b>${layer.title}</b><small>${layer.question}</small></div></header><div>${layer.items.map(item => `<span>${item}</span>`).join("")}</div>${index < layers.length - 1 ? '<em class="framework-arrow">→</em>' : ""}</section>`).join("")}</div>
       <div class="framework-loop"><span>验证结果回流</span><i></i><b>更新阈值、归因规则与内容版本，进入下一轮监测</b><i></i><span>持续迭代</span></div>
     </article>
@@ -1142,35 +1149,25 @@ function overviewTemplate() {
       <article class="refund-branch low-completion">
         <header><span class="branch-index">A</span><div><small>115 人 · 退费用户的 61.8%</small><h3>完课不好的退费用户</h3><p>核心判断：不是学了无效，而是学习没有真正发生。</p></div><strong>先解决<br>“学不进去”</strong></header>
         <div class="reason-list">
-          ${decisionReason("孩子不喜欢学", "兴趣不足", "启动次数少、首段早退", "重做首课体验，增加兴趣化入口与自主选题", {
-            quote: "孩子现在一看到要上这个课就说不想学，觉得动画有点慢，后面的题也没什么意思，基本都是我们催了才打开。",
-            advisor: "指导师 WX-D09",
-            sample: "同类原声 28 条",
-            tags: ["孩子抵触", "内容没兴趣", "被动启动"],
-            behavior: ["主动启动 0.6 次/周", "首 3 分钟早退 42%", "视频快进 3.8 次/课"],
-            conclusion: "原声与低主动启动、首段早退和高快进行为一致，兴趣不足主要发生在首课节奏与内容入口。"
-          })}
-          ${decisionReason("孩子作业多，顾不上来", "时间冲突", "工作日晚间短会话、频繁中断", "拆成 10–15 分钟小节，支持灵活完成")}
-          ${decisionReason("孩子没时间，基本不怎么学", "低使用", "连续多日未启动、解锁后未参课", "提供低负担学习计划，先验证真实可用时间")}
+          ${decisionReason("孩子不喜欢学", "兴趣不足", "启动次数少、首段早退", "重做首课体验，增加兴趣化入口与自主选题", attributionVoiceSamples.dislike)}
+          ${decisionReason("孩子作业多，顾不上来", "时间冲突", "工作日晚间短会话、频繁中断", "拆成 10–15 分钟小节，支持灵活完成", attributionVoiceSamples.homeworkBusy)}
+          ${decisionReason("孩子没时间，基本不怎么学", "低使用", "连续多日未启动、解锁后未参课", "提供低负担学习计划，先验证真实可用时间", attributionVoiceSamples.lowUsage)}
         </div>
       </article>
       <article class="refund-branch high-completion">
         <header><span class="branch-index">B</span><div><small>71 人 · 退费用户的 38.2%</small><h3>完课较好的退费用户</h3><p>核心判断：学习发生了，但家长没有认同效果或方式。</p></div><strong>优先解决<br>“学了没用”</strong></header>
         <div class="reason-list">
-          ${decisionReason("孩子觉得学了没有什么效果", "效果感知", "有完课，但前后测与校内表现未呈现", "补阶段前后测、能力变化与校内知识点映射")}
-          ${decisionReason("家长看到孩子学习过程感知比较轻，点点选选不是真学习", "过程感知轻", "完课率较高，但选择题占比高、缺少主观作答与思路过程证据", "加入主观题、过程作答与指导师可见的思路反馈")}
+          ${decisionReason("孩子觉得学了没有什么效果", "效果感知", "有完课，但前后测与校内表现未呈现", "补阶段前后测、能力变化与校内知识点映射", attributionVoiceSamples.noEffect)}
+          ${decisionReason("家长看到孩子学习过程感知比较轻，点点选选不是真学习", "过程感知轻", "完课率较高，但选择题占比高、缺少主观作答与思路过程证据", "加入主观题、过程作答与指导师可见的思路反馈", attributionVoiceSamples.lightLearning)}
         </div>
       </article>
     </div>
-    ${parentVoiceAttributionPanel("refund")}
-
     <div class="decision-section-head"><div><span>02 / 续费结果对照</span><h3>用续费用户校准正向信号，用未续费用户定位效果断点</h3><p>不仅看谁留下，还要看家长最终认可了什么。</p></div></div>
     <div class="renewal-compare">
-      <article class="renewal-card renewed-card"><div class="renewal-label"><i></i>续费用户</div><h3>孩子喜欢，且有一定效果</h3><p>孩子愿意主动学是前提，家长能观察到阶段进步才会形成续费决策。</p><div class="evidence-chips"><span>主动启动</span><span>稳定完课</span><span>正向反馈</span><span>效果可见</span></div><footer><b>应固化</b><span>兴趣体验 + 阶段成果表达</span></footer></article>
+      <article class="renewal-card renewed-card"><div class="renewal-label"><i></i>续费用户</div><h3>孩子喜欢，且有一定效果</h3><p>孩子愿意主动学是前提，家长能观察到阶段进步才会形成续费决策。</p><div class="evidence-chips"><span>主动启动</span><span>稳定完课</span><span>正向反馈</span><span>效果可见</span></div><footer><b>应固化</b><span>兴趣体验 + 阶段成果表达</span></footer>${collapsibleVoiceEvidence(attributionVoiceSamples.renewed)}</article>
       <div class="versus-mark"><span>VS</span><small>结果对照</small></div>
-      <article class="renewal-card not-renewed-card"><div class="renewal-label"><i></i>未续费用户</div><h3>孩子成绩没有什么明显变化</h3><p>完成课程不自动等于家长感知有效，续费前需要把产品内学习连接到校内成绩与能力变化。</p><div class="evidence-chips"><span>成绩无变化</span><span>能力不可见</span><span>价值感不足</span></div><footer><b>应验证</b><span>前后测 + 校内题型 + 成果报告</span></footer></article>
+      <article class="renewal-card not-renewed-card"><div class="renewal-label"><i></i>未续费用户</div><h3>孩子成绩没有什么明显变化</h3><p>完成课程不自动等于家长感知有效，续费前需要把产品内学习连接到校内成绩与能力变化。</p><div class="evidence-chips"><span>成绩无变化</span><span>能力不可见</span><span>价值感不足</span></div><footer><b>应验证</b><span>前后测 + 校内题型 + 成果报告</span></footer>${collapsibleVoiceEvidence(attributionVoiceSamples.notRenewed)}</article>
     </div>
-    ${parentVoiceAttributionPanel("renewal")}
 
     <article class="panel panel-full priority-panel">
       <div class="panel-header"><div><h3>本期决策优先级</h3><p>依据结果人群、反馈原因与行为证据安排产品动作</p></div><span class="panel-tag">从结果到行动</span></div>
@@ -1188,51 +1185,27 @@ function overviewTemplate() {
 }
 
 function decisionReason(title, tag, evidence, action, voice = null) {
-  const voiceEvidence = voice ? `<div class="reason-voice-evidence"><header><i>微</i><div><b>客户微信原声</b><small>${voice.advisor} · 已脱敏</small></div><em>${voice.sample}</em></header><blockquote>${voice.quote}</blockquote><div class="reason-voice-tags"><small>分类抽取</small>${voice.tags.map(t => `<span>${t}</span>`).join("")}</div><div class="reason-voice-behavior"><small>匹配到孩子真实学习行为</small>${voice.behavior.map(b => `<span>${b}</span>`).join("")}</div><footer><small>匹配结论</small><b>${voice.conclusion}</b></footer></div>` : "";
+  const voiceEvidence = voice ? collapsibleVoiceEvidence(voice) : "";
   return `<div class="decision-reason ${voice ? "has-voice" : ""}"><span class="reason-dot"></span><div><h4>${title}<em>${tag}</em></h4><p><span>行为验证</span>${evidence}</p><p><span>建议动作</span>${action}</p>${voiceEvidence}</div></div>`;
+}
+
+function collapsibleVoiceEvidence(voice) {
+  return `<div class="reason-voice-evidence is-${voice.tone || "neutral"}"><button type="button" class="reason-voice-toggle" data-toggle-voice aria-expanded="false"><i>微</i><div><b>客户微信原声</b><small>${voice.advisor} · 已脱敏</small></div><em>${voice.sample}</em><span class="voice-toggle-label">展开原声</span><svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg></button><div class="reason-voice-content"><blockquote>${voice.quote}</blockquote><div class="reason-voice-tags"><small>分类抽取</small>${voice.tags.map(t => `<span>${t}</span>`).join("")}</div><div class="reason-voice-behavior"><small>匹配到孩子真实学习行为</small>${voice.behavior.map(b => `<span>${b}</span>`).join("")}</div><footer><small>匹配结论</small><b>${voice.conclusion}</b></footer></div></div>`;
 }
 
 function decisionPriority(level, group, reason, action, metric, color) {
   return `<div class="priority-row" style="--priority-color:${color}"><span class="priority-level">${level}</span><div><small>目标人群</small><b>${group}</b></div><div><small>核心原因</small><b>${reason}</b></div><div class="priority-action"><small>产品动作</small><b>${action}</b></div><div><small>验证指标</small><b>${metric}</b></div></div>`;
 }
 
-const parentVoiceCases = [
-  {
-    outcome: "退费归因", tone: "refund", sample: "完课较好 · n=71", advisor: "指导师 WX-A17",
-    quote: "看孩子课程也都学完了，但整个过程感觉比较轻，就是点点选选，我觉得这不算真正在学习。",
-    topics: ["学习过程感知轻", "点选方式不可信", "效果证据不足"], confidence: "94%",
-    behavior: ["完课率 82.4%", "选择题占比 91%", "过程作答 0 次", "订正掌握 56%"],
-    conclusion: "行为与原声一致：孩子完成了流程，但家长看不到深度思考证据。",
-    action: "增加主观题、草稿/步骤留痕及指导师过程反馈"
-  },
-  {
-    outcome: "未续费归因", tone: "not-renewed", sample: "未退费未续费 · n=1,112", advisor: "指导师 WX-B06",
-    quote: "孩子一直有在学，指导师也提醒得挺勤，但这学期成绩没看出什么明显变化，所以先不续了。",
-    topics: ["成绩无变化", "效果感知不足", "指导服务认可"], confidence: "91%",
-    behavior: ["参课率 81.6%", "完课率 73.5%", "正确率仅 +1.8pp", "阶段报告未查看"],
-    conclusion: "学习发生但效果没有被看见，问题集中在能力变化证明而非使用意愿。",
-    action: "续费前4周提供前后测、校内题型映射与能力变化报告"
-  },
-  {
-    outcome: "续费归因", tone: "renewed", sample: "已续费 · n=1,086", advisor: "指导师 WX-C12",
-    quote: "现在不用催他也会自己打开学，错题还会回去改，最近考试碰到这类题也能做出来了。",
-    topics: ["主动学习", "错题掌握", "效果可见"], confidence: "96%",
-    behavior: ["主动启动 3.6次/周", "完课率 82.4%", "订正掌握 78%", "同类题 +12.6pp"],
-    conclusion: "原声与行为形成正向闭环：愿意学、真正改会、家长能观察到迁移效果。",
-    action: "固化主动启动—订正掌握—阶段成果的正向路径"
-  }
-];
-
-function parentVoiceAttributionPanel(group) {
-  const isRefund = group === "refund";
-  const cases = parentVoiceCases.filter(v => isRefund ? v.tone === "refund" : v.tone !== "refund");
-  const label = isRefund ? "01 / 退费用户 · 原声验证" : "02 / 续费结果对照 · 原声验证";
-  const desc = isRefund
-    ? "把退费家长原声放回完课分类中，用孩子真实学习行为判断是没学进去，还是学了却没感知到效果。"
-    : "把续费与未续费原声并排对照，用真实学习行为识别家长认可或不认可的关键差异。";
-  return `<div class="decision-section-head voice-section-head is-inline"><div><span>${label}</span><h3>指导师收到的用户原声 × 孩子真实学习行为</h3><p>${desc}</p></div><em>原声为脱敏演示文本</em></div>
-    <article class="panel panel-full parent-voice-panel is-inline"><div class="voice-process"><span>微信原声</span><i>→</i><span>主题分类抽取</span><i>→</i><span>孩子行为匹配</span><i>→</i><span>归因与动作</span></div><div class="parent-voice-grid voice-count-${cases.length}">${cases.map(v => `<section class="parent-voice-card is-${v.tone}"><header><div><span>${v.outcome}</span><b>${v.sample}</b></div><em>分类置信度 ${v.confidence}</em></header><blockquote>${v.quote}</blockquote><div class="voice-source"><i>微</i><span>微信 · ${v.advisor} · 已脱敏</span></div><div class="voice-topics"><small>分类抽取</small>${v.topics.map(t => `<span>${t}</span>`).join("")}</div><div class="voice-behavior"><small>匹配到孩子行为</small><div>${v.behavior.map(b => `<span>${b}</span>`).join("")}</div></div><footer><small>匹配结论</small><b>${v.conclusion}</b><p><em>产品动作</em>${v.action}</p></footer></section>`).join("")}</div></article>`;
-}
+const attributionVoiceSamples = {
+  dislike: { tone: "refund", quote: "孩子现在一看到要上这个课就说不想学，觉得动画有点慢，后面的题也没什么意思，基本都是我们催了才打开。", advisor: "指导师 WX-D09", sample: "同类原声 28 条", tags: ["孩子抵触", "内容没兴趣", "被动启动"], behavior: ["主动启动 0.6 次/周", "首 3 分钟早退 42%", "视频快进 3.8 次/课"], conclusion: "原声与低主动启动、首段早退和高快进行为一致，兴趣不足主要发生在首课节奏与内容入口。" },
+  homeworkBusy: { tone: "refund", quote: "学校每天作业写完都九点多了，周中实在顾不上，打开一会儿又要去做别的，只能周末偶尔补。", advisor: "指导师 WX-D21", sample: "同类原声 19 条", tags: ["校内作业挤压", "晚间时间不足", "学习被中断"], behavior: ["20:30 后启动 82%", "会话中断 2.7 次/课", "单次学习 11 分钟"], conclusion: "原声与晚启动、短会话和频繁中断一致，属于真实时间冲突，应优先拆短课时并支持断点续学。" },
+  lowUsage: { tone: "refund", quote: "这个课买回来基本没怎么用，提醒了孩子也不愿打开，我们家最近确实排不出固定学习时间。", advisor: "指导师 WX-D34", sample: "同类原声 31 条", tags: ["长期未使用", "提醒无响应", "时间不可用"], behavior: ["连续 7 日未启动", "解锁未参率 68%", "提醒打开率 9%"], conclusion: "原声与连续未启动和解锁未参一致，先验证家庭可用时间，不宜直接归因内容效果。" },
+  noEffect: { tone: "refund", quote: "课倒是都跟着学了，但这次考试还是原来的分数，我们看不出来学完到底提升在哪里。", advisor: "指导师 WX-A11", sample: "同类原声 23 条", tags: ["成绩无变化", "效果不可见", "成果证明不足"], behavior: ["完课率 84%", "前后测仅 +1.6pp", "成果报告未查看"], conclusion: "学习过程完整但能力变化弱且未被呈现，效果感知不足与退费反馈相符。" },
+  lightLearning: { tone: "refund", quote: "看孩子课程也都学完了，但整个过程感觉比较轻，就是点点选选，我觉得这不算真正在学习。", advisor: "指导师 WX-A17", sample: "同类原声 17 条", tags: ["过程感知轻", "点选方式不可信", "效果证据不足"], behavior: ["完课率 82.4%", "选择题占比 91%", "过程作答 0 次", "订正掌握 56%"], conclusion: "孩子完成了流程，但家长看不到深度思考证据；原声与高点选占比、低过程留痕一致。" },
+  renewed: { tone: "renewed", quote: "现在不用催他也会自己打开学，错题还会回去改，最近考试碰到这类题也能做出来了。", advisor: "指导师 WX-C12", sample: "续费原声 36 条", tags: ["主动学习", "错题掌握", "效果可见"], behavior: ["主动启动 3.6 次/周", "完课率 82.4%", "订正掌握 78%", "同类题 +12.6pp"], conclusion: "原声与行为形成正向闭环：愿意学、真正改会、家长能观察到迁移效果。" },
+  notRenewed: { tone: "not-renewed", quote: "孩子一直有在学，指导师也提醒得挺勤，但这学期成绩没看出什么明显变化，所以先不续了。", advisor: "指导师 WX-B06", sample: "未续费原声 42 条", tags: ["成绩无变化", "效果感知不足", "指导服务认可"], behavior: ["参课率 81.6%", "完课率 73.5%", "正确率仅 +1.8pp", "阶段报告未查看"], conclusion: "学习发生但效果没有被看见，问题集中在能力变化证明而非使用意愿。" }
+};
 
 const breakStages = [
   { name: "练 · 知识训练", total: 45.7, color: "#5b7fc9", buckets: [["第 1–2 题", 8.2], ["第 3–4 题", 21.4], ["第 5–6 题", 12.1], ["第 7 题以后", 4.0]], hot: 1, note: "热区：第 3–4 题，占全部断点的 21.4%" },
@@ -1681,8 +1654,7 @@ const userGroups = [
   ["refunded","退费用户","186"],
   ["notRefunded","未退费用户","2,198"],
   ["renewed","续费用户","1,086"],
-  ["notRefundedNotRenewed","未退费未续费用户","1,112"],
-  ["risk","潜在流失风险用户","334"]
+  ["notRenewed","未续费用户","1,298"]
 ];
 const statusMeta = { done:["完课","done"], learning:["参课中","learning"], exit:["跳出","exit"], missed:["未参课","missed"] };
 
@@ -1722,13 +1694,11 @@ function isPotentialRisk(user) {
 }
 
 function userMatchesGroup(user) {
-  const potentialRisk = isPotentialRisk(user);
   return state.userGroup === "all"
     || (state.userGroup === "refunded" && user.churn)
     || (state.userGroup === "notRefunded" && !user.churn)
     || (state.userGroup === "renewed" && user.renew)
-    || (state.userGroup === "notRefundedNotRenewed" && !user.churn && !user.renew)
-    || (state.userGroup === "risk" && potentialRisk);
+    || (state.userGroup === "notRenewed" && !user.renew);
 }
 
 function userLessonRecord(user, lessonIndex) {
@@ -2307,12 +2277,12 @@ const views = {
 
 function render() {
   const view = views[state.view];
-  document.getElementById("gradeSubjectSelect").value = state.gradeSubject;
+  document.getElementById("gradeSelect").value = state.grade;
+  document.getElementById("subjectSelect").value = state.subject;
   document.getElementById("packageTypeSelect").value = state.packageType;
   document.getElementById("courseStartDate").value = state.courseStartDate;
+  document.getElementById("analysisCycleSelect").value = state.analysisCycle;
   document.getElementById("segmentSelect").value = state.segment;
-  document.getElementById("periodSelect").innerHTML = lifecyclePeriodOptions();
-  document.getElementById("periodSelect").value = state.period;
   document.getElementById("pageTitle").textContent = view.title;
   document.getElementById("pageEyebrow").textContent = view.eyebrow;
   // 上一视图移到 body 上的抽屉与原题浮层不会随 #content 重绘被清掉，先移除。
@@ -2330,6 +2300,12 @@ function render() {
     el.classList.toggle("parent-active", el.dataset.view === "users" && monitoringViews.includes(state.view));
   });
   document.querySelectorAll("[data-open]").forEach(el => el.addEventListener("click", () => navigate(el.dataset.open)));
+  document.querySelectorAll("[data-toggle-voice]").forEach(button => button.addEventListener("click", () => {
+    const card = button.closest(".reason-voice-evidence");
+    const expanded = card.classList.toggle("open");
+    button.setAttribute("aria-expanded", String(expanded));
+    button.querySelector(".voice-toggle-label").textContent = expanded ? "收回原声" : "展开原声";
+  }));
   document.querySelectorAll(".mini-tab").forEach(el => el.addEventListener("click", () => { el.parentElement.querySelectorAll(".mini-tab").forEach(x => x.classList.remove("active")); el.classList.add("active"); }));
   document.querySelectorAll("[data-question]").forEach(el => el.addEventListener("click", event => {
     event.stopPropagation();
@@ -2389,7 +2365,8 @@ function navigate(view) {
 }
 
 document.querySelectorAll(".nav-item").forEach(el => el.addEventListener("click", () => navigate(el.dataset.view)));
-document.getElementById("gradeSubjectSelect").addEventListener("change", e => { state.gradeSubject = e.target.value; state.selectedUser = null; state.selectedLessonSession = null; render(); });
+document.getElementById("gradeSelect").addEventListener("change", e => { state.grade = e.target.value; state.selectedUser = null; state.selectedLessonSession = null; render(); });
+document.getElementById("subjectSelect").addEventListener("change", e => { state.subject = e.target.value; state.selectedUser = null; state.selectedLessonSession = null; render(); });
 document.getElementById("packageTypeSelect").addEventListener("change", e => {
   state.packageType = e.target.value;
   if (isHalfYearPackage() && Number(state.period.slice(1)) > 6) state.period = "m1";
@@ -2398,11 +2375,11 @@ document.getElementById("packageTypeSelect").addEventListener("change", e => {
   render();
 });
 document.getElementById("courseStartDate").addEventListener("change", e => { state.courseStartDate = e.target.value || "2026-08-01"; state.selectedUser = null; state.selectedLessonSession = null; render(); });
-document.getElementById("periodSelect").addEventListener("change", e => { state.period = e.target.value; state.selectedUser = null; state.selectedLessonSession = null; render(); });
+document.getElementById("analysisCycleSelect").addEventListener("change", e => { state.analysisCycle = e.target.value; state.selectedUser = null; state.selectedLessonSession = null; render(); });
 document.getElementById("segmentSelect").addEventListener("change", e => { state.segment = e.target.value; state.userGroup = e.target.value; state.selectedUser = null; state.selectedLessonSession = null; render(); });
 document.getElementById("exportButton").addEventListener("click", () => {
-  const headers = ["方案", "指标", "当前值", "年级-学科", "课包属性", "开课时间", "周期", "人群"];
-  const rows = [[views[state.view].title, "页面数据快照", new Date().toLocaleString("zh-CN"), courseFilterLabel(), packageFilterLabel(), state.courseStartDate, `${lifecyclePeriod()[1]} · ${lifecyclePeriod()[2]}`, state.segment]];
+  const headers = ["方案", "指标", "当前值", "年级", "学科", "课包", "同批次开班班期", "分析周期", "针对人群"];
+  const rows = [[views[state.view].title, "页面数据快照", new Date().toLocaleString("zh-CN"), gradeFilterLabel(), subjectFilterLabel(), packageFilterLabel(), state.courseStartDate, analysisPeriodLabel(), segmentFilterLabel()]];
   const csv = "﻿" + [headers, ...rows].map(row => row.join(",")).join("\n");
   const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
   const a = document.createElement("a"); a.href = url; a.download = `周周学，周周up_${views[state.view].title}.csv`; a.click(); URL.revokeObjectURL(url);
