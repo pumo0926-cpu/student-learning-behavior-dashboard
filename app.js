@@ -1026,6 +1026,23 @@ function userMonitoringFlow(user = null) {
   return `<section class="user-monitoring-flow"><div class="monitor-flow-head"><div><span>用户行为归因下的监测方案</span><h3>连续表现 → 异常信号 → 情绪识别 → 断点优化</h3><p>${user ? `当前聚焦 ${user.name}，所有结论均从其月度连续行为推导。` : "先选择用户或打开示例会话，再沿四步诊断链定位产品优化点。"}</p></div>${user ? "" : '<button data-example-session>打开会话样例 · SES-8842</button>'}</div><div class="monitor-flow-grid">${steps.map((s,i)=>`<button data-open="${s[4]}" class="monitor-flow-card"><i>${s[0]}</i><span><b>${s[1]}</b><strong>${s[2]}</strong><small>${s[3]}</small></span>${i<steps.length-1?'<em>→</em>':""}</button>`).join("")}</div></section>`;
 }
 
+function signalDistributionPanel() {
+  const stageMeta = [
+    { key: "学", label: "学 · 视频", color: "#1b8c72", pale: "#e8f4ef" },
+    { key: "练", label: "练 · 答题", color: "#5b7fc9", pale: "#edf2fb" },
+    { key: "改", label: "改 · 订正", color: "#f08068", pale: "#fff0ed" },
+    { key: "全", label: "跨环节", color: "#8772bb", pale: "#f2eff8" }
+  ].map(stage => ({ ...stage, rows: signals.filter(signal => signal.stage === stage.key).sort((a, b) => b.brk - a.brk) }));
+  const allHits = stageMeta.reduce((sum, stage) => sum + stage.rows.reduce((value, row) => value + row.brk, 0), 0);
+  const topSignal = [...signals].sort((a, b) => b.brk - a.brk)[0];
+  const strongestSignal = [...signals].sort((a, b) => b.lift - a.lift)[0];
+  return `<article class="panel signal-distribution-panel"><div class="panel-header"><div><span class="signal-panel-kicker">异常信号 · 全量分布</span><h3>20 类异常信号分布图</h3><p>统计断点前 5 分钟的信号命中；按学、练、改与跨环节分组，快速判断异常主要发生在哪里。</p></div><span class="panel-tag">20 类信号 · 同批断点会话</span></div>
+    <div class="signal-stage-summary"><div class="signal-stage-stack">${stageMeta.map(stage => { const hit = stage.rows.reduce((value, row) => value + row.brk, 0); return `<i style="width:${hit / allHits * 100}%;--stage-color:${stage.color}" title="${stage.label} · ${(hit / allHits * 100).toFixed(1)}%"></i>`; }).join("")}</div><div class="signal-stage-legend">${stageMeta.map(stage => { const hit = stage.rows.reduce((value, row) => value + row.brk, 0); return `<span><i style="--stage-color:${stage.color}"></i><b>${stage.label}</b><em>${(hit / allHits * 100).toFixed(1)}%</em><small>${stage.rows.length} 类</small></span>`; }).join("")}</div></div>
+    <div class="signal-distribution-grid">${stageMeta.map(stage => `<section class="signal-stage-card" style="--stage-color:${stage.color};--stage-pale:${stage.pale}"><header><i></i><div><b>${stage.label}</b><small>${stage.rows.length} 类异常信号</small></div><em>${stage.rows.filter(row => row.lift >= 3.5).length} 类强关联</em></header><div>${stage.rows.map(row => `<div class="signal-distribution-row" title="判定规则：${row.rule}"><span>${row.name}</span><div><i style="width:${row.brk}%"></i></div><b>${row.brk.toFixed(1)}%</b><em class="${row.lift >= 4 ? "is-strong" : ""}">${row.lift.toFixed(1)}×</em></div>`).join("")}</div></section>`).join("")}</div>
+    <div class="signal-distribution-footer"><span><b>最高频</b>${topSignal.name} · ${topSignal.brk.toFixed(1)}%</span><span><b>最强关联</b>${strongestSignal.name} · ${strongestSignal.lift.toFixed(1)}×</span><p>命中率 = 断点会话中出现该信号的比例；提升度 = 断点会话命中率 ÷ 完课会话命中率。同一会话可命中多项，阶段占比按全部信号命中次数归一。</p></div>
+  </article>`;
+}
+
 // 会话回放全部由 record.questions 的真实逐题数据推导，不写死事件。
 // 否则完课的会话也会显示「连续答错、静默 142 秒」，与统计框和页脚结论互相矛盾。
 // 动画（学环节）内的播放行为：是否拖拽、拖到哪、是否暂停、停在哪。
@@ -1279,6 +1296,7 @@ function usersTemplate() {
     ${selectedUser ? userLessonDetailTable(selectedUser) : matrix}
     ${selectedUser ? "" : userEmotionAndWarningPanel(visibleUsers)}
     ${userMonitoringFlow(selectedUser)}
+    ${selectedUser ? "" : signalDistributionPanel()}
     ${selectedUser ? insight(`<b>${selectedUser.name} 的月度行为：</b>异常标签已按题目阈值标记——≤15 秒为秒答，同题提交 ≥3 次为反复，≥100 秒为过长；可直接定位需要回放的题目。`) : `<div class="compare-grid"><article><span>退费用户典型路径</span><b>连续 2 节未参课 → 退费风险升高</b><p>首次跳出多集中于 L03、L05，且跳出前一节正确率均值低于 65%。</p></article><article><span>续费用户典型路径</span><b>前 6 节完成 ≥ 5 节 → 续费率 71%</b><p>稳定完课用户的错题订正率比未续费用户高 19.4 个百分点。</p></article></div>`}
     ${selectedUser ? "" : sessionDegradationPanel()}
     ${selectedUser ? "" : boredomRenewalPanel()}
