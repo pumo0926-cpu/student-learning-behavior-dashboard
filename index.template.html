@@ -17,7 +17,7 @@
   </head>
   <body>
     <div class="app-shell">
-      <aside class="sidebar" aria-label="主导航">
+      <aside class="sidebar" id="primarySidebar" aria-label="主导航">
         <a class="brand" href="#" aria-label="周周学，周周up首页">
           <span class="brand-mark" aria-hidden="true">
             <svg viewBox="0 0 32 32"><path d="M8 7.5 16 3l8 4.5v9L16 21l-8-4.5v-9Z"/><path d="m8 16.5 8 4.5 8-4.5V25l-8 4-8-4v-8.5Z" opacity=".52"/></svg>
@@ -72,26 +72,26 @@
       <main class="main">
         <header class="topbar">
           <div>
-            <button class="mobile-menu" id="menuButton" aria-label="打开菜单">
+            <button class="mobile-menu" id="menuButton" aria-label="打开菜单" aria-controls="primarySidebar" aria-expanded="false">
               <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
             </button>
             <p class="eyebrow" id="pageEyebrow">数据驾驶舱</p>
             <h1 id="pageTitle">客户决策行为背后的可能性主因</h1>
           </div>
           <div class="top-actions">
-            <label class="select-wrap compact-filter"><span>年级</span><select id="gradeSelect"><option value="g6">六年级</option><option value="g7" selected>初一</option><option value="g8">初二</option><option value="g9">初三</option></select></label>
-            <label class="select-wrap compact-filter"><span>学科</span><select id="subjectSelect"><option value="chinese">语文</option><option value="math" selected>数学</option><option value="english">英语</option></select></label>
-            <label class="select-wrap compact-filter package-filter"><span>课包</span><select id="packageTypeSelect"><option value="half" selected>半年包</option><option value="annual">全年包</option></select></label>
+            <label class="select-wrap compact-filter"><span>年级</span><select id="gradeSelect" aria-label="年级"><option value="g6">六年级</option><option value="g7" selected>初一</option><option value="g8">初二</option><option value="g9">初三</option></select></label>
+            <label class="select-wrap compact-filter"><span>学科</span><select id="subjectSelect" aria-label="学科"><option value="chinese">语文</option><option value="math" selected>数学</option><option value="english">英语</option></select></label>
+            <label class="select-wrap compact-filter package-filter"><span>课包</span><select id="packageTypeSelect" aria-label="课包"><option value="half" selected>半年包</option><option value="annual">全年包</option></select></label>
             <label class="select-wrap date-filter"><span>同批次开班班期</span><input id="courseStartDate" type="date" value="2026-08-01" aria-label="同批次开班班期，开班时间" /></label>
-            <label class="select-wrap cycle-filter"><span>分析周期</span><select id="analysisCycleSelect"><option value="month">分月</option><option value="product" selected>分产品周期</option></select></label>
-            <label class="select-wrap segment-filter"><span>针对人群</span><select id="segmentSelect"><option value="all">全部</option><option value="refunded">退费</option><option value="notRefunded">未退费</option><option value="renewed">续费</option><option value="notRenewed">未续费</option></select></label>
+            <label class="select-wrap cycle-filter"><span>分析周期</span><select id="analysisCycleSelect" aria-label="分析周期"><option value="month">分月</option><option value="product" selected>分产品周期</option></select></label>
+            <label class="select-wrap segment-filter"><span>针对人群</span><select id="segmentSelect" aria-label="针对人群"><option value="all">全部</option><option value="refunded">退费</option><option value="notRefunded">未退费</option><option value="renewed">续费</option><option value="notRenewed">未续费</option></select></label>
             <button class="icon-button" id="exportButton" title="导出本页数据" aria-label="导出本页数据">
               <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 18v2h14v-2"/></svg>
             </button>
           </div>
         </header>
 
-        <div class="content" id="content" aria-live="polite"></div>
+        <div class="content" id="content"></div>
       </main>
     </div>
 

@@ -411,6 +411,7 @@
 /* ---------- 原题浮层：点击题目浮出题干、选项与该生作答 ---------- */
 .question-pop { position: fixed; z-index: 120; width: min(420px, 92vw); max-height: 76vh; overflow-y: auto; padding: 15px 17px 16px; border: 1px solid var(--line); border-radius: 14px; background: white; box-shadow: 0 18px 44px rgba(19,46,40,.18); opacity: 0; transform: translateY(-5px); transition: opacity .16s ease, transform .16s ease; }
 .question-pop.show { opacity: 1; transform: none; }
+.question-not-reached, .question-detail small.pending { color: var(--faint); font-size: 7px; white-space: nowrap; }
 .question-pop header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 11px; }
 .question-pop header span { display: block; color: var(--faint); font-size: 8px; }
 .question-pop header b { display: inline-block; margin-top: 5px; padding: 3px 7px; border-radius: 5px; color: var(--mint-deep); background: var(--mint-pale); font-size: 8px; }

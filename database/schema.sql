@@ -26,7 +26,7 @@ BEGIN TRANSACTION;
 -- 1. 用户基础表：一个学生一行，保存稳定的分群维度。
 CREATE TABLE IF NOT EXISTS students (
     student_id          TEXT PRIMARY KEY,
-    grade               INTEGER NOT NULL CHECK (grade BETWEEN 7 AND 9),
+    grade               INTEGER NOT NULL CHECK (grade BETWEEN 6 AND 9),
     subject             TEXT NOT NULL DEFAULT 'math' CHECK (subject IN ('chinese', 'math', 'english', 'physics', 'chemistry', 'other')),
     purchased_at        TEXT NOT NULL,
     cohort_started_at   TEXT,                          -- 开课年月日；为空时以购买时间作为生命周期起点
@@ -49,7 +49,11 @@ CREATE TABLE IF NOT EXISTS students (
     renewal_status      TEXT NOT NULL DEFAULT 'not_renewed' CHECK (renewal_status IN ('renewed', 'not_renewed')),
     renewed_at           TEXT,
     created_at          TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at          TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at          TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CHECK (
+        (package_type = 'annual' AND package_term = 'full_year') OR
+        (package_type = 'half_year' AND package_term IN ('summer_autumn', 'autumn_winter', 'winter_spring', 'spring_summer'))
+    )
 );
 
 -- ============================================================
@@ -103,6 +107,11 @@ CREATE TABLE IF NOT EXISTS learning_sessions (
                                'engaged', 'frustrated', 'bored', 'distracted', 'fatigued'
                              )),
     calculated_at          TEXT,
+    CHECK (
+        (is_break = 1 AND break_stage IS NOT NULL AND course_id IS NOT NULL AND lesson_id IS NOT NULL AND exit_type <> 'completed') OR
+        (is_break = 0 AND break_stage IS NULL)
+    ),
+    CHECK (exit_type <> 'completed' OR stage_reached = 'completed'),
     FOREIGN KEY (student_id) REFERENCES students(student_id)
 );
 
@@ -266,6 +275,13 @@ CREATE TABLE IF NOT EXISTS course_learning_results (
                                  )),
     is_completed                 INTEGER NOT NULL DEFAULT 0 CHECK (is_completed IN (0, 1)),
     updated_at                   TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CHECK (training_answered_count <= training_question_count),
+    CHECK (first_correct_count <= training_answered_count),
+    CHECK (wrong_question_count <= training_answered_count),
+    CHECK (corrected_question_count <= wrong_question_count),
+    CHECK (correction_correct_count <= corrected_question_count),
+    CHECK (extension_correct_count <= extension_question_count),
+    CHECK (is_completed = 0 OR (attended = 1 AND completion_status = 'completed' AND completed_at IS NOT NULL)),
     UNIQUE (student_id, lesson_id),
     FOREIGN KEY (student_id) REFERENCES students(student_id)
 );
@@ -291,6 +307,11 @@ CREATE TABLE IF NOT EXISTS user_weekly_summaries (
     risk_level               TEXT NOT NULL DEFAULT 'normal' CHECK (risk_level IN ('normal', 'watch', 'high')),
     last_active_at           TEXT,
     calculated_at            TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CHECK (started_lesson_count <= unlocked_lesson_count),
+    CHECK (completed_lesson_count <= started_lesson_count),
+    CHECK (break_session_count <= session_count),
+    CHECK (resume_within_24h_count <= break_session_count),
+    CHECK (correct_question_count <= answered_question_count),
     PRIMARY KEY (student_id, week_start),
     FOREIGN KEY (student_id) REFERENCES students(student_id)
 );
@@ -302,7 +323,7 @@ CREATE TABLE IF NOT EXISTS content_quality (
     knowledge_point_id        TEXT NOT NULL,
     knowledge_point_name      TEXT NOT NULL,
     subject                   TEXT NOT NULL,
-    grade                     INTEGER NOT NULL CHECK (grade BETWEEN 7 AND 9),
+    grade                     INTEGER NOT NULL CHECK (grade BETWEEN 6 AND 9),
     animation_id              TEXT NOT NULL,
     animation_version         TEXT NOT NULL,
     question_set_id           TEXT NOT NULL,
@@ -348,6 +369,10 @@ CREATE TABLE IF NOT EXISTS user_outcome_decisions (
                          )),
     is_verified        INTEGER NOT NULL DEFAULT 0 CHECK (is_verified IN (0, 1)),
     created_at         TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CHECK (
+        (outcome_type = 'refund' AND outcome_status IN ('refunded', 'not_refunded')) OR
+        (outcome_type = 'renewal' AND outcome_status IN ('renewed', 'not_renewed'))
+    ),
     UNIQUE (student_id, observed_at, outcome_type),
     FOREIGN KEY (student_id) REFERENCES students(student_id)
 );
@@ -457,43 +482,90 @@ INSERT OR REPLACE INTO anomaly_signal_dict
 -- 断点分布：把「跳出率」拆到环节 × 进度位置。
 CREATE VIEW IF NOT EXISTS v_breakpoint_distribution AS
 SELECT
-    lesson_id,
-    break_stage,
+    s.grade,
+    s.subject,
+    s.package_type,
+    s.package_term,
+    s.cohort_code,
+    COALESCE(s.cohort_started_at, s.purchased_at) AS lifecycle_started_at,
+    s.refund_status,
+    s.renewal_status,
+    date(ls.started_at, 'start of month') AS tracking_month,
+    (CAST(strftime('%Y', ls.started_at) AS INTEGER) - CAST(strftime('%Y', COALESCE(s.cohort_started_at, s.purchased_at)) AS INTEGER)) * 12
+      + CAST(strftime('%m', ls.started_at) AS INTEGER) - CAST(strftime('%m', COALESCE(s.cohort_started_at, s.purchased_at)) AS INTEGER) + 1 AS lifecycle_month_number,
+    ls.lesson_id,
+    ls.break_stage,
     CASE
-        WHEN break_progress_rate IS NULL     THEN '未知'
-        WHEN break_progress_rate < 0.25      THEN '0-25%'
-        WHEN break_progress_rate < 0.50      THEN '25-50%'
-        WHEN break_progress_rate < 0.75      THEN '50-75%'
+        WHEN ls.break_progress_rate IS NULL     THEN '未知'
+        WHEN ls.break_progress_rate < 0.25      THEN '0-25%'
+        WHEN ls.break_progress_rate < 0.50      THEN '25-50%'
+        WHEN ls.break_progress_rate < 0.75      THEN '50-75%'
         ELSE '75-100%'
     END AS progress_bucket,
     COUNT(*)                                            AS break_sessions,
-    COUNT(DISTINCT student_id)                          AS break_students,
-    ROUND(AVG(duration_seconds), 1)                     AS avg_duration_seconds,
-    ROUND(AVG(anomaly_signal_count), 2)                 AS avg_signal_count
-FROM learning_sessions
-WHERE is_break = 1
-GROUP BY lesson_id, break_stage, progress_bucket;
+    COUNT(DISTINCT ls.student_id)                       AS break_students,
+    ROUND(AVG(ls.duration_seconds), 1)                  AS avg_duration_seconds,
+    ROUND(AVG(ls.anomaly_signal_count), 2)              AS avg_signal_count
+FROM learning_sessions ls
+JOIN students s ON s.student_id = ls.student_id
+WHERE ls.is_break = 1
+GROUP BY s.grade, s.subject, s.package_type, s.package_term, s.cohort_code,
+         lifecycle_started_at, s.refund_status, s.renewal_status,
+         tracking_month, lifecycle_month_number, ls.lesson_id, ls.break_stage, progress_bucket;
 
 -- 断点前信号提升度：断点会话命中率 ÷ 完课会话命中率，用于给信号排序。
 -- break_rate / baseline_rate 为可直接展示的真实比率；
 -- lift 走 +0.5 拉普拉斯平滑，否则「完课会话里从不出现」的最强信号会因除零变成 NULL 而掉出排序。
 CREATE VIEW IF NOT EXISTS v_pre_exit_signal_lift AS
-WITH totals AS (
+WITH session_scope AS (
     SELECT
+        ls.*,
+        s.grade,
+        s.subject,
+        s.package_type,
+        s.package_term,
+        s.cohort_code,
+        COALESCE(s.cohort_started_at, s.purchased_at) AS lifecycle_started_at,
+        s.refund_status,
+        s.renewal_status,
+        date(ls.started_at, 'start of month') AS tracking_month,
+        (CAST(strftime('%Y', ls.started_at) AS INTEGER) - CAST(strftime('%Y', COALESCE(s.cohort_started_at, s.purchased_at)) AS INTEGER)) * 12
+          + CAST(strftime('%m', ls.started_at) AS INTEGER) - CAST(strftime('%m', COALESCE(s.cohort_started_at, s.purchased_at)) AS INTEGER) + 1 AS lifecycle_month_number
+    FROM learning_sessions ls
+    JOIN students s ON s.student_id = ls.student_id
+), totals AS (
+    SELECT
+        grade, subject, package_type, package_term, cohort_code, lifecycle_started_at,
+        refund_status, renewal_status, tracking_month, lifecycle_month_number,
         SUM(CASE WHEN is_break = 1 THEN 1 ELSE 0 END) AS break_sessions,
-        SUM(CASE WHEN is_break = 0 THEN 1 ELSE 0 END) AS normal_sessions
-    FROM learning_sessions
+        SUM(CASE WHEN is_break = 0 AND exit_type = 'completed' THEN 1 ELSE 0 END) AS normal_sessions
+    FROM session_scope
+    GROUP BY grade, subject, package_type, package_term, cohort_code, lifecycle_started_at,
+             refund_status, renewal_status, tracking_month, lifecycle_month_number
 ),
 hits AS (
     SELECT
+        s.grade, s.subject, s.package_type, s.package_term, s.cohort_code, s.lifecycle_started_at,
+        s.refund_status, s.renewal_status, s.tracking_month, s.lifecycle_month_number,
         a.signal_code,
         COUNT(DISTINCT CASE WHEN s.is_break = 1 AND a.seconds_before_break <= 300 THEN s.session_id END) AS break_hit,
-        COUNT(DISTINCT CASE WHEN s.is_break = 0 THEN s.session_id END)                                   AS normal_hit
+        COUNT(DISTINCT CASE WHEN s.is_break = 0 AND s.exit_type = 'completed' THEN s.session_id END)     AS normal_hit
     FROM session_anomaly_signals a
-    JOIN learning_sessions s ON s.session_id = a.session_id
-    GROUP BY a.signal_code
+    JOIN session_scope s ON s.session_id = a.session_id
+    GROUP BY s.grade, s.subject, s.package_type, s.package_term, s.cohort_code, s.lifecycle_started_at,
+             s.refund_status, s.renewal_status, s.tracking_month, s.lifecycle_month_number, a.signal_code
 )
 SELECT
+    t.grade,
+    t.subject,
+    t.package_type,
+    t.package_term,
+    t.cohort_code,
+    t.lifecycle_started_at,
+    t.refund_status,
+    t.renewal_status,
+    t.tracking_month,
+    t.lifecycle_month_number,
     d.signal_code,
     d.signal_name,
     d.emotion_type,
@@ -504,24 +576,45 @@ SELECT
     ROUND(((COALESCE(h.break_hit, 0)  + 0.5) / (t.break_sessions  + 1.0))
         / ((COALESCE(h.normal_hit, 0) + 0.5) / (t.normal_sessions + 1.0)), 2)      AS lift
 FROM anomaly_signal_dict d
-LEFT JOIN hits h ON h.signal_code = d.signal_code
 CROSS JOIN totals t
+LEFT JOIN hits h
+  ON h.signal_code = d.signal_code
+ AND h.grade = t.grade
+ AND h.subject = t.subject
+ AND h.package_type = t.package_type
+ AND h.package_term = t.package_term
+ AND h.cohort_code = t.cohort_code
+ AND h.lifecycle_started_at = t.lifecycle_started_at
+ AND h.refund_status = t.refund_status
+ AND h.renewal_status = t.renewal_status
+ AND h.tracking_month = t.tracking_month
+ AND h.lifecycle_month_number = t.lifecycle_month_number
 WHERE d.is_active = 1;
 
 -- 连续性：断点之后有没有回来、以什么方式回来。
 CREATE VIEW IF NOT EXISTS v_session_continuity AS
 SELECT
-    DATE(started_at)                                                               AS stat_date,
+    s.grade,
+    s.subject,
+    s.package_type,
+    s.package_term,
+    s.cohort_code,
+    COALESCE(s.cohort_started_at, s.purchased_at)                                  AS lifecycle_started_at,
+    s.refund_status,
+    s.renewal_status,
+    DATE(ls.started_at)                                                            AS stat_date,
     COUNT(*)                                                                       AS total_sessions,
-    SUM(is_break)                                                                  AS break_sessions,
-    ROUND(1.0 * SUM(is_break) / NULLIF(COUNT(*), 0), 4)                            AS break_rate,
-    SUM(CASE WHEN is_break = 1 AND resume_gap_hours <= 24 THEN 1 ELSE 0 END)       AS resume_24h,
-    SUM(CASE WHEN is_break = 1 AND resume_gap_hours <= 72 THEN 1 ELSE 0 END)       AS resume_72h,
-    SUM(CASE WHEN resume_mode = 'continue' THEN 1 ELSE 0 END)                      AS resume_continue,
-    SUM(CASE WHEN resume_mode = 'restart'  THEN 1 ELSE 0 END)                      AS resume_restart,
-    SUM(CASE WHEN resume_mode = 'no_return' THEN 1 ELSE 0 END)                     AS never_returned
-FROM learning_sessions
-GROUP BY stat_date;
+    SUM(ls.is_break)                                                               AS break_sessions,
+    ROUND(1.0 * SUM(ls.is_break) / NULLIF(COUNT(*), 0), 4)                         AS break_rate,
+    SUM(CASE WHEN ls.is_break = 1 AND ls.resume_gap_hours <= 24 THEN 1 ELSE 0 END) AS resume_24h,
+    SUM(CASE WHEN ls.is_break = 1 AND ls.resume_gap_hours <= 72 THEN 1 ELSE 0 END) AS resume_72h,
+    SUM(CASE WHEN ls.resume_mode = 'continue' THEN 1 ELSE 0 END)                   AS resume_continue,
+    SUM(CASE WHEN ls.resume_mode = 'restart'  THEN 1 ELSE 0 END)                   AS resume_restart,
+    SUM(CASE WHEN ls.resume_mode = 'no_return' THEN 1 ELSE 0 END)                  AS never_returned
+FROM learning_sessions ls
+JOIN students s ON s.student_id = ls.student_id
+GROUP BY s.grade, s.subject, s.package_type, s.package_term, s.cohort_code,
+         lifecycle_started_at, s.refund_status, s.renewal_status, stat_date;
 
 -- 情绪分层：每周各情绪类型的人数、平均厌烦指数与断点率。
 CREATE VIEW IF NOT EXISTS v_emotion_cohort AS
@@ -529,18 +622,34 @@ SELECT
     e.week_start,
     e.emotion_type,
     s.grade,
+    s.subject,
+    s.package_type,
+    s.package_term,
+    s.cohort_code,
+    COALESCE(s.cohort_started_at, s.purchased_at) AS lifecycle_started_at,
+    s.refund_status,
+    s.renewal_status,
     COUNT(*)                                                    AS student_count,
     ROUND(AVG(e.boredom_index), 2)                              AS avg_boredom_index,
     ROUND(AVG(e.break_rate), 4)                                 AS avg_break_rate,
     SUM(CASE WHEN e.alert_level IN ('warn', 'high') THEN 1 ELSE 0 END) AS alert_students
 FROM student_emotion_states e
 JOIN students s ON s.student_id = e.student_id
-GROUP BY e.week_start, e.emotion_type, s.grade;
+GROUP BY e.week_start, e.emotion_type, s.grade, s.subject, s.package_type, s.package_term,
+         s.cohort_code, lifecycle_started_at, s.refund_status, s.renewal_status;
 
 -- 动画播放行为：是否拖拽、拖到哪、是否暂停、停在哪。
 -- 直接由 learning_events 的 play / pause / seek_forward / replay 事件推出，
 -- 关键是 video_position_seconds——它才是「在动画的哪一秒」，与会话墙钟不是一回事。
 CREATE VIEW IF NOT EXISTS v_animation_playback AS
+WITH ordered_events AS (
+    SELECT
+        e.*,
+        LEAD(e.prev_event_gap_seconds) OVER (
+            PARTITION BY e.session_id ORDER BY e.event_sequence
+        ) AS next_event_gap_seconds
+    FROM learning_events e
+)
 SELECT
     e.lesson_id,
     e.session_id,
@@ -551,8 +660,8 @@ SELECT
     SUM(CASE WHEN e.event_name = 'playback_rate' AND COALESCE(e.playback_rate, 1) > 1 THEN 1 ELSE 0 END) AS fast_playback_count,
     SUM(CASE WHEN e.event_name = 'replay'       THEN 1 ELSE 0 END) AS replay_count,
     MAX(CASE WHEN e.event_name = 'playback_rate' THEN e.playback_rate END) AS max_playback_rate,
-    -- 暂停停留总时长：pause 到下一个事件的间隔，记在下一条事件的 prev_event_gap_seconds 上
-    SUM(CASE WHEN e.event_name = 'pause' THEN COALESCE(e.duration_seconds, 0) ELSE 0 END) AS pause_hold_seconds,
+    -- 暂停停留总时长：优先用 pause.duration_seconds；未回填时取下一个事件记录的 prev_event_gap_seconds
+    SUM(CASE WHEN e.event_name = 'pause' THEN COALESCE(e.duration_seconds, e.next_event_gap_seconds, 0) ELSE 0 END) AS pause_hold_seconds,
     MIN(CASE WHEN e.event_name = 'pause'        THEN e.video_position_seconds END) AS first_pause_position,
     MAX(CASE WHEN e.event_name = 'seek_forward' THEN e.video_position_seconds END) AS last_seek_position,
     MAX(e.video_position_seconds)                                                  AS max_video_position,
@@ -561,7 +670,7 @@ SELECT
     MAX(CASE WHEN s.is_break = 1 AND s.break_stage = 'learn' THEN s.break_progress_rate END) AS jump_out_progress_rate,
     CASE WHEN SUM(CASE WHEN e.event_name IN ('pause','seek_forward','replay') THEN 1 ELSE 0 END) = 0
          THEN 'clean' ELSE 'interrupted' END                                       AS playback_pattern
-FROM learning_events e
+FROM ordered_events e
 JOIN learning_sessions s ON s.session_id = e.session_id
 WHERE e.stage = 'learn'
 GROUP BY e.lesson_id, e.session_id, e.student_id;
@@ -571,10 +680,15 @@ CREATE VIEW IF NOT EXISTS v_weekly_learning_monitor AS
 SELECT
     w.week_start,
     s.grade,
+    s.subject,
+    s.cohort_code,
+    COALESCE(s.cohort_started_at, s.purchased_at) AS lifecycle_started_at,
     s.package_code,
     s.package_type,
     s.package_term,
     s.acquisition_channel,
+    s.refund_status,
+    s.renewal_status,
     COUNT(*) AS student_count,
     SUM(w.started_lesson_count) AS learned_lessons,
     SUM(w.completed_lesson_count) AS completed_lessons,
@@ -583,25 +697,44 @@ SELECT
     SUM(CASE WHEN w.risk_level = 'high' THEN 1 ELSE 0 END) AS high_risk_students
 FROM user_weekly_summaries w
 JOIN students s ON s.student_id = w.student_id
-GROUP BY w.week_start, s.grade, s.package_code, s.package_type, s.package_term, s.acquisition_channel;
+GROUP BY w.week_start, s.grade, s.subject, s.cohort_code, lifecycle_started_at,
+         s.package_code, s.package_type, s.package_term, s.acquisition_channel,
+         s.refund_status, s.renewal_status;
 
 CREATE VIEW IF NOT EXISTS v_lesson_funnel AS
 SELECT
-    course_id,
-    lesson_id,
+    s.grade,
+    s.subject,
+    s.package_type,
+    s.package_term,
+    s.cohort_code,
+    COALESCE(s.cohort_started_at, s.purchased_at) AS lifecycle_started_at,
+    s.refund_status,
+    s.renewal_status,
+    r.course_id,
+    r.lesson_id,
     COUNT(*) AS unlocked_students,
-    SUM(CASE WHEN started_at IS NOT NULL THEN 1 ELSE 0 END) AS started_students,
-    SUM(video_completed) AS learned_students,
-    SUM(CASE WHEN training_answered_count >= training_question_count AND training_question_count > 0 THEN 1 ELSE 0 END) AS practiced_students,
-    SUM(CASE WHEN wrong_question_count = 0 OR corrected_question_count >= wrong_question_count THEN 1 ELSE 0 END) AS corrected_students,
-    SUM(is_completed) AS completed_students
-FROM course_learning_results
-GROUP BY course_id, lesson_id;
+    SUM(CASE WHEN r.started_at IS NOT NULL THEN 1 ELSE 0 END) AS started_students,
+    SUM(r.video_completed) AS learned_students,
+    SUM(CASE WHEN r.training_answered_count >= r.training_question_count AND r.training_question_count > 0 THEN 1 ELSE 0 END) AS practiced_students,
+    SUM(CASE WHEN r.wrong_question_count = 0 OR r.corrected_question_count >= r.wrong_question_count THEN 1 ELSE 0 END) AS corrected_students,
+    SUM(r.is_completed) AS completed_students
+FROM course_learning_results r
+JOIN students s ON s.student_id = r.student_id
+GROUP BY s.grade, s.subject, s.package_type, s.package_term, s.cohort_code,
+         lifecycle_started_at, s.refund_status, s.renewal_status, r.course_id, r.lesson_id;
 
 -- 课时归因：同班期下按课时比较参课、完课、跳出、正确率和完成时长。
 CREATE VIEW IF NOT EXISTS v_lesson_attribution AS
 SELECT
     s.cohort_code,
+    s.grade,
+    s.subject,
+    s.package_type,
+    s.package_term,
+    COALESCE(s.cohort_started_at, s.purchased_at) AS lifecycle_started_at,
+    s.refund_status,
+    s.renewal_status,
     r.course_id,
     r.lesson_id,
     r.lesson_title,
@@ -617,7 +750,9 @@ SELECT
     ROUND(AVG(julianday(r.completed_at) - julianday(r.unlocked_at)), 2) AS avg_days_to_complete
 FROM course_learning_results r
 JOIN students s ON s.student_id = r.student_id
-GROUP BY s.cohort_code, r.course_id, r.lesson_id, r.lesson_title, r.lesson_sequence;
+GROUP BY s.cohort_code, s.grade, s.subject, s.package_type, s.package_term,
+         lifecycle_started_at, s.refund_status, s.renewal_status,
+         r.course_id, r.lesson_id, r.lesson_title, r.lesson_sequence;
 
 -- 用户课时追踪：一行代表同班期内一位学生的一节课，可直接生成连续状态矩阵。
 CREATE VIEW IF NOT EXISTS v_cohort_lesson_tracking AS
@@ -751,6 +886,7 @@ WITH first_answers AS (
         ) AS answer_order
     FROM learning_events e
     WHERE e.event_name = 'answer'
+      AND e.stage = 'practice'
       AND e.question_id IS NOT NULL
 ),
 answer_stats AS (
@@ -759,13 +895,13 @@ answer_stats AS (
         lesson_id,
         question_id,
         question_index,
-        question_version,
+        MAX(question_version) AS question_version,
         COUNT(DISTINCT session_id) AS answering_sessions,
         ROUND(AVG(duration_seconds), 1) AS avg_answer_seconds,
         ROUND(AVG(is_correct), 4) AS first_answer_accuracy
     FROM first_answers
     WHERE answer_order = 1
-    GROUP BY course_id, lesson_id, question_id, question_index, question_version
+    GROUP BY course_id, lesson_id, question_id, question_index
 ),
 break_stats AS (
     SELECT
@@ -777,28 +913,46 @@ break_stats AS (
     FROM learning_sessions
     WHERE is_break = 1
       AND break_question_id IS NOT NULL
+      AND NOT EXISTS (
+          SELECT 1
+          FROM learning_events e
+          WHERE e.session_id = learning_sessions.session_id
+            AND e.event_name = 'answer'
+            AND e.stage = 'practice'
+            AND e.question_id = learning_sessions.break_question_id
+      )
     GROUP BY course_id, lesson_id, break_question_id, break_question_index
+), question_scope AS (
+    SELECT course_id, lesson_id, question_id, question_index FROM answer_stats
+    UNION
+    SELECT course_id, lesson_id, question_id, question_index FROM break_stats
 )
 SELECT
-    a.course_id,
-    a.lesson_id,
-    a.question_id,
-    a.question_index,
+    q.course_id,
+    q.lesson_id,
+    q.question_id,
+    q.question_index,
     a.question_version,
-    a.answering_sessions,
+    COALESCE(a.answering_sessions, 0) AS answering_sessions,
     a.avg_answer_seconds,
     a.first_answer_accuracy,
     COALESCE(b.exited_sessions, 0) AS exited_sessions,
     ROUND(
         1.0 * COALESCE(b.exited_sessions, 0) /
-        NULLIF(a.answering_sessions + COALESCE(b.exited_sessions, 0), 0),
+        NULLIF(COALESCE(a.answering_sessions, 0) + COALESCE(b.exited_sessions, 0), 0),
         4
     ) AS answer_jump_rate
-FROM answer_stats a
+FROM question_scope q
+LEFT JOIN answer_stats a
+  ON a.course_id = q.course_id
+ AND a.lesson_id = q.lesson_id
+ AND a.question_id = q.question_id
+ AND a.question_index = q.question_index
 LEFT JOIN break_stats b
-  ON b.course_id = a.course_id
- AND b.lesson_id = a.lesson_id
- AND b.question_id = a.question_id;
+  ON b.course_id = q.course_id
+ AND b.lesson_id = q.lesson_id
+ AND b.question_id = q.question_id
+ AND b.question_index = q.question_index;
 
 -- 练环节逐题判定：秒答、临近倒计时、首/末答正确率、反复提交与答题跳出。
 CREATE VIEW IF NOT EXISTS v_practice_question_judgement AS
@@ -888,22 +1042,30 @@ JOIN learning_sessions s ON s.session_id = a.session_id;
 
 -- 改环节错题掌握：错题 1/2/3 按原始错题顺序排列，并保留订正时长、正确率与跳出。
 CREATE VIEW IF NOT EXISTS v_correction_mastery AS
-WITH original_wrong AS (
+WITH ranked_wrong AS (
     SELECT
-        e.session_id,
-        e.student_id,
-        e.course_id,
-        e.lesson_id,
-        e.question_id,
-        e.question_index,
-        MIN(e.event_id) AS source_wrong_event_id,
-        MIN(e.event_sequence) AS first_wrong_sequence
+        e.*,
+        ROW_NUMBER() OVER (
+            PARTITION BY e.session_id, e.question_id
+            ORDER BY e.event_sequence, e.event_id
+        ) AS wrong_order
     FROM learning_events e
     WHERE e.event_name = 'answer'
+      AND e.stage = 'practice'
       AND e.is_correct = 0
       AND e.question_id IS NOT NULL
-    GROUP BY e.session_id, e.student_id, e.course_id, e.lesson_id,
-             e.question_id, e.question_index
+), original_wrong AS (
+    SELECT
+        session_id,
+        student_id,
+        course_id,
+        lesson_id,
+        question_id,
+        question_index,
+        event_id AS source_wrong_event_id,
+        event_sequence AS first_wrong_sequence
+    FROM ranked_wrong
+    WHERE wrong_order = 1
 ), numbered_wrong AS (
     SELECT
         w.*,
