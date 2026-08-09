@@ -271,6 +271,12 @@ h1 { margin: 0; font-size: 23px; letter-spacing: -.035em; line-height: 1.15; }
 .lifecycle { display: inline-block; margin: 2px 3px 2px 0; padding: 3px 5px; border-radius: 4px; font-size: 7px; }.lifecycle.active,.lifecycle.renew { color: var(--mint-deep); background: var(--mint-pale); }.lifecycle.churn { color: #b6503d; background: var(--coral-pale); }.lifecycle.no-renew { color: #7d6ca3; background: #f2eff8; }
 .lesson-state { width: 56px; height: 35px; display: grid; place-content: center; gap: 2px; border: 0; border-radius: 7px; cursor: pointer; transition: transform .15s,box-shadow .15s; }.lesson-state:hover { transform: translateY(-2px); box-shadow: 0 5px 10px rgba(26,54,48,.12); }.lesson-state i { width: 5px; height: 5px; margin: auto; border-radius: 50%; background: currentColor; }.lesson-state span { font-size: 7px; }.lesson-state.done { color: var(--mint-deep); background: var(--mint-pale); }.lesson-state.learning { color: #96721e; background: #fff5d6; }.lesson-state.exit { color: #b6503d; background: var(--coral-pale); }.lesson-state.missed { color: #99a6a1; background: #eef2f0; }
 .compare-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 13px; margin-top: 14px; }.compare-grid article { padding: 16px 18px; border: 1px solid var(--line); border-radius: 13px; background: white; }.compare-grid span { color: var(--mint); font-size: 8px; font-weight: 700; }.compare-grid b { display: block; margin: 7px 0 5px; font-size: 11px; }.compare-grid p { margin: 0; color: var(--muted); font-size: 9px; line-height: 1.6; }
+.table-to-insight-link { height: 62px; display: flex; flex-direction: column; align-items: center; color: var(--mint); }.table-to-insight-link > i { width: 2px; height: 18px; background: var(--mint); box-shadow: 0 0 0 4px var(--mint-pale); }.table-to-insight-link > span { margin-top: 5px; padding: 4px 10px; border-radius: 20px; color: white; background: var(--mint); font-size: 8px; font-weight: 700; }.table-to-insight-link svg { width: 14px; height: 14px; margin-top: 1px; stroke-width: 2.2; }
+.behavior-intelligence-panel { overflow: hidden; border: 1px solid #c9dfd7; border-radius: 16px; background: linear-gradient(135deg,#f0f8f5,#fff 48%); box-shadow: var(--shadow); }.behavior-intelligence-panel > header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 20px; border-bottom: 1px solid #dce9e4; }.behavior-intelligence-panel > header span { color: var(--mint); font-size: 8px; font-weight: 700; letter-spacing: .12em; }.behavior-intelligence-panel > header h3 { margin: 5px 0 3px; font-size: 15px; }.behavior-intelligence-panel > header p { margin: 0; color: var(--muted); font-size: 8px; }.behavior-intelligence-panel > header em { flex: none; padding: 6px 9px; border-radius: 7px; color: var(--mint-deep); background: var(--mint-pale); font-size: 8px; font-style: normal; }
+.behavior-intelligence-grid { display: grid; grid-template-columns: minmax(0,1.05fr) minmax(0,.95fr); gap: 14px; padding: 14px; }.emotion-cluster-block,.dropout-warning-block { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 13px; background: white; }.intelligence-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }.intelligence-title span,.intelligence-title b { display: block; }.intelligence-title span { color: var(--mint); font-size: 8px; font-weight: 700; }.intelligence-title b { margin-top: 4px; font-size: 11px; }.intelligence-title > small { color: var(--faint); font-size: 7px; }
+.emotion-cluster-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }.emotion-cluster-card { display: grid; grid-template-columns: 7px minmax(0,1fr) auto; align-items: center; gap: 8px; min-height: 64px; padding: 10px; border: 1px solid color-mix(in srgb,var(--cluster-color) 20%,white); border-radius: 10px; background: linear-gradient(135deg,var(--cluster-pale),white 82%); }.emotion-cluster-card > i { width: 7px; height: 7px; border-radius: 50%; background: var(--cluster-color); box-shadow: 0 0 0 4px var(--cluster-pale); }.emotion-cluster-card span { min-width: 0; }.emotion-cluster-card span b,.emotion-cluster-card span small,.emotion-cluster-card > strong small { display: block; }.emotion-cluster-card span b { color: var(--ink); font-size: 9px; }.emotion-cluster-card span b em { margin-left: 5px; color: var(--cluster-color); font-size: 7px; font-style: normal; }.emotion-cluster-card span small { margin-top: 4px; overflow: hidden; color: var(--faint); font-size: 6.5px; text-overflow: ellipsis; white-space: nowrap; }.emotion-cluster-card > strong { color: var(--cluster-color); font-size: 16px; text-align: right; }.emotion-cluster-card > strong small { margin-top: 2px; font-size: 6px; font-weight: 500; }
+.emotion-cluster-block > footer,.dropout-warning-block > footer { display: grid; grid-template-columns: auto 1fr; gap: 7px; margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line); font-size: 7px; line-height: 1.55; }.emotion-cluster-block > footer b,.dropout-warning-block > footer b { color: var(--mint); }.emotion-cluster-block > footer span,.dropout-warning-block > footer span { color: var(--muted); }
+.warning-summary { display: grid; grid-template-columns: 55px 55px 1fr; gap: 7px; margin-bottom: 8px; }.warning-summary > span { padding: 7px; border-radius: 8px; color: #b6503d; background: var(--coral-pale); font-size: 7px; text-align: center; }.warning-summary > span:nth-child(2) { color: #8d6d1e; background: #fff5d6; }.warning-summary b { display: block; margin-bottom: 2px; font-size: 13px; }.warning-summary p { align-self: center; margin: 0; color: var(--faint); font-size: 7px; line-height: 1.45; }.warning-user-list { display: grid; gap: 6px; }.warning-user { display: grid; grid-template-columns: 28px minmax(0,1fr) 38px auto; align-items: center; gap: 8px; width: 100%; padding: 8px 9px; border: 1px solid var(--line); border-left: 3px solid #d9a834; border-radius: 9px; color: var(--ink); background: #fffdf8; cursor: pointer; text-align: left; transition: .18s; }.warning-user.is-high { border-left-color: var(--coral); background: #fff9f7; }.warning-user:hover { border-color: var(--mint); transform: translateX(2px); }.warning-avatar { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 8px; color: #b6503d; background: var(--coral-pale); font-size: 9px; font-weight: 700; }.warning-user > span:nth-child(2) { min-width: 0; }.warning-user > span b,.warning-user > span em { display: block; }.warning-user > span b { font-size: 8px; }.warning-user > span b small { margin-left: 5px; color: var(--violet); font-size: 6px; }.warning-user > span em { margin-top: 3px; overflow: hidden; color: var(--faint); font-size: 6.5px; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }.warning-user > strong { color: #b6503d; font-size: 13px; text-align: center; }.warning-user > strong small { display: block; font-size: 6px; }.warning-user > i { color: var(--mint); font-size: 6.5px; font-style: normal; white-space: nowrap; }.warning-empty { padding: 24px; border-radius: 9px; color: var(--faint); background: #f7f9f8; font-size: 8px; text-align: center; }
 
 .user-detail-heading { display: grid; grid-template-columns: auto 40px 1fr auto; align-items: center; gap: 10px; margin-bottom: 13px; }.user-detail-heading > button { display: inline-flex; align-items: center; gap: 5px; padding: 7px 9px; border: 1px solid #cee2da; border-radius: 7px; color: var(--mint-deep); background: var(--mint-pale); cursor: pointer; font-size: 8px; }.user-detail-heading > button svg { width: 10px; }.selected-user-avatar { width: 39px; height: 39px; display: grid; place-items: center; border-radius: 11px; color: var(--mint-deep); background: var(--mint-pale); font-size: 12px; font-weight: 700; }.user-detail-heading > div:nth-child(3) > span { color: var(--faint); font-size: 7px; }.user-detail-heading h3 { margin: 3px 0; font-size: 13px; }.user-detail-heading h3 small { color: var(--faint); font-size: 7px; font-weight: 500; }.user-detail-heading p { margin: 0; color: var(--muted); font-size: 8px; }
 .user-detail-summary { display: flex; gap: 7px; }.user-detail-summary span { min-width: 57px; padding: 8px; border-radius: 8px; color: var(--muted); background: #f5f8f6; font-size: 7px; text-align: center; }.user-detail-summary b { display: block; margin-bottom: 2px; color: var(--ink); font-size: 11px; }
@@ -326,7 +332,7 @@ h1 { margin: 0; font-size: 23px; letter-spacing: -.035em; line-height: 1.15; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } }
 
 @media (max-width: 1050px) {
-  .app-shell { grid-template-columns: 200px minmax(0, 1fr); }.sidebar { width: 200px; }.scheme-grid { grid-template-columns: 1fr; }.scheme-card { min-height: 145px; }.kpi-grid { grid-template-columns: repeat(2, 1fr); }.dashboard-grid { grid-template-columns: 1fr; }.panel-wide { grid-column: auto; }.parent-voice-grid { grid-template-columns: 1fr; }.voice-count-1 .parent-voice-card { display: block; }.voice-count-1 .voice-topics,.voice-count-1 .voice-behavior,.voice-count-1 .parent-voice-card > footer { border-left: 0; }.parent-voice-card blockquote,.parent-voice-card > footer > b { min-height: 0; }.framework-principles { grid-template-columns: repeat(2,1fr); }
+  .app-shell { grid-template-columns: 200px minmax(0, 1fr); }.sidebar { width: 200px; }.scheme-grid { grid-template-columns: 1fr; }.scheme-card { min-height: 145px; }.kpi-grid { grid-template-columns: repeat(2, 1fr); }.dashboard-grid { grid-template-columns: 1fr; }.panel-wide { grid-column: auto; }.parent-voice-grid { grid-template-columns: 1fr; }.voice-count-1 .parent-voice-card { display: block; }.voice-count-1 .voice-topics,.voice-count-1 .voice-behavior,.voice-count-1 .parent-voice-card > footer { border-left: 0; }.parent-voice-card blockquote,.parent-voice-card > footer > b { min-height: 0; }.framework-principles { grid-template-columns: repeat(2,1fr); }.behavior-intelligence-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 1400px) and (min-width: 761px) {
   .topbar { height: auto; min-height: 103px; padding-top: 12px; padding-bottom: 12px; }
@@ -335,7 +341,7 @@ h1 { margin: 0; font-size: 23px; letter-spacing: -.035em; line-height: 1.15; }
 @media (max-width: 760px) {
   .app-shell { display: block; }.main { grid-column: auto; }.sidebar { width: 232px; transform: translateX(-100%); transition: transform .25s ease; }.sidebar.open { transform: none; }.scrim { position: fixed; inset: 0; z-index: 15; background: rgba(9,29,25,.35); backdrop-filter: blur(2px); }.scrim.show { display: block; }
   .topbar { height: auto; min-height: 90px; padding: 16px 18px; align-items: flex-start; }.topbar > div:first-child { display: grid; grid-template-columns: 36px 1fr; column-gap: 10px; }.mobile-menu { display: grid; width: 36px; height: 36px; grid-row: 1 / 3; }.eyebrow { grid-column: 2; }.topbar h1 { grid-column: 2; font-size: 18px; }.top-actions { align-self: center; }.select-wrap span, .top-actions .select-wrap { display: none; }.select-wrap { padding: 0 7px; height: 36px; }.select-wrap select { max-width: 100px; font-size: 10px; }.icon-button { width: 36px; height: 36px; }
-  .content { padding: 24px 17px 40px; }.intro-row { align-items: flex-start; flex-direction: column; gap: 12px; }.scheme-grid, .kpi-grid, .stage-grid { grid-template-columns: 1fr; }.funnel { overflow-x: auto; }.funnel-step { min-width: 120px; }.flow-track { overflow-x: auto; grid-template-columns: repeat(5, 105px); }.event-table { min-width: 640px; }.donut-wrap { flex-direction: column; }.section-head { gap: 14px; align-items: flex-start; }.goal-pill { display: none; }.model-flow { justify-content: flex-start; }.model-grid { display: block; }.model-card { margin-bottom: 11px; }.field-list { grid-template-columns: 1fr; }.analysis-toolbar { align-items: flex-start; flex-direction: column; }.analysis-toolbar label { width: 100%; }.analysis-toolbar .cohort-range { padding-left: 0; border: 0; }.month-plan { justify-content: flex-start; overflow-x: auto; }.segment-tabs { grid-template-columns: repeat(2,1fr); }.compare-grid { grid-template-columns: 1fr; }.status-legend { display: none; }.drawer-metrics,.drawer-metrics.six { grid-template-columns: repeat(2,1fr); }.user-detail-heading { grid-template-columns: auto 40px 1fr; }.user-detail-summary { grid-column: 1/-1; }.student-name-button em { opacity: 1; }.monitor-flow-head { align-items: flex-start; flex-direction: column; }.monitor-flow-grid { grid-template-columns: 1fr; }.monitor-flow-card > em { display: none; }.inline-session-replay > header { align-items: flex-start; flex-direction: column; }.session-replay-stats { flex-wrap: wrap; }.inline-session-replay > footer { grid-template-columns: 1fr; }.inline-session-replay footer > i { transform: rotate(90deg); }.voice-process { justify-content: flex-start; overflow-x: auto; }.voice-process span { flex: none; }.user-profile-strip { grid-template-columns: repeat(2,1fr); }.user-profile-strip span { border-right: 0; }.framework-entry small { display: none; }.framework-principles,.framework-use-grid { grid-template-columns: 1fr; }.framework-canvas { padding: 16px; }.framework-canvas-head { align-items: flex-start; flex-direction: column; }.framework-loop { grid-template-columns: auto 1fr auto; }.framework-loop i:nth-of-type(2),.framework-loop span:last-child { display: none; }
+  .content { padding: 24px 17px 40px; }.intro-row { align-items: flex-start; flex-direction: column; gap: 12px; }.scheme-grid, .kpi-grid, .stage-grid { grid-template-columns: 1fr; }.funnel { overflow-x: auto; }.funnel-step { min-width: 120px; }.flow-track { overflow-x: auto; grid-template-columns: repeat(5, 105px); }.event-table { min-width: 640px; }.donut-wrap { flex-direction: column; }.section-head { gap: 14px; align-items: flex-start; }.goal-pill { display: none; }.model-flow { justify-content: flex-start; }.model-grid { display: block; }.model-card { margin-bottom: 11px; }.field-list { grid-template-columns: 1fr; }.analysis-toolbar { align-items: flex-start; flex-direction: column; }.analysis-toolbar label { width: 100%; }.analysis-toolbar .cohort-range { padding-left: 0; border: 0; }.month-plan { justify-content: flex-start; overflow-x: auto; }.segment-tabs { grid-template-columns: repeat(2,1fr); }.compare-grid { grid-template-columns: 1fr; }.status-legend { display: none; }.drawer-metrics,.drawer-metrics.six { grid-template-columns: repeat(2,1fr); }.user-detail-heading { grid-template-columns: auto 40px 1fr; }.user-detail-summary { grid-column: 1/-1; }.student-name-button em { opacity: 1; }.monitor-flow-head,.behavior-intelligence-panel > header,.intelligence-title { align-items: flex-start; flex-direction: column; }.monitor-flow-grid,.emotion-cluster-grid { grid-template-columns: 1fr; }.monitor-flow-card > em { display: none; }.warning-summary { grid-template-columns: 52px 52px 1fr; }.warning-user { grid-template-columns: 28px minmax(0,1fr) 36px; }.warning-user > i { display: none; }.inline-session-replay > header { align-items: flex-start; flex-direction: column; }.session-replay-stats { flex-wrap: wrap; }.inline-session-replay > footer { grid-template-columns: 1fr; }.inline-session-replay footer > i { transform: rotate(90deg); }.voice-process { justify-content: flex-start; overflow-x: auto; }.voice-process span { flex: none; }.user-profile-strip { grid-template-columns: repeat(2,1fr); }.user-profile-strip span { border-right: 0; }.framework-entry small { display: none; }.framework-principles,.framework-use-grid { grid-template-columns: 1fr; }.framework-canvas { padding: 16px; }.framework-canvas-head { align-items: flex-start; flex-direction: column; }.framework-loop { grid-template-columns: auto 1fr auto; }.framework-loop i:nth-of-type(2),.framework-loop span:last-child { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 
@@ -354,10 +360,11 @@ h1 { margin: 0; font-size: 23px; letter-spacing: -.035em; line-height: 1.15; }
 .decision-intro p:not(.decision-kicker) { max-width: 820px; }
 .decision-kicker { margin-bottom: 8px !important; color: var(--mint) !important; font-size: 9px !important; font-weight: 700; letter-spacing: .17em; }
 
+.outcome-analysis-flow { display: grid; gap: 0; }
 .outcome-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .outcome-card { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 15px; color: var(--ink); background: white; box-shadow: var(--shadow); cursor: pointer; text-align: left; transition: .2s ease; }
 .outcome-card:hover { border-color: var(--outcome-color); transform: translateY(-2px); }
-.outcome-card.active { border-color: var(--outcome-color); background: linear-gradient(145deg, var(--outcome-pale), white 72%); box-shadow: inset 0 0 0 1px var(--outcome-color), var(--shadow); }
+.outcome-card.active { border-color: var(--outcome-color); background: linear-gradient(145deg, var(--outcome-pale), white 72%); box-shadow: inset 0 0 0 1px var(--outcome-color), 0 12px 26px color-mix(in srgb,var(--outcome-color) 16%,transparent); transform: translateY(-3px); }
 .outcome-top { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 8px; font-weight: 600; }
 .outcome-top i { width: 6px; height: 6px; border-radius: 50%; background: var(--outcome-color); box-shadow: 0 0 0 4px var(--outcome-pale); }
 .outcome-main { display: flex; align-items: baseline; gap: 8px; margin-top: 14px; }
@@ -367,6 +374,12 @@ h1 { margin: 0; font-size: 23px; letter-spacing: -.035em; line-height: 1.15; }
 .outcome-card > small { display: block; min-height: 28px; color: var(--muted); font-size: 9px; line-height: 1.55; }
 .outcome-question { display: flex; align-items: center; justify-content: space-between; gap: 5px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); color: var(--outcome-color); font-size: 8px; font-weight: 600; }
 .outcome-question svg { flex: none; width: 12px; height: 12px; }
+.outcome-connector-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; height: 62px; }
+.outcome-connector-grid > span { grid-column: var(--active-col); display: flex; flex-direction: column; align-items: center; color: var(--focus-color); }
+.outcome-connector-grid i { width: 2px; height: 17px; background: var(--focus-color); box-shadow: 0 0 0 4px var(--focus-pale); }
+.outcome-connector-grid b { margin-top: 4px; padding: 4px 9px; border-radius: 20px; color: white; background: var(--focus-color); font-size: 8px; line-height: 1; }
+.outcome-connector-grid small { margin-top: 3px; color: var(--focus-color); font-size: 7px; font-weight: 600; }
+.outcome-connector-grid svg { width: 13px; height: 13px; margin-top: -1px; stroke-width: 2.2; }
 
 .outcome-focus { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(360px, .85fr); gap: 17px 28px; padding: 22px 24px; border: 1px solid color-mix(in srgb, var(--focus-color) 25%, #fff); border-left: 4px solid var(--focus-color); border-radius: 16px; background: linear-gradient(110deg, var(--focus-pale), white 62%); box-shadow: var(--shadow); }
 .focus-copy > span { color: var(--focus-color); font-size: 8px; font-weight: 700; letter-spacing: .14em; }
@@ -638,6 +651,8 @@ h1 { margin: 0; font-size: 23px; letter-spacing: -.035em; line-height: 1.15; }
 
 @media (max-width: 1050px) {
   .outcome-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .outcome-connector-grid { grid-template-columns: 1fr; }
+  .outcome-connector-grid > span { grid-column: 1; }
   .outcome-focus { grid-template-columns: 1fr; }
   .focus-action { grid-column: auto; }
   .refund-split { grid-template-columns: 1fr; }
@@ -1110,7 +1125,7 @@ function rankList(rows, color) {
 
 function frameworkTemplate() {
   const layers = [
-    { no: "01", tone: "scope", title: "先定比较口径", question: "谁和谁比，在哪段生命周期比？", items: [`年级：${gradeFilterLabel()}`, `学科：${subjectFilterLabel()}`, `课包：${packageFilterLabel()}`, `同批次开班班期：${courseStartLabel()}`, `分析周期：${analysisPeriodLabel()}`, `针对人群：${segmentFilterLabel()}`] },
+    { no: "01", tone: "scope", title: "先确定分析范围和人群", question: "分析哪些范围，重点关注哪些人群？", items: [`年级：${gradeFilterLabel()}`, `学科：${subjectFilterLabel()}`, `课包：${packageFilterLabel()}`, `同批次开班班期：${courseStartLabel()}`, `分析周期：${analysisPeriodLabel()}`, `针对人群：${segmentFilterLabel()}`] },
     { no: "02", tone: "data", title: "还原学习事实", question: "孩子实际上做了什么？", items: ["学生与课包画像", "课时结果与周度汇总", "会话回放与事件序列", "动画 / 题目内容版本", "家长微信原声"] },
     { no: "03", tone: "diagnose", title: "连续诊断与下钻", question: "异常发生在哪里、之前发生了什么？", items: ["用户 → 课时 → 会话 → 事件", "学：暂停 / 拖拽 / 快进 / 跳出", "练：秒答 / 超时 / 反复 / 正确率", "改：错题1/2/3掌握", "异常信号 → 情绪识别"] },
     { no: "04", tone: "attribute", title: "形成可能性归因", question: "哪类原因最值得优先验证？", items: ["课时维度：扫除内容硬伤", "用户维度：连续断点归因", "客户决策：退费 / 续费主因", "行为证据 × 家长原声", "相关性结论，不冒充因果"] },
@@ -1130,19 +1145,23 @@ function frameworkTemplate() {
 
 function overviewTemplate() {
   const focus = outcomeDetails[state.outcome];
+  const focusGroup = outcomeGroups.find(o => o.id === state.outcome);
+  const focusIndex = outcomeGroups.findIndex(o => o.id === state.outcome);
   return `<section class="fade-in decision-page">
     <button class="framework-entry" data-open="framework"><span><i>分析框架</i><b>先了解这套分析逻辑如何建立和使用</b><small>比较口径 → 学习事实 → 连续诊断 → 可能性归因 → 迭代验证</small></span><em>打开导图 ${icons.arrow}</em></button>
     <div class="intro-row decision-intro"><div><p class="decision-kicker">OUTCOME FIRST · 从结果倒推原因</p><h2>先看用户做了什么决定，再解释为什么</h2><p>以退费、未退费、续费、未续费四类结果为入口。退费用户进一步按完课表现拆分，避免把“没学”和“学了没效果”混成同一个问题；再用行为数据验证反馈原因。</p></div><span class="data-note"><i></i> 数量与占比为演示数据</span></div>
 
-    <div class="outcome-grid" role="tablist" aria-label="用户结果分群">
-      ${outcomeGroups.map(o => `<button class="outcome-card ${state.outcome === o.id ? "active" : ""}" data-outcome="${o.id}" role="tab" aria-selected="${state.outcome === o.id}" style="--outcome-color:${o.color};--outcome-pale:${o.pale}"><span class="outcome-top"><i></i>${o.badge}</span><span class="outcome-main"><strong>${formatNumber(o.count)}</strong><em>${o.rate}</em></span><b>${o.label}</b><small>${o.key}</small><span class="outcome-question">${o.question}${icons.arrow}</span></button>`).join("")}
+    <div class="outcome-analysis-flow" style="--focus-color:${focusGroup.color};--focus-pale:${focusGroup.pale}">
+      <div class="outcome-grid" role="tablist" aria-label="用户结果分群">
+        ${outcomeGroups.map(o => `<button class="outcome-card ${state.outcome === o.id ? "active" : ""}" data-outcome="${o.id}" role="tab" aria-selected="${state.outcome === o.id}" style="--outcome-color:${o.color};--outcome-pale:${o.pale}"><span class="outcome-top"><i></i>${o.badge}</span><span class="outcome-main"><strong>${formatNumber(o.count)}</strong><em>${o.rate}</em></span><b>${o.label}</b><small>${o.key}</small><span class="outcome-question">${o.question}${icons.arrow}</span></button>`).join("")}
+      </div>
+      <div class="outcome-connector-grid" aria-hidden="true"><span style="--active-col:${focusIndex + 1}"><i></i><b>${focusGroup.label}已选中</b><small>下方同步展示对应判断</small><svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg></span></div>
+      <article class="outcome-focus">
+        <div class="focus-copy"><span>${focus.eyebrow}</span><h3>${focus.title}</h3><p>${focus.summary}</p></div>
+        <div class="focus-stats">${focus.stats.map(s => `<div><small>${s[0]}</small><b>${s[1]}</b><em>${s[2]}</em></div>`).join("")}</div>
+        <div class="focus-action"><span>下一步</span><p>${focus.action}</p></div>
+      </article>
     </div>
-
-    <article class="outcome-focus" style="--focus-color:${outcomeGroups.find(o => o.id === state.outcome).color};--focus-pale:${outcomeGroups.find(o => o.id === state.outcome).pale}">
-      <div class="focus-copy"><span>${focus.eyebrow}</span><h3>${focus.title}</h3><p>${focus.summary}</p></div>
-      <div class="focus-stats">${focus.stats.map(s => `<div><small>${s[0]}</small><b>${s[1]}</b><em>${s[2]}</em></div>`).join("")}</div>
-      <div class="focus-action"><span>下一步</span><p>${focus.action}</p></div>
-    </article>
 
     <div class="decision-section-head"><div><span>01 / 退费用户</span><h3>先按完课表现拆成两条原因链</h3><p>同样是退费，行为证据和产品动作完全不同。</p></div><button data-open="users">查看退费用户明细 ${icons.arrow}</button></div>
     <div class="refund-split">
@@ -1226,7 +1245,7 @@ function breakDistribution() {
 }
 
 const emotions = [
-  { name: "投入型", key: "engaged", share: 61.2, color: "#1b8c72" },
+  { name: "正向型", key: "engaged", share: 61.2, color: "#1b8c72" },
   { name: "受挫型（太难）", key: "frustrated", share: 18.4, color: "#f08068" },
   { name: "无聊型（太简单）", key: "bored", share: 12.7, color: "#5b7fc9" },
   { name: "涣散型（分心）", key: "distracted", share: 7.7, color: "#8772bb" }
@@ -1280,10 +1299,10 @@ function stageSignalCoverage() {
   return `<article class="panel panel-full signal-coverage-panel"><div class="panel-header"><div><h3>异常信号覆盖范围</h3><p>20 类信号已覆盖学、练、改三段；指标异常需连续或达到阈值才触发</p></div><span class="panel-tag">20 类信号</span></div><div class="signal-coverage-grid">${groups.map(g => `<div style="--signal:${g[4]}"><span>${g[0]}</span><b>${g[1]}</b><footer><strong>${g[2]}</strong><small>${g[3]}</small></footer></div>`).join("")}</div></article>`;
 }
 
-/* ===================== 方案一 · 连续行为链路还原 ===================== */
+/* ===================== 连续行为链路还原 ===================== */
 
 function chainTemplate() {
-  return `<section class="fade-in">${detailHeader("方案一 · 连续行为链路还原", "以「会话」而非「课时」为观测单位，把每一次打开到离开还原成带时间戳的事件序列，精确定位断点位置。", "核心目标：让每一次脱离可定位")}
+  return `<section class="fade-in">${detailHeader("连续行为链路还原", "以「会话」而非「课时」为观测单位，把每一次打开到离开还原成带时间戳的事件序列，精确定位断点位置。", "核心目标：让每一次脱离可定位")}
     <div class="kpi-grid">${kpiCard(`${lifecyclePeriod()[1]} 会话数`, scaled(5180), "+8.4%", "当前生命周期月内会话", "次")}${kpiCard("断点会话率", pct(28.4, true), "-2.1%", `${scaled(1472)} 次未完成即离开`, "!", true)}${kpiCard("断点后 24h 回归", pct(51.2), "+4.6%", "72 小时内回归 61.8%", "↻")}${kpiCard("回归后从头重来", pct(34.2, true), "+1.8%", "断点续学定位缺失", "↺", true)}</div>
     ${stageBehaviorJudgement()}
     <div class="dashboard-grid">
@@ -1921,8 +1940,9 @@ function sessionEmotion(record) {
   const flagCount = instant.length + repeat.length + slow.length + buzzer.length + dropped.length + (isBreak ? 3 : 0);
   const score = Math.min(96, (isBreak ? 46 : 12) + repeat.length * 9 + slow.length * 7 + maxStreak * 6
     + instant.length * 4 + buzzer.length * 5 + dropped.length * 8 + unfixed.length * 6);
-  const type = score < 40 ? "投入型"
-    : (repeat.length + slow.length + maxStreak + unfixed.length) >= instant.length ? "受挫型" : "无聊型";
+  const type = score < 40 ? "正向型"
+    : isBreak && repeat.length + slow.length + maxStreak + unfixed.length === 0 ? "涣散型"
+      : (repeat.length + slow.length + maxStreak + unfixed.length) >= instant.length ? "受挫型" : "无聊型";
   return { isBreak, qs, instant, repeat, slow, buzzer, dropped, unfixed, maxStreak, flagCount, score, type };
 }
 
@@ -1934,7 +1954,10 @@ function userMonthlyProfile(user) {
   const slow = sum(e => e.slow.length), repeat = sum(e => e.repeat.length), instant = sum(e => e.instant.length);
   const breaks = items.filter(x => x.em.isBreak).length;
   const index = items.length ? Math.round(sum(e => e.score) / items.length) : 0;
-  const type = index < 40 ? "投入型" : (repeat + slow) >= instant ? "受挫型" : "无聊型";
+  const missed = user.states.filter(s => s === "missed").length;
+  const type = index < 40 && missed <= 1 ? "正向型"
+    : missed >= 3 ? "涣散型"
+      : (repeat + slow) >= instant ? "受挫型" : "无聊型";
   const worst = [...items].sort((a, b) => b.em.score - a.em.score)[0];
   return { records, items, slow, repeat, instant, breaks, index, type, worst };
 }
@@ -1960,7 +1983,7 @@ function userMonitoringFlow(user = null) {
   const steps = [
     ["01", "连续学习表现", user ? `${attended}/9 参课 · ${completed}/9 完课` : "月度 9 节状态 + 会话回放", "先还原每次打开到离开的真实过程", "chain"],
     ["02", "异常信号", signalText || "断点前 5 分钟 · 20 类信号", "判断离开前发生了什么", "signal"],
-    ["03", "用户情绪识别", moodText || "受挫 / 无聊 / 涣散三型", "把连续行为转成可验证的情绪判断", "emotion"],
+    ["03", "用户情绪识别", moodText || "受挫 / 无聊 / 涣散 / 正向", "把连续行为转成可验证的情绪判断", "emotion"],
     ["04", "断点优化点", fixText || "定位到动画秒段与具体题号", "将情绪原因落到可改的产品位置", "lesson"]
   ];
   return `<section class="user-monitoring-flow"><div class="monitor-flow-head"><div><span>用户行为归因下的监测方案</span><h3>连续表现 → 异常信号 → 情绪识别 → 断点优化</h3><p>${user ? `当前聚焦 ${user.name}，所有结论均从其月度连续行为推导。` : "先选择用户或打开示例会话，再沿四步诊断链定位产品优化点。"}</p></div>${user ? "" : '<button data-example-session>打开会话样例 · SES-8842</button>'}</div><div class="monitor-flow-grid">${steps.map((s,i)=>`<button data-open="${s[4]}" class="monitor-flow-card"><i>${s[0]}</i><span><b>${s[1]}</b><strong>${s[2]}</strong><small>${s[3]}</small></span>${i<steps.length-1?'<em>→</em>':""}</button>`).join("")}</div></section>`;
@@ -2127,8 +2150,9 @@ function lessonSessionReplay(user, lessonIndex, record) {
   const worst = [...qs].sort((a, b) => b.seconds - a.seconds)[0];
   const mood = type === "受挫型" ? `多次尝试仍未通过，判为受挫型（指数 ${score}）`
     : type === "无聊型" ? `作答过快且正确率不低，判为无聊型（指数 ${score}）`
-      : chain.length ? `仅偶发单点异常，未形成连续受挫，判为投入型（指数 ${score}）`
-        : `全程无异常信号，判为投入型（指数 ${score}）`;
+      : type === "涣散型" ? `过程发生中断但未形成难度受挫，判为涣散型（指数 ${score}）`
+        : chain.length ? `仅偶发单点异常，整体仍为正向型（指数 ${score}）`
+          : `全程无异常信号，判为正向型（指数 ${score}）`;
   const optimize = isBreak ? `${record.jump} 前置台阶题 + 该处讲解重录`
     : type === "无聊型" ? "开放「我会了」跳测，直给挑战题"
       : repeat.length || slow.length ? `第 ${worst.no} 题（${worst.seconds}s）拆解为两问` : "保持当前内容梯度";
@@ -2156,6 +2180,54 @@ function userLessonDetailTable(user) {
   </article>`;
 }
 
+const userEmotionClusterMeta = {
+  frustration: { label: "受挫型", feeling: "太难", color: "#c65e49", pale: "#fff0ed", evidence: "过长、反复提交、连续答错" },
+  boredom: { label: "无聊型", feeling: "太简单", color: "#5b7fc9", pale: "#edf2fb", evidence: "秒答、快进、跳过讲解" },
+  distraction: { label: "涣散型", feeling: "分心", color: "#8772bb", pale: "#f2eff8", evidence: "未参、会话中断、连续脱节" },
+  positive: { label: "正向型", feeling: "投入顺畅", color: "#1b8c72", pale: "#e8f4ef", evidence: "主动参课、稳定完课、订正掌握" }
+};
+
+// 情绪聚类只使用上表已经呈现的课时状态与逐题行为，不引入问卷标签。
+function userBehaviorCluster(user) {
+  const profile = userMonthlyProfile(user);
+  const missed = user.states.filter(s => s === "missed").length;
+  const completed = user.states.filter(s => s === "done").length;
+  const recentAdverse = user.states.slice(-4).filter(s => s !== "done").length;
+  let type = "frustration";
+  if (completed >= 7 && missed <= 1 && profile.index < 50) type = "positive";
+  else if (missed >= 3) type = "distraction";
+  else if (profile.instant >= 7) type = "boredom";
+  return { type, profile, missed, completed, recentAdverse };
+}
+
+function dropoutWarning(user) {
+  const cluster = userBehaviorCluster(user);
+  const breaks = user.states.filter(s => s === "exit" || s === "learning").length;
+  const tailMissed = [...user.states].reverse().findIndex(s => s !== "missed");
+  const consecutiveMissed = tailMissed < 0 ? user.states.length : tailMissed;
+  const score = Math.min(96, 18 + cluster.recentAdverse * 12 + cluster.missed * 4 + breaks * 7 + (user.renew ? -8 : 8));
+  const level = score >= 70 ? "高危" : score >= 50 ? "观察" : "稳定";
+  const signals = [];
+  if (consecutiveMissed >= 2) signals.push(`连续 ${consecutiveMissed} 节未参`);
+  if (cluster.recentAdverse >= 2) signals.push(`最近 4 节 ${cluster.recentAdverse} 节异常`);
+  if (breaks) signals.push(`累计 ${breaks} 次参未完/跳出`);
+  return { user, cluster, score, level, signals: signals.slice(0, 2) };
+}
+
+function userEmotionAndWarningPanel(users) {
+  const clustered = users.map(user => ({ user, ...userBehaviorCluster(user) }));
+  const warnings = users.filter(user => !user.churn).map(dropoutWarning).filter(item => item.score >= 50).sort((a, b) => b.score - a.score).slice(0, 4);
+  const counts = Object.fromEntries(Object.keys(userEmotionClusterMeta).map(key => [key, clustered.filter(item => item.type === key).length]));
+  const total = Math.max(1, users.length);
+  return `<div class="table-to-insight-link"><i></i><span>由上表每位用户的 9 节连续学习行为自动计算</span><svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg></div>
+    <section class="behavior-intelligence-panel"><header><div><span>行为结果衍生分析</span><h3>用户使用情绪聚类 × 脱离用户预警</h3><p>把参课、完课、跳出和逐题异常聚合成人群感受，并在用户真正脱离前给出干预名单。</p></div><em>当前表内 ${users.length} 名脱敏样本</em></header>
+      <div class="behavior-intelligence-grid">
+        <article class="emotion-cluster-block"><div class="intelligence-title"><div><span>A / 用户使用情绪聚类</span><b>孩子使用时是什么感受？</b></div><small>行为聚类，不是心理诊断</small></div><div class="emotion-cluster-grid">${Object.entries(userEmotionClusterMeta).map(([key, meta]) => `<div class="emotion-cluster-card" style="--cluster-color:${meta.color};--cluster-pale:${meta.pale}"><i></i><span><b>${meta.label}<em>${meta.feeling}</em></b><small>${meta.evidence}</small></span><strong>${counts[key]}<small>人 · ${(counts[key] / total * 100).toFixed(0)}%</small></strong></div>`).join("")}</div><footer><b>聚类用途</b><span>受挫型优先降难度，无聊型提供跳测与挑战，涣散型优化续学提醒，正向型沉淀有效路径。</span></footer></article>
+        <article class="dropout-warning-block"><div class="intelligence-title"><div><span>B / 脱离用户预警</span><b>谁正在从连续学习中脱离？</b></div><small>高危 ≥70 · 观察 50–69</small></div><div class="warning-summary"><span><b>${warnings.filter(w => w.level === "高危").length}</b>高危</span><span><b>${warnings.filter(w => w.level === "观察").length}</b>观察</span><p>按最近 4 节异常、累计未参及参未完联合评分</p></div><div class="warning-user-list">${warnings.length ? warnings.map(item => `<button data-select-user="${item.user.id}" class="warning-user is-${item.level === "高危" ? "high" : "watch"}"><span class="warning-avatar">${item.user.name.slice(0, 1)}</span><span><b>${item.user.name}<small>${userEmotionClusterMeta[item.cluster.type].label}</small></b><em>${item.signals.join(" · ") || "连续性开始下降"}</em></span><strong>${item.score}<small>${item.level}</small></strong><i>查看行为 →</i></button>`).join("") : '<div class="warning-empty">当前筛选人群暂无达到预警阈值的用户</div>'}</div><footer><b>建议动作</b><span>高危用户 24 小时内触达，先回放首次异常会话，再匹配难度、跳测或断点续学策略。</span></footer></article>
+      </div>
+    </section>`;
+}
+
 function usersTemplate() {
   const visibleUsers = trackingUsers.filter(userMatchesGroup);
   const selectedUser = trackingUsers.find(user => user.id === state.selectedUser);
@@ -2168,6 +2240,7 @@ function usersTemplate() {
     <div class="segment-tabs">${userGroups.map(g=>`<button class="${state.userGroup===g[0]?'active':''}" data-user-group="${g[0]}"><span>${g[1]}</span><b>${g[2]}</b></button>`).join("")}</div>
     <div class="segment-definition"><b>潜在流失风险口径</b><span>未退费且未续费，并在最近 4 节中至少 2 节出现未参、参未完或跳出。</span></div>
     ${selectedUser ? userLessonDetailTable(selectedUser) : matrix}
+    ${selectedUser ? "" : userEmotionAndWarningPanel(visibleUsers)}
     ${userMonitoringFlow(selectedUser)}
     ${selectedUser ? insight(`<b>${selectedUser.name} 的月度行为：</b>异常标签已按题目阈值标记——≤15 秒为秒答，同题提交 ≥3 次为反复，≥100 秒为过长；可直接定位需要回放的题目。`) : `<div class="compare-grid"><article><span>退费用户典型路径</span><b>连续 2 节未参课 → 退费风险升高</b><p>首次跳出多集中于 L03、L05，且跳出前一节正确率均值低于 65%。</p></article><article><span>续费用户典型路径</span><b>前 6 节完成 ≥ 5 节 → 续费率 71%</b><p>稳定完课用户的错题订正率比未续费用户高 19.4 个百分点。</p></article></div>`}
     ${selectedUser ? "" : sessionDegradationPanel()}
@@ -2267,7 +2340,7 @@ function modelTemplate() {
 const views = {
   framework: { title: "分析框架导图", eyebrow: "方法说明 / ANALYSIS LOGIC", render: frameworkTemplate },
   overview: { title: "客户决策行为背后的可能性主因", eyebrow: "决策驾驶舱 / OUTCOME FIRST", render: overviewTemplate },
-  chain: { title: "连续行为链路还原", eyebrow: "方案 01 / 断点定位", render: chainTemplate },
+  chain: { title: "连续行为链路还原", eyebrow: "断点定位 / SESSION PATH", render: chainTemplate },
   signal: { title: "断点前异常信号", eyebrow: "方案 02 / 异常归因", render: signalTemplate },
   emotion: { title: "厌烦情绪锚定与干预", eyebrow: "方案 03 / 情绪与动作", render: emotionTemplate },
   lesson: { title: "课时维度归因—扫除硬伤", eyebrow: "迭代归因 / 课时", render: lessonTemplate },
