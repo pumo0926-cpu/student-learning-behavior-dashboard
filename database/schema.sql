@@ -1,4 +1,4 @@
--- 周周学，周周up用户行为监测数据模型 v2.7
+-- 周周学，周周up用户行为监测数据模型 v2.8
 -- SQLite 3.x；所有学生标识均应使用业务侧生成的匿名 ID。
 --
 -- v2.0 变更要点：从「课时维度聚合」升级为「会话维度连续行为序列」。
@@ -13,6 +13,7 @@
 --   v2.5 新增：cohort_started_at 开课日期，支持年级-学科 × 开课年月日筛选，并优先作为生命周期起点。
 --   v2.6 新增：城市、体验课、学年类型画像及家长微信原声分类与行为归因表。
 --   v2.7 新增：语文学科、全年/半年课包与四类半年班型，全年包支持追踪 M1–M12。
+--   v2.8 新增：课时“视频→题目→改错”效果视图，补充解析查看、改错命中与二次正确口径。
 
 PRAGMA foreign_keys = ON;
 
@@ -547,7 +548,9 @@ SELECT
     SUM(CASE WHEN e.event_name = 'pause'        THEN 1 ELSE 0 END) AS pause_count,
     SUM(CASE WHEN e.event_name IN ('seek_forward', 'replay') THEN 1 ELSE 0 END) AS drag_count,
     SUM(CASE WHEN e.event_name = 'seek_forward' THEN 1 ELSE 0 END) AS seek_forward_count,
+    SUM(CASE WHEN e.event_name = 'playback_rate' AND COALESCE(e.playback_rate, 1) > 1 THEN 1 ELSE 0 END) AS fast_playback_count,
     SUM(CASE WHEN e.event_name = 'replay'       THEN 1 ELSE 0 END) AS replay_count,
+    MAX(CASE WHEN e.event_name = 'playback_rate' THEN e.playback_rate END) AS max_playback_rate,
     -- 暂停停留总时长：pause 到下一个事件的间隔，记在下一条事件的 prev_event_gap_seconds 上
     SUM(CASE WHEN e.event_name = 'pause' THEN COALESCE(e.duration_seconds, 0) ELSE 0 END) AS pause_hold_seconds,
     MIN(CASE WHEN e.event_name = 'pause'        THEN e.video_position_seconds END) AS first_pause_position,
@@ -912,6 +915,9 @@ WITH original_wrong AS (
     SELECT
         e.*,
         ROW_NUMBER() OVER (
+            PARTITION BY e.session_id, e.question_id ORDER BY e.event_sequence ASC
+        ) AS correction_order,
+        ROW_NUMBER() OVER (
             PARTITION BY e.session_id, e.question_id ORDER BY e.event_sequence DESC
         ) AS last_order
     FROM learning_events e
@@ -924,8 +930,21 @@ WITH original_wrong AS (
         COUNT(*) AS correction_submit_count,
         SUM(COALESCE(duration_seconds, 0)) AS correction_seconds,
         ROUND(AVG(is_correct), 4) AS correction_accuracy,
+        MAX(CASE WHEN correction_order = 1 THEN is_correct END) AS first_correction_is_correct,
+        MAX(CASE WHEN correction_order = 2 THEN is_correct END) AS second_correction_is_correct,
         MAX(CASE WHEN last_order = 1 THEN is_correct END) AS final_is_correct
     FROM ranked_corrections
+    GROUP BY session_id, question_id
+), explanation_summary AS (
+    SELECT
+        session_id,
+        question_id,
+        COUNT(*) AS explanation_view_count,
+        SUM(COALESCE(duration_seconds, 0)) AS explanation_view_seconds
+    FROM learning_events
+    WHERE event_name = 'hint_view'
+      AND stage = 'practice'
+      AND question_id IS NOT NULL
     GROUP BY session_id, question_id
 )
 SELECT
@@ -941,7 +960,13 @@ SELECT
     COALESCE(c.correction_submit_count, 0) AS correction_submit_count,
     c.correction_seconds,
     c.correction_accuracy,
+    COALESCE(x.explanation_view_count, 0) AS explanation_view_count,
+    x.explanation_view_seconds,
+    CASE WHEN COALESCE(x.explanation_view_count, 0) > 0 THEN 1 ELSE 0 END AS viewed_explanation_in_practice,
+    c.first_correction_is_correct,
+    c.second_correction_is_correct,
     c.final_is_correct,
+    CASE WHEN c.final_is_correct = 1 THEN 1 ELSE 0 END AS correction_hit,
     CASE WHEN s.is_break = 1
                AND s.break_stage = 'correct'
                AND (s.break_question_id = w.question_id OR s.break_question_index = w.question_index)
@@ -959,7 +984,84 @@ FROM numbered_wrong w
 JOIN learning_sessions s ON s.session_id = w.session_id
 LEFT JOIN correction_summary c
   ON c.session_id = w.session_id
- AND c.question_id = w.question_id;
+ AND c.question_id = w.question_id
+LEFT JOIN explanation_summary x
+  ON x.session_id = w.session_id
+ AND x.question_id = w.question_id;
+
+-- 课时三段效果：视频行为 → 题目表现 → 解析与改错掌握。
+-- 用于判断“视频是否讲明白、题目是否设计合理、看了解析后是否真正掌握”。
+CREATE VIEW IF NOT EXISTS v_lesson_stage_effectiveness AS
+WITH lesson_keys AS (
+    SELECT DISTINCT lesson_id FROM learning_events WHERE lesson_id IS NOT NULL
+), video AS (
+    SELECT
+        lesson_id,
+        COUNT(*) AS video_session_count,
+        ROUND(AVG(is_video_jump_out), 4) AS video_jump_out_rate,
+        ROUND(AVG(CASE WHEN drag_count > 0 THEN 1.0 ELSE 0 END), 4) AS drag_session_rate,
+        ROUND(AVG(CASE WHEN fast_playback_count > 0 THEN 1.0 ELSE 0 END), 4) AS fast_playback_session_rate,
+        ROUND(AVG(CASE WHEN replay_count >= 2 THEN 1.0 ELSE 0 END), 4) AS repeated_watch_session_rate
+    FROM v_animation_playback
+    GROUP BY lesson_id
+), practice AS (
+    SELECT
+        lesson_id,
+        COUNT(*) AS first_answer_count,
+        ROUND(AVG(is_correct), 4) AS first_attempt_accuracy,
+        ROUND(AVG(duration_seconds), 1) AS avg_answer_seconds,
+        ROUND(AVG(CASE WHEN duration_seconds <= 15 THEN 1.0 ELSE 0 END), 4) AS rapid_answer_rate,
+        ROUND(AVG(CASE WHEN duration_seconds >= 100 THEN 1.0 ELSE 0 END), 4) AS long_stay_answer_rate
+    FROM learning_events
+    WHERE event_name = 'answer'
+      AND COALESCE(answer_attempt, 1) = 1
+      AND lesson_id IS NOT NULL
+    GROUP BY lesson_id
+), correction AS (
+    SELECT
+        lesson_id,
+        COUNT(*) AS original_wrong_count,
+        ROUND(AVG(viewed_explanation_in_practice), 4) AS explanation_view_rate,
+        ROUND(AVG(CASE WHEN correction_submit_count > 0 THEN 1.0 ELSE 0 END), 4) AS correction_entry_rate,
+        ROUND(AVG(correction_hit), 4) AS correction_hit_rate,
+        ROUND(AVG(first_correction_is_correct), 4) AS first_correction_accuracy,
+        ROUND(AVG(second_correction_is_correct), 4) AS second_correction_accuracy,
+        ROUND(AVG(is_correction_jump_out), 4) AS correction_jump_out_rate
+    FROM v_correction_mastery
+    GROUP BY lesson_id
+)
+SELECT
+    k.lesson_id,
+    v.video_session_count,
+    v.video_jump_out_rate,
+    v.drag_session_rate,
+    v.fast_playback_session_rate,
+    v.repeated_watch_session_rate,
+    p.first_answer_count,
+    p.first_attempt_accuracy,
+    p.avg_answer_seconds,
+    p.rapid_answer_rate,
+    p.long_stay_answer_rate,
+    c.original_wrong_count,
+    c.explanation_view_rate,
+    c.correction_entry_rate,
+    c.correction_hit_rate,
+    c.first_correction_accuracy,
+    c.second_correction_accuracy,
+    c.correction_jump_out_rate,
+    CASE
+        WHEN v.repeated_watch_session_rate >= 0.25 AND p.first_attempt_accuracy < 0.60
+            THEN 'video_not_understood'
+        WHEN c.explanation_view_rate >= 0.60 AND c.second_correction_accuracy < 0.70
+            THEN 'explanation_not_mastered'
+        WHEN p.rapid_answer_rate >= 0.15 OR p.long_stay_answer_rate >= 0.15
+            THEN 'question_experience_risk'
+        ELSE 'healthy'
+    END AS stage_diagnosis
+FROM lesson_keys k
+LEFT JOIN video v ON v.lesson_id = k.lesson_id
+LEFT JOIN practice p ON p.lesson_id = k.lesson_id
+LEFT JOIN correction c ON c.lesson_id = k.lesson_id;
 
 -- 家长微信原声 × 孩子行为：支持退费、未续费、续费三类原声归因。
 CREATE VIEW IF NOT EXISTS v_parent_voice_behavior_attribution AS

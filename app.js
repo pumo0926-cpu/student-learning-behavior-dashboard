@@ -211,6 +211,7 @@ function overviewTemplate() {
         </div>
       </article>
     </div>
+    ${parentVoiceAttributionPanel("refund")}
 
     <div class="decision-section-head"><div><span>02 / 续费结果对照</span><h3>用续费用户校准正向信号，用未续费用户定位效果断点</h3><p>不仅看谁留下，还要看家长最终认可了什么。</p></div></div>
     <div class="renewal-compare">
@@ -218,8 +219,7 @@ function overviewTemplate() {
       <div class="versus-mark"><span>VS</span><small>结果对照</small></div>
       <article class="renewal-card not-renewed-card"><div class="renewal-label"><i></i>未续费用户</div><h3>孩子成绩没有什么明显变化</h3><p>完成课程不自动等于家长感知有效，续费前需要把产品内学习连接到校内成绩与能力变化。</p><div class="evidence-chips"><span>成绩无变化</span><span>能力不可见</span><span>价值感不足</span></div><footer><b>应验证</b><span>前后测 + 校内题型 + 成果报告</span></footer></article>
     </div>
-
-    ${parentVoiceAttributionPanel()}
+    ${parentVoiceAttributionPanel("renewal")}
 
     <article class="panel panel-full priority-panel">
       <div class="panel-header"><div><h3>本期决策优先级</h3><p>依据结果人群、反馈原因与行为证据安排产品动作</p></div><span class="panel-tag">从结果到行动</span></div>
@@ -231,7 +231,7 @@ function overviewTemplate() {
       </div>
     </article>
 
-    <div class="decision-section-head behavior-entry"><div><span>04 / 行为证据下钻</span><h3>结果告诉我们先看谁，行为数据负责验证为什么</h3><p>保留现有三套连续行为分析能力，供每个结果人群继续下钻。</p></div></div>
+    <div class="decision-section-head behavior-entry"><div><span>03 / 行为证据下钻</span><h3>结果告诉我们先看谁，行为数据负责验证为什么</h3><p>保留现有三套连续行为分析能力，供每个结果人群继续下钻。</p></div></div>
     <div class="scheme-grid compact-schemes">${schemes.map(s => `<article class="scheme-card" data-open="${s.id}" style="--scheme-color:${s.color};--scheme-pale:${s.pale}"><div class="scheme-top"><span class="scheme-number">${s.no}</span><span class="scheme-arrow">${icons.arrow}</span></div><h3>${s.title}</h3><p>${s.desc}</p><footer><i></i>${s.footer}</footer></article>`).join("")}</div>
   </section>`;
 }
@@ -271,9 +271,15 @@ const parentVoiceCases = [
   }
 ];
 
-function parentVoiceAttributionPanel() {
-  return `<div class="decision-section-head voice-section-head"><div><span>03 / 家长微信原声归因</span><h3>把指导师收到的用户原声与孩子真实学习行为匹配</h3><p>先抽取原声主题，再用学习事实验证，避免只凭一句反馈做产品判断。</p></div><em>原声为脱敏演示文本</em></div>
-    <article class="panel panel-full parent-voice-panel"><div class="voice-process"><span>微信原声</span><i>→</i><span>主题分类抽取</span><i>→</i><span>孩子行为匹配</span><i>→</i><span>归因与动作</span></div><div class="parent-voice-grid">${parentVoiceCases.map(v => `<section class="parent-voice-card is-${v.tone}"><header><div><span>${v.outcome}</span><b>${v.sample}</b></div><em>分类置信度 ${v.confidence}</em></header><blockquote>${v.quote}</blockquote><div class="voice-source"><i>微</i><span>微信 · ${v.advisor} · 已脱敏</span></div><div class="voice-topics"><small>分类抽取</small>${v.topics.map(t => `<span>${t}</span>`).join("")}</div><div class="voice-behavior"><small>匹配到孩子行为</small><div>${v.behavior.map(b => `<span>${b}</span>`).join("")}</div></div><footer><small>匹配结论</small><b>${v.conclusion}</b><p><em>产品动作</em>${v.action}</p></footer></section>`).join("")}</div></article>`;
+function parentVoiceAttributionPanel(group) {
+  const isRefund = group === "refund";
+  const cases = parentVoiceCases.filter(v => isRefund ? v.tone === "refund" : v.tone !== "refund");
+  const label = isRefund ? "01 / 退费用户 · 原声验证" : "02 / 续费结果对照 · 原声验证";
+  const desc = isRefund
+    ? "把退费家长原声放回完课分类中，用孩子真实学习行为判断是没学进去，还是学了却没感知到效果。"
+    : "把续费与未续费原声并排对照，用真实学习行为识别家长认可或不认可的关键差异。";
+  return `<div class="decision-section-head voice-section-head is-inline"><div><span>${label}</span><h3>指导师收到的用户原声 × 孩子真实学习行为</h3><p>${desc}</p></div><em>原声为脱敏演示文本</em></div>
+    <article class="panel panel-full parent-voice-panel is-inline"><div class="voice-process"><span>微信原声</span><i>→</i><span>主题分类抽取</span><i>→</i><span>孩子行为匹配</span><i>→</i><span>归因与动作</span></div><div class="parent-voice-grid voice-count-${cases.length}">${cases.map(v => `<section class="parent-voice-card is-${v.tone}"><header><div><span>${v.outcome}</span><b>${v.sample}</b></div><em>分类置信度 ${v.confidence}</em></header><blockquote>${v.quote}</blockquote><div class="voice-source"><i>微</i><span>微信 · ${v.advisor} · 已脱敏</span></div><div class="voice-topics"><small>分类抽取</small>${v.topics.map(t => `<span>${t}</span>`).join("")}</div><div class="voice-behavior"><small>匹配到孩子行为</small><div>${v.behavior.map(b => `<span>${b}</span>`).join("")}</div></div><footer><small>匹配结论</small><b>${v.conclusion}</b><p><em>产品动作</em>${v.action}</p></footer></section>`).join("")}</div></article>`;
 }
 
 const breakStages = [
@@ -641,22 +647,69 @@ function lessonQuestionMetrics(lessonIndex) {
     const accuracy = Math.min(96, Math.max(31, lesson.accuracy + questionAccuracyOffsets[questionIndex] - (lessonIndex % 2) * .7));
     const jump = Math.min(29, Math.max(1.2, lesson.jump * .55 + questionJumpOffsets[questionIndex] + (lessonIndex % 3) * .35));
     const students = Math.round(2384 * lesson.attend / 100 * (1 - questionIndex * .035));
+    const rapidRate = Math.max(1.2, Math.min(21, 16.8 - time * .09 + (questionIndex % 2) * 2.1));
+    const longStayRate = Math.max(1.4, Math.min(28, (time - 38) * .19 + questionIndex * .8));
+    const difficulty = accuracy < 60 ? "偏难" : accuracy < 76 ? "中等" : "偏易";
     let diagnosis = "表现正常", tone = "good";
     if (accuracy < 58 || jump >= 15) { diagnosis = accuracy < 58 ? "难度过高" : "高跳出"; tone = "risk"; }
     else if (time >= 95 || jump >= 10) { diagnosis = time >= 95 ? "耗时偏长" : "跳出偏高"; tone = "watch"; }
-    return { no: `第 ${questionIndex + 1} 题`, type, students, time, accuracy: accuracy.toFixed(1), jump: jump.toFixed(1), diagnosis, tone };
+    else if (rapidRate >= 12) { diagnosis = "秒答偏高"; tone = "watch"; }
+    return { no: `第 ${questionIndex + 1} 题`, type, difficulty, students, time, accuracy: accuracy.toFixed(1), jump: jump.toFixed(1), rapidRate: rapidRate.toFixed(1), longStayRate: longStayRate.toFixed(1), diagnosis, tone };
   });
 }
 
 function questionMetricTable(lessonIndex, compact = false) {
   const rows = lessonQuestionMetrics(lessonIndex);
-  return `<div class="table-wrap"><table class="event-table question-metric-table ${compact ? "compact" : ""}"><thead><tr><th>题目</th><th>题型</th><th>答题人数</th><th>答题时长</th><th>答题正确率</th><th>答题跳出率 <span title="进入该题后未提交即离开本课时的人数 / 进入该题人数">?</span></th><th>题目诊断</th></tr></thead><tbody>${rows.map((q, qi) => `<tr class="${q.tone === "risk" ? "question-risk-row" : ""}"><td><button class="question-open" data-question="${lessonIndex}-${qi}" title="点击查看原题">${q.no}</button></td><td><span class="question-type">${q.type}</span></td><td>${formatNumber(q.students)}</td><td><span class="question-value ${q.time >= 95 ? "is-risk" : ""}">${q.time}s</span></td><td><span class="metric-inline"><i style="--value:${q.accuracy}%"></i><b class="${Number(q.accuracy) < 60 ? "is-risk" : ""}">${q.accuracy}%</b></span></td><td><span class="metric-inline jump"><i style="--value:${Math.min(100, Number(q.jump) * 4)}%"></i><b class="${Number(q.jump) >= 15 ? "is-risk" : ""}">${q.jump}%</b></span></td><td><span class="cause-pill ${q.tone}">${q.diagnosis}</span></td></tr>`).join("")}</tbody></table></div>`;
+  return `<div class="table-wrap"><table class="event-table question-metric-table ${compact ? "compact" : ""}"><thead><tr><th>题目</th><th>题型 / 难度</th><th>答题人数</th><th>中位答题时长</th><th>首答正确率</th><th>答题跳出率 <span title="进入该题后未提交即离开本课时的人数 / 进入该题人数">?</span></th><th>作答异常</th><th>题目诊断</th></tr></thead><tbody>${rows.map((q, qi) => `<tr class="${q.tone === "risk" ? "question-risk-row" : ""}"><td><button class="question-open" data-question="${lessonIndex}-${qi}" title="点击查看原题">${q.no}</button></td><td><span class="question-type">${q.type}</span><small class="difficulty ${q.difficulty === "偏难" ? "hard" : ""}">${q.difficulty}</small></td><td>${formatNumber(q.students)}</td><td><span class="question-value ${q.time >= 95 ? "is-risk" : ""}">${q.time}s</span></td><td><span class="metric-inline"><i style="--value:${q.accuracy}%"></i><b class="${Number(q.accuracy) < 60 ? "is-risk" : ""}">${q.accuracy}%</b></span></td><td><span class="metric-inline jump"><i style="--value:${Math.min(100, Number(q.jump) * 4)}%"></i><b class="${Number(q.jump) >= 15 ? "is-risk" : ""}">${q.jump}%</b></span></td><td><div class="answer-anomaly"><span class="${Number(q.rapidRate) >= 12 ? "on" : ""}">秒答 ${q.rapidRate}%</span><span class="${Number(q.longStayRate) >= 12 ? "slow" : ""}">长停留 ${q.longStayRate}%</span></div></td><td><span class="cause-pill ${q.tone}">${q.diagnosis}</span></td></tr>`).join("")}</tbody></table></div>`;
+}
+
+function lessonVideoMetrics(lessonIndex) {
+  const lesson = lessonRows[lessonIndex];
+  const related = lessonQuestionMetrics(lessonIndex).slice(2, 4);
+  const relatedAccuracy = related.reduce((sum, q) => sum + Number(q.accuracy), 0) / related.length;
+  const jump = Math.min(24, lesson.jump * .63 + lessonIndex * .15);
+  const drag = Math.min(42, 11.8 + lessonIndex * 2.7 + lesson.jump * .22);
+  const fast = Math.min(34, 7.4 + lessonIndex * 1.8 + lesson.jump * .18);
+  const replay = Math.min(46, 12.6 + lessonIndex * 3.1 + lesson.jump * .47);
+  const unclear = relatedAccuracy < 65 && replay >= 24;
+  return { jump: jump.toFixed(1), drag: drag.toFixed(1), fast: fast.toFixed(1), replay: replay.toFixed(1), relatedAccuracy: relatedAccuracy.toFixed(1), unclear };
+}
+
+function lessonVideoAnalysis(lessonIndex, compact = false) {
+  const lesson = lessonRows[lessonIndex], m = lessonVideoMetrics(lessonIndex);
+  return `<section class="lesson-stage-analysis is-video ${compact ? "compact" : ""}"><header><i>01</i><div><span>视频分析</span><b>跳出、拖拽、快进与反复观看，必须和对应题结果一起看</b></div><em class="${m.unclear ? "risk" : "good"}">${m.unclear ? "疑似没讲明白" : "讲解承接正常"}</em></header><div class="video-analysis-metrics"><span><small>视频跳出率</small><b>${m.jump}%</b></span><span><small>拖拽率</small><b>${m.drag}%</b></span><span><small>倍速快进率</small><b>${m.fast}%</b></span><span><small>反复观看率</small><b>${m.replay}%</b></span><span><small>对应题首答正确率</small><b>${m.relatedAccuracy}%</b></span></div><div class="learning-evidence-bridge"><span><small>视频行为热区</small><b>03:00–04:30 · 拖拽/回看集中</b></span><i>→</i><span><small>对应考查题</small><b>第 3–4 题 · 首答 ${m.relatedAccuracy}%</b></span><i>→</i><strong>${m.unclear ? "反复看仍做不对：优先重做讲解" : "观看行为与答题结果匹配正常"}</strong></div><p>判断口径：高回看本身不等于认真；只有“反复观看/频繁拖拽 + 对应题低正确率或长停留”同时出现，才判定讲解可能没有让孩子学明白。当前：${lesson.name}。</p></section>`;
+}
+
+function lessonCorrectionMetrics(lessonIndex) {
+  const questions = [...lessonQuestionMetrics(lessonIndex)].sort((a, b) => Number(a.accuracy) - Number(b.accuracy)).slice(0, 3);
+  return questions.map((q, index) => {
+    const wrongStudents = Math.round(q.students * (1 - Number(q.accuracy) / 100));
+    const explanationRate = Math.max(46, Math.min(92, 61 + lessonIndex * 2.7 + index * 5.2));
+    const correctionEntryRate = Math.max(50, Math.min(94, 82 - lessonIndex * 1.5 - index * 3));
+    const correctionHitRate = Math.max(38, Math.min(91, 74 - lessonIndex * 2.8 - index * 4.6));
+    const secondAccuracy = Math.max(42, Math.min(94, correctionHitRate + 8.4 - index * 1.3));
+    const correctionJump = Math.max(2, Math.min(24, lessonRows[lessonIndex].jump * .48 + index * 2.1));
+    const mastered = explanationRate >= 60 && secondAccuracy >= 70;
+    const conclusion = mastered ? "解析后已掌握" : explanationRate >= 60 ? "看了解析仍未掌握" : "解析查看不足";
+    return { no: q.no, wrongStudents, explanationRate: explanationRate.toFixed(1), correctionEntryRate: correctionEntryRate.toFixed(1), correctionHitRate: correctionHitRate.toFixed(1), secondAccuracy: secondAccuracy.toFixed(1), correctionJump: correctionJump.toFixed(1), mastered, conclusion };
+  });
+}
+
+function lessonCorrectionAnalysis(lessonIndex, compact = false) {
+  const rows = lessonCorrectionMetrics(lessonIndex);
+  const average = key => (rows.reduce((sum, row) => sum + Number(row[key]), 0) / rows.length).toFixed(1);
+  const explanation = average("explanationRate"), hit = average("correctionHitRate"), second = average("secondAccuracy"), jump = average("correctionJump");
+  return `<section class="lesson-stage-analysis is-correction ${compact ? "compact" : ""}"><header><i>03</i><div><span>错题改错分析</span><b>看解析、进入改错、改错命中与二次正确必须连成一条链</b></div><em class="${Number(second) >= 70 ? "good" : "risk"}">${Number(second) >= 70 ? "整体已掌握" : "掌握不足"}</em></header><div class="correction-summary"><span><small>解析查看率</small><b>${explanation}%</b></span><i>→</i><span><small>改错命中率</small><b>${hit}%</b></span><i>→</i><span><small>二次正确率</small><b>${second}%</b></span><i>→</i><span><small>改错跳出率</small><b>${jump}%</b></span></div><div class="table-wrap"><table class="event-table correction-analysis-table"><thead><tr><th>原错题</th><th>原错人数</th><th>练环节解析查看率</th><th>改错进入率</th><th>改错命中率</th><th>二次正确率</th><th>改错跳出率</th><th>掌握判断</th></tr></thead><tbody>${rows.map(r => `<tr><td>${r.no}</td><td>${formatNumber(r.wrongStudents)}</td><td>${r.explanationRate}%</td><td>${r.correctionEntryRate}%</td><td>${r.correctionHitRate}%</td><td><b class="${Number(r.secondAccuracy) < 70 ? "metric-bad" : ""}">${r.secondAccuracy}%</b></td><td>${r.correctionJump}%</td><td><span class="cause-pill ${r.mastered ? "good" : "risk"}">${r.conclusion}</span></td></tr>`).join("")}</tbody></table></div><p>掌握口径：原答错误后查看解析并完成改错，且二次同类题答对，才判为掌握；只看解析未改对，判为“看了解析仍未掌握”。</p></section>`;
+}
+
+function lessonAnalysisMap() {
+  return `<div class="lesson-analysis-map"><section><i>01</i><div><span>视频分析</span><b>跳出 · 拖拽 · 快进 · 反复观看</b><small>再用对应考查题验证是否讲明白</small></div></section><em>→</em><section><i>02</i><div><span>题目分析</span><b>难度 · 正确率 · 跳出 · 答题时长</b><small>识别秒答、长停留与难度断层</small></div></section><em>→</em><section><i>03</i><div><span>错题改错</span><b>解析查看 · 改错命中 · 二次正确</b><small>最终判断是否真正掌握</small></div></section></div>`;
 }
 
 function lessonAttributionRows() {
   return lessonRows.map((r, i) => {
     const expanded = state.expandedLesson === i;
-    return `<tr class="lesson-summary-row ${expanded ? "is-expanded" : ""}" data-toggle-lesson-questions="${i}" tabindex="0" aria-expanded="${expanded}"><td><span class="lesson-expand-icon">${expanded ? "−" : "+"}</span><b>${r.name}</b></td><td>${r.time}</td><td>${r.duration}</td><td class="${r.jump > 15 ? "metric-bad" : ""}">${r.jump}%</td><td>${r.attend}%</td><td>${r.finish}%</td><td>${r.accuracy}%</td><td>${r.answer}</td><td><span class="cause-pill ${r.tone}">${r.cause}</span></td></tr>${expanded ? `<tr class="question-breakdown-row"><td colspan="9"><div class="question-breakdown"><div class="question-breakdown-head"><div><span>题目明细</span><b>${r.name} · 6 道训练题</b><small>答题时长、正确率和跳出率均按题目统计</small></div><button data-lesson-detail="${i}">打开课时详情 →</button></div>${questionMetricTable(i)}</div></td></tr>` : ""}`;
+    return `<tr class="lesson-summary-row ${expanded ? "is-expanded" : ""}" data-toggle-lesson-questions="${i}" tabindex="0" aria-expanded="${expanded}"><td><span class="lesson-expand-icon">${expanded ? "−" : "+"}</span><b>${r.name}</b></td><td>${r.time}</td><td>${r.duration}</td><td class="${r.jump > 15 ? "metric-bad" : ""}">${r.jump}%</td><td>${r.attend}%</td><td>${r.finish}%</td><td>${r.accuracy}%</td><td>${r.answer}</td><td><span class="cause-pill ${r.tone}">${r.cause}</span></td></tr>${expanded ? `<tr class="question-breakdown-row"><td colspan="9"><div class="question-breakdown"><div class="question-breakdown-head"><div><span>课时三环节分析</span><b>${r.name} · 视频 → 题目 → 改错掌握</b><small>不只看过程动作，还要用后续答题与二次正确验证是否学明白</small></div><button data-lesson-detail="${i}">打开课时详情 →</button></div>${lessonVideoAnalysis(i)}<section class="lesson-stage-analysis is-question"><header><i>02</i><div><span>题目分析</span><b>逐题查看难度、正确率、跳出率、答题时长与作答异常</b></div><em>6 道训练题</em></header>${questionMetricTable(i)}<p>秒答率 = 用时 ≤15 秒的作答占比；长停留率 = 用时超过该题历史中位数 3 倍的作答占比。</p></section>${lessonCorrectionAnalysis(i)}</div></td></tr>` : ""}`;
   }).join("");
 }
 
@@ -691,7 +744,7 @@ function drawerShell() {
 }
 
 function lessonTemplate() {
-  return `<section class="fade-in">${detailHeader("课时维度归因—扫除硬伤", "沿解锁顺序比较每节课的参与、完成与答题体验，识别最值得优先迭代的内容。", "目标：找到指标变化的产品原因")}
+  return `<section class="fade-in">${detailHeader("课时维度归因—扫除硬伤", "按视频、题目、错题改错三段验证孩子是否看懂、做对并真正掌握，识别最值得优先迭代的内容。", "目标：从过程异常定位到掌握结果")}
     <div class="analysis-toolbar"><div><span>当前班期</span><b>${courseFilterLabel()} · ${packageFilterLabel()} · ${courseStartLabel()}开课 · A 班</b></div><label>对比口径<select><option>同班期全部用户</option><option>未流失用户</option><option>续费用户</option></select></label><span class="data-note"><i></i> 演示数据</span></div>
     <div class="kpi-grid">
       ${kpiCard("本月解锁课时","9 / 9","已全部解锁","四周 8 节 + 月度挑战 1 节","课")}
@@ -699,8 +752,9 @@ function lessonTemplate() {
       ${kpiCard("平均参完率","73.5%","-3.4%","完课人数 / 参课人数","✓",true)}
       ${kpiCard("高优迭代课时","3 节","+1 节","满足至少 2 项异常规则","!",true)}
     </div>
-    <article class="panel attribution-panel"><div class="panel-header"><div><h3>课时表现与归因</h3><p>点击课时展开题目，逐题查看答题时长、答题正确率与答题跳出率</p></div><div class="legend-inline"><span><i class="legend-good"></i>健康</span><span><i class="legend-watch"></i>观察</span><span><i class="legend-risk"></i>迭代</span></div></div>
-      <div class="metric-definition"><span><b>课时层</b>先定位异常课时</span><i>→</i><span><b>题目层</b>再定位具体题目</span><em>答题跳出率 = 进入该题后未提交即离开本课时 / 进入该题人数</em></div>
+    ${lessonAnalysisMap()}
+    <article class="panel attribution-panel"><div class="panel-header"><div><h3>课时表现与归因</h3><p>点击课时展开视频、逐题与错题改错三段分析，判断孩子是否真正掌握</p></div><div class="legend-inline"><span><i class="legend-good"></i>健康</span><span><i class="legend-watch"></i>观察</span><span><i class="legend-risk"></i>迭代</span></div></div>
+      <div class="metric-definition lesson-definition"><span><b>课时层</b>先定位异常课时</span><i>→</i><span><b>视频层</b>看讲解行为</span><i>→</i><span><b>题目层</b>验证是否看懂</span><i>→</i><span><b>改错层</b>验证是否掌握</span><em>只有行为与结果同时异常，才进入产品归因</em></div>
       <div class="table-wrap attribution-wrap"><table class="event-table attribution-table"><thead><tr><th>课时</th><th>完成时间</th><th>完成时长</th><th>课时跳出率</th><th>参课率</th><th>参完率</th><th>课时答题正确率</th><th>课时题均时长</th><th>归因结论</th></tr></thead><tbody>${lessonAttributionRows()}</tbody></table></div>
     </article>
     <div class="insight-box"><span class="bulb">${icons.bulb}</span><span><b>归因结论：</b>L05、L07 同时出现动画跳出高、题均耗时长和参完率低；优先拆短讲解、降低首组题目难度，再以同班期未流失用户作为对照组验证。</span></div>
@@ -1221,7 +1275,9 @@ function openLessonDetail(index) {
   openDrawer(`<div class="drawer-kicker">课时维度归因—扫除硬伤详情</div><h2>${r.name}</h2><p class="drawer-sub">${courseFilterLabel()} · ${packageFilterLabel()} · ${courseStartLabel()}开课 · A 班 · 已解锁 2,384 人</p>
     <div class="drawer-metrics"><div><span>参课率</span><b>${r.attend}%</b></div><div><span>参完率</span><b>${r.finish}%</b></div><div><span>课时跳出率</span><b class="danger">${r.jump}%</b></div><div><span>课时正确率</span><b>${r.accuracy}%</b></div></div>
     <div class="drawer-question-summary"><span>需优先检查</span><b>${riskiest.no} · ${riskiest.type}</b><p>答题 ${riskiest.time}s · 正确率 ${riskiest.accuracy}% · 跳出率 ${riskiest.jump}%</p></div>
-    <h3 class="drawer-title">逐题答题表现</h3>${questionMetricTable(index, true)}
+    ${lessonVideoAnalysis(index, true)}
+    <section class="lesson-stage-analysis is-question compact"><header><i>02</i><div><span>题目分析</span><b>难度、首答正确率、跳出、耗时、秒答与长停留</b></div></header>${questionMetricTable(index, true)}</section>
+    ${lessonCorrectionAnalysis(index, true)}
     <h3 class="drawer-title">产品归因</h3><div class="root-cause"><span class="${r.tone}">${r.cause}</span><p>${index===4||index===6?`${riskiest.no} 同时出现低正确率、高耗时和高跳出，说明讲解承接到练习的难度跃迁过大。`:'逐题指标处于班期正常区间，继续观察后续课时的衰减趋势。'}</p></div>
     <div class="action-box"><b>建议迭代</b><p>优先调整 ${riskiest.no}：增加脚手架步骤或降低首问难度；改版后逐题对比答题时长、正确率与跳出率。</p></div>`);
 }
@@ -1249,7 +1305,7 @@ const eventRows = [
   ["answer", "提交题目答案", "题目ID、题序、尝试次数、正误、耗时、倒计时剩余", "秒答 / 临近倒计时 / 正确率 / 反复提交", ""],
   ["answer_change", "提交前修改答案", "题目ID、修改次数", "答案反复修改信号", "新增"],
   ["correction", "提交错题订正", "原错题事件ID、错题序号、耗时、正误、订正轮次", "错题1/2/3 · 订正正确率 / 跳出率 / 掌握率", ""],
-  ["hint_view", "查看提示或解析", "题目ID、提示层级", "求助率 / 受挫佐证", "新增"],
+  ["hint_view", "查看提示或答案解析", "题目ID、内容类型、停留时长、发生环节", "解析查看率 / 解析后改错命中率", "新增"],
   ["idle", "静默超时无操作", "静默时长、所在位置", "静默信号 / 空转时长", "新增"],
   ["app_background / app_foreground", "切后台与回前台", "离开时长、所在位置", "切后台信号 / 分心度", "新增"],
   ["exit", "退出当前课节", "所在环节、进度、题序、退出方式", "断点定位 / 断点会话率", ""],
@@ -1270,7 +1326,7 @@ function modelTemplate() {
     ["10", "用户结果决策表", "user_outcome_decisions", "一次退费/续费结果一行，冻结当时完课表现与反馈原因", ["outcome_type · 决策类型", "outcome_status · 结果状态", "completion_band · 完课分层", "completion_rate · 当时完课率", "primary_reason_code · 原因", "feedback_source · 反馈来源"], "结果决策层", true],
     ["11", "家长微信原声表", "parent_voice_feedback", "指导师收到的脱敏原声、分类主题及行为匹配结论", ["voice_text · 脱敏原声", "advisor_id · 指导师匿名ID", "primary_topic · 主主题", "topic_labels_json · 分类标签", "classification_confidence · 置信度", "behavior_evidence_json · 行为证据", "attribution_conclusion · 归因", "recommended_action · 动作"], "原声归因层", true]
   ];
-  return `<section class="fade-in">${detailHeader("底层数据模型", "十一张表把用户结果、家长原声、用户画像、连续行为、情绪状态与内容质量串起来。", "11 张表 · 19 类事件 · 16 个视图")}
+  return `<section class="fade-in">${detailHeader("底层数据模型", "十一张表把用户结果、家长原声、用户画像、连续行为、情绪状态与内容质量串起来。", "11 张表 · 19 类事件 · 17 个视图")}
     <div class="model-flow"><span>家长原声</span><i>分类抽取</i><span>结果决策</span><i>定位人群</i><span>学生画像</span><i>1 : N</i><span class="is-new">学习会话</span><i>1 : N</i><span class="is-new">行为事件</span><i>规则判定</i><span class="is-new">异常信号</span><i>加权</i><span class="is-new">情绪状态</span><i>验证</i><span>课节结果</span></div>
     <div class="model-grid">${models.map(m => `<article class="model-card ${m[6] ? "is-new" : ""}"><header><span>${m[0]}</span><div><h3>${m[1]}</h3><code>${m[2]}</code></div></header><p>${m[3]}</p><div class="field-list">${m[4].map(f => `<span>${f}</span>`).join("")}</div><footer><i></i>${m[5]}${m[6] ? " · 本次新增" : ""}</footer></article>`).join("")}</div>
     <div class="panel panel-full" style="margin-top:18px"><div class="panel-header"><div><h3>埋点事件口径</h3><p>同一 session_id 内按 event_sequence 排序，即可完整还原一次连续使用行为</p></div><span class="panel-tag">19 类事件 · 8 类新增</span></div><div class="table-wrap"><table class="event-table"><thead><tr><th>事件名</th><th>触发时机</th><th>关键属性</th><th>支持指标</th><th>状态</th></tr></thead><tbody>${eventRows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4] ? '<span class="status-dot is-new">待埋点</span>' : '<span class="status-dot">已上报</span>'}</td></tr>`).join("")}</tbody></table></div></div>

@@ -14,7 +14,7 @@
 - 退费用户先按完课表现拆成“完课不好”和“完课较好”；
 - 完课不好重点验证兴趣与时间冲突，完课较好重点验证效果感知与练习方式；
 - 续费用户作为“孩子喜欢 + 有一定效果”的正向对照，未续费用户重点追踪“成绩没有明显变化”。
-- 退费、未续费与续费归因加入“指导师收到的家长微信原声 → 主题分类 → 孩子行为匹配 → 产品动作”；
+- 退费原声嵌入“01 / 退费用户”分类，续费与未续费原声嵌入“02 / 续费结果对照”，均按“指导师收到的家长微信原声 → 主题分类 → 孩子行为匹配 → 产品动作”展示；
 - 用户画像补充城市、购买渠道、体验课次数、上课设备及首学年/非首学年。
 
 首页点击四类结果卡可切换决策摘要，再向下进入原因链、产品动作与验证指标。页面数量及比例均为演示数据，原因标签来自需求中的用户反馈归类。
@@ -33,7 +33,7 @@
 
 另有两个直接服务迭代的归因视图：
 
-- **课时维度归因—扫除硬伤**：课时表现对比与下钻，并把断点定位到动画的某 30 秒、练习的某一题，附改版效果验证。
+- **课时维度归因—扫除硬伤**：按“视频行为与对应题验证 → 逐题难度/正确率/跳出/耗时/秒答/长停留 → 解析查看/改错命中/二次正确”三段下钻，判断孩子是否看懂并真正掌握，同时附内容改版效果验证。
 - **用户行为归因**：以进入产品后的生命周期月 M1–M6 为单元，每月四周、每周 2 节并加 1 节月度课，共 9 节；点击用户名后原表切换为该学生的课时多维明细。参课课时可继续展开单次会话回放（含 `SES-8842` 行为还原），并沿「连续表现 → 异常信号 → 情绪识别 → 断点优化」定位产品机会。
 
 ## 关键口径
@@ -74,7 +74,7 @@ node build-standalone.mjs
 
 ## 数据库
 
-[`database/schema.sql`](database/schema.sql) 是可直接执行的 SQLite 数据模型（v2.7），11 张表：
+[`database/schema.sql`](database/schema.sql) 是可直接执行的 SQLite 数据模型（v2.8），11 张表：
 
 | 层 | 表 | 说明 |
 | --- | --- | --- |
@@ -89,11 +89,11 @@ node build-standalone.mjs
 | 决策 | `user_outcome_decisions` | 退费/续费结果、当时完课分层与反馈原因快照 |
 | 原声 | `parent_voice_feedback` | 指导师收到的脱敏家长微信原声、分类标签及行为匹配结论 |
 
-外加 16 个语义视图：
+外加 17 个语义视图：
 
 - 结果决策：`v_user_outcome_decision`（结果状态 → 完课分层 → 反馈原因）、`v_parent_voice_behavior_attribution`（家长原声 → 分类主题 → 孩子行为 → 归因动作）
 - 连续行为：`v_breakpoint_distribution`（断点分布）、`v_pre_exit_signal_lift`（信号提升度）、`v_session_continuity`（断后回归）、`v_emotion_cohort`（情绪分层）、`v_animation_playback`（暂停/拖拽/快进/视频跳出）
-- 迭代归因：`v_lesson_attribution`（课时归因）、`v_cohort_lesson_tracking`（班期用户追踪）、`v_question_duration`（单次作答）、`v_lesson_question_performance`（课时 × 题目的耗时/正确率/跳出率）、`v_practice_question_judgement`（秒答/倒计时/反复提交/答题跳出）、`v_correction_mastery`（错题 1/2/3 的订正耗时、正确率、跳出与掌握）、`v_user_breakpoint_emotion_attribution`（会话异常 → 情绪 → 断点优化）
+- 迭代归因：`v_lesson_attribution`（课时归因）、`v_lesson_stage_effectiveness`（视频行为 → 题目表现 → 解析/改错/二次正确的三段效果链）、`v_cohort_lesson_tracking`（班期用户追踪）、`v_question_duration`（单次作答）、`v_lesson_question_performance`（课时 × 题目的耗时/正确率/跳出率）、`v_practice_question_judgement`（秒答/倒计时/反复提交/答题跳出）、`v_correction_mastery`（错题 1/2/3 的解析查看、订正耗时、改错命中、二次正确、跳出与掌握）、`v_user_breakpoint_emotion_attribution`（会话异常 → 情绪 → 断点优化）
 - 原有：`v_weekly_learning_monitor`、`v_lesson_funnel`
 
 ```bash
