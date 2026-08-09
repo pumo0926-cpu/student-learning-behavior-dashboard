@@ -570,12 +570,11 @@ function versionCompare() {
   ${insight("v1.3 给反例段加了分步演示，断点率下降 5.8pp，<b>方法有效</b>。第 3 题这次没动，指标纹丝不动——反过来印证了改动与效果的对应关系。下一步按同样方式改第 3 题梯度。")}`;
 }
 
-const drilldownSessions = [
-  ["SES-8842", "8/6 20:14", "27 分钟", "练", "断点 · 练习第 4 题", 6, 78, "break"],
-  ["SES-8701", "8/4 20:32", "19 分钟", "练", "断点 · 练习第 3 题", 4, 71, "break"],
-  ["SES-8566", "8/1 21:05", "12 分钟", "学", "断点 · 动画 03:50", 3, 64, "break"],
-  ["SES-8402", "7/30 20:11", "34 分钟", "改", "完成闭环", 1, 38, ""],
-  ["SES-8255", "7/28 19:48", "31 分钟", "改", "完成闭环", 0, 26, ""]
+const churnBreakpointPatterns = [
+  { rank: "01", point: "连续 2 节未参", users: 127, rate: 68.3, stage: "L05–L07", signals: ["前一节参未完", "解锁 48h 未启动"], path: ["参未完", "未参", "持续未参"], action: "首次未参 24h 内触达，并支持断点续学" },
+  { rank: "02", point: "练 · 第 3–4 题", users: 102, rate: 54.8, stage: "L03 / L05", signals: ["单题过长", "连续答错", "反复提交"], path: ["练中跳出", "下节延迟", "转为未参"], action: "补台阶题、拆分长题并降低首问难度" },
+  { rank: "03", point: "学 · 动画 03:00–04:30", users: 78, rate: 41.9, stage: "L03 / L05", signals: ["反复回看", "拖拽跳过", "对应题低正确"], path: ["视频中断", "练习受挫", "连续脱离"], action: "重录高密度片段，并用对应题验证看懂" },
+  { rank: "04", point: "改 · 订正后仍错", users: 70, rate: 37.6, stage: "L04–L06", signals: ["解析停留短", "二次正确率低", "改错跳出"], path: ["错题未掌握", "厌烦升高", "后续未参"], action: "解析分步化，订正后增加一道同类验证题" }
 ];
 
 const renewalBands = [
@@ -585,11 +584,12 @@ const renewalBands = [
   ["80–100 · 高危", 68, "76.9%", "14.6%", "43.1%", "#c65e49"]
 ];
 
-// 跨会话退化：同一个人连续几次会话的断点越来越早，是「厌烦」最直接的证据链。
+// 已流失用户的共性断点：从单个案例升级为群体聚合，支持确定迭代优先级。
 function sessionDegradationPanel() {
-  return `<article class="panel panel-full" style="margin-top:18px"><div class="panel-header"><div><h3>跨会话退化曲线 · 王*宁（已流失）</h3><p>最近 5 次会话逆序排列——从完整闭环一路退化到 12 分钟就断</p></div><span class="panel-tag alert-tag">厌烦指数 26 → 78</span></div>
-    <div class="table-wrap"><table class="event-table"><thead><tr><th>会话</th><th>时间</th><th>时长</th><th>到达环节</th><th>结果</th><th>命中信号</th><th>厌烦指数</th></tr></thead><tbody>${drilldownSessions.map(s => `<tr class="${s[7] ? "row-alert" : ""}"><td>${s[0]}</td><td>${s[1]}</td><td>${s[2]}</td><td>${s[3]}</td><td>${s[4]}</td><td>${s[5]} 个</td><td><span class="score-pill" style="--sc:${s[6] >= 60 ? "#c65e49" : s[6] >= 40 ? "#e9b951" : "#1b8c72"}">${s[6]}</span></td></tr>`).join("")}</tbody></table></div>
-    ${insight("<b>这就是「锚定」要的证据链：</b>7/28 还能完整走完学练改（指数 26），7/30 起断点位置一次比一次早——改 → 练第 4 题 → 练第 3 题 → 动画 03:50，会话时长从 31 分钟压到 12 分钟，指数从 26 爬到 78。<b>上面的状态矩阵只会显示「最近几节未参课」，看不到这条退化曲线。</b>")}
+  return `<article class="panel panel-full churn-breakpoint-panel" style="margin-top:18px"><div class="panel-header"><div><h3>已流失用户的共性断点分析</h3><p>聚合 186 名已流失用户，从首次异常到连续未参，识别反复出现的学习断点与演化路径</p></div><span class="panel-tag alert-tag">已流失用户 · n=186</span></div>
+    <div class="churn-breakpoint-summary"><span><small>最普遍断点</small><b>连续 2 节未参</b><em>覆盖 68.3%</em></span><span><small>首个内容断点</small><b>练 · 第 3–4 题</b><em>L03 / L05 集中</em></span><span><small>从首断到流失</small><b>中位 12 天</b><em>通常经历 3 次异常</em></span><span><small>共同情绪信号</small><b>受挫 + 涣散</b><em>先卡住，再脱离</em></span></div>
+    <div class="table-wrap"><table class="event-table churn-breakpoint-table"><thead><tr><th>优先级</th><th>共性断点</th><th>已流失用户覆盖</th><th>首次集中课时</th><th>断点前共性信号</th><th>典型演化路径</th><th>建议优化动作</th></tr></thead><tbody>${churnBreakpointPatterns.map(item => `<tr class="${item.rank === "01" || item.rank === "02" ? "row-alert" : ""}"><td><span class="breakpoint-rank">${item.rank}</span></td><td><b>${item.point}</b></td><td><div class="breakpoint-rate"><i style="--rate:${item.rate}%"></i><b>${item.rate}%</b><small>${item.users} 人</small></div></td><td>${item.stage}</td><td><div class="breakpoint-signals">${item.signals.map(signal => `<span>${signal}</span>`).join("")}</div></td><td><div class="breakpoint-path">${item.path.map(step => `<span>${step}</span>`).join("<i>→</i>")}</div></td><td>${item.action}</td></tr>`).join("")}</tbody></table></div>
+    ${insight("<b>共性结论：</b>已流失通常不是一次退出造成，而是先在具体内容处卡住，再出现参未完和连续未参。优先处理覆盖率最高的两条路径——<b>连续 2 节未参</b>和<b>练习第 3–4 题受挫</b>，并以首断后 24 小时回归率、后续两节参课率验证改动。")}
   </article>`;
 }
 
