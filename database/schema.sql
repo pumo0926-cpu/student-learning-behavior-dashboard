@@ -525,6 +525,7 @@ GROUP BY s.cohort_code, r.course_id, r.lesson_id, r.lesson_title, r.lesson_seque
 CREATE VIEW IF NOT EXISTS v_cohort_lesson_tracking AS
 SELECT
     s.cohort_code,
+    date(r.unlocked_at, 'start of month') AS tracking_month,
     s.student_id,
     s.grade,
     s.churn_status,
@@ -534,6 +535,8 @@ SELECT
     r.lesson_id,
     r.lesson_title,
     r.lesson_sequence,
+    CASE WHEN r.lesson_sequence <= 8 THEN ((r.lesson_sequence - 1) / 2) + 1 ELSE 5 END AS month_week,
+    CASE WHEN r.lesson_sequence <= 8 THEN 'weekly_lesson' ELSE 'monthly_bonus' END AS unlock_type,
     r.unlocked_at,
     r.started_at,
     r.completed_at,
@@ -541,6 +544,15 @@ SELECT
     r.attended,
     r.is_completed,
     r.jumped_out,
+    (
+      SELECT ls.break_position_label
+      FROM learning_sessions ls
+      WHERE ls.student_id = r.student_id
+        AND ls.lesson_id = r.lesson_id
+        AND ls.is_break = 1
+      ORDER BY ls.ended_at DESC
+      LIMIT 1
+    ) AS latest_break_position,
     r.total_learning_seconds,
     r.first_attempt_accuracy,
     r.correction_accuracy,
@@ -576,13 +588,79 @@ SELECT
     e.course_id,
     e.lesson_id,
     e.question_id,
+    e.question_index,
     e.question_version,
     e.event_at AS answered_at,
     e.duration_seconds,
+    e.answer_attempt,
     e.is_correct,
-    e.answer_value
+    e.answer_value,
+    CASE WHEN e.duration_seconds <= 15 THEN 1 ELSE 0 END AS is_instant_answer,
+    CASE WHEN e.answer_attempt >= 3 THEN 1 ELSE 0 END AS is_repeated_answer,
+    CASE WHEN e.duration_seconds >= 100 THEN 1 ELSE 0 END AS is_overlong_answer
 FROM learning_events e
 WHERE e.event_name IN ('answer', 'correction')
   AND e.question_id IS NOT NULL;
+
+-- 课时 × 题目表现：统一产出答题时长、首答正确率和答题跳出率。
+-- 答题跳出定义：停在该题且未完成课时的会话 /（已提交该题会话 + 停在该题会话）。
+CREATE VIEW IF NOT EXISTS v_lesson_question_performance AS
+WITH first_answers AS (
+    SELECT
+        e.*,
+        ROW_NUMBER() OVER (
+            PARTITION BY e.session_id, e.question_id
+            ORDER BY e.event_sequence
+        ) AS answer_order
+    FROM learning_events e
+    WHERE e.event_name = 'answer'
+      AND e.question_id IS NOT NULL
+),
+answer_stats AS (
+    SELECT
+        course_id,
+        lesson_id,
+        question_id,
+        question_index,
+        question_version,
+        COUNT(DISTINCT session_id) AS answering_sessions,
+        ROUND(AVG(duration_seconds), 1) AS avg_answer_seconds,
+        ROUND(AVG(is_correct), 4) AS first_answer_accuracy
+    FROM first_answers
+    WHERE answer_order = 1
+    GROUP BY course_id, lesson_id, question_id, question_index, question_version
+),
+break_stats AS (
+    SELECT
+        course_id,
+        lesson_id,
+        break_question_id AS question_id,
+        break_question_index AS question_index,
+        COUNT(DISTINCT session_id) AS exited_sessions
+    FROM learning_sessions
+    WHERE is_break = 1
+      AND break_question_id IS NOT NULL
+    GROUP BY course_id, lesson_id, break_question_id, break_question_index
+)
+SELECT
+    a.course_id,
+    a.lesson_id,
+    a.question_id,
+    a.question_index,
+    a.question_version,
+    a.answering_sessions,
+    a.avg_answer_seconds,
+    a.first_answer_accuracy,
+    COALESCE(b.exited_sessions, 0) AS exited_sessions,
+    ROUND(
+        1.0 * COALESCE(b.exited_sessions, 0) /
+        NULLIF(a.answering_sessions + COALESCE(b.exited_sessions, 0), 0),
+        4
+    ) AS answer_jump_rate
+FROM answer_stats a
+LEFT JOIN break_stats b
+  ON b.course_id = a.course_id
+ AND b.lesson_id = a.lesson_id
+ AND b.question_id = a.question_id;
 
 COMMIT;
