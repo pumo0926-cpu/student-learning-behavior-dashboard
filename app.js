@@ -1,4 +1,4 @@
-const state = { view: "overview", period: "m1", segment: "all", gradeSubject: "g7_math", courseStartDate: "2026-08-01", userGroup: "all", selectedUser: null, selectedLessonSession: null, outcome: "refund", expandedLesson: 4 };
+const state = { view: "overview", period: "m1", segment: "all", gradeSubject: "g7_math", packageType: "half_summer_autumn", courseStartDate: "2026-08-01", userGroup: "all", selectedUser: null, selectedLessonSession: null, outcome: "refund", expandedLesson: 4 };
 
 const icons = {
   open: '<svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 8h8M8 12h6"/></svg>',
@@ -22,14 +22,31 @@ const lifecyclePeriods = [
   ["m3", "M3", "进入后第3个月", .84],
   ["m4", "M4", "进入后第4个月", .76],
   ["m5", "M5", "进入后第5个月", .69],
-  ["m6", "M6", "进入后第6个月", .62]
+  ["m6", "M6", "进入后第6个月", .62],
+  ["m7", "M7", "进入后第7个月", .57],
+  ["m8", "M8", "进入后第8个月", .53],
+  ["m9", "M9", "进入后第9个月", .49],
+  ["m10", "M10", "进入后第10个月", .46],
+  ["m11", "M11", "进入后第11个月", .43],
+  ["m12", "M12", "进入后第12个月", .40]
 ];
 const periodFactors = Object.fromEntries(lifecyclePeriods.map(p => [p[0], p[3]]));
 const lifecyclePeriod = () => lifecyclePeriods.find(p => p[0] === state.period) || lifecyclePeriods[0];
-const lifecyclePeriodOptions = () => lifecyclePeriods.map(p => `<option value="${p[0]}" ${state.period === p[0] ? "selected" : ""}>${p[1]} · ${p[2]}</option>`).join("");
+const isHalfYearPackage = () => state.packageType.startsWith("half_");
+const availableLifecyclePeriods = () => lifecyclePeriods.slice(0, isHalfYearPackage() ? 6 : 12);
+const lifecyclePeriodOptions = () => availableLifecyclePeriods().map(p => `<option value="${p[0]}" ${state.period === p[0] ? "selected" : ""}>${p[1]} · ${p[2]}</option>`).join("");
+const packageLabels = {
+  annual: "全年包",
+  half_summer_autumn: "半年包 · 暑秋班",
+  half_autumn_winter: "半年包 · 秋寒班",
+  half_winter_spring: "半年包 · 寒春班",
+  half_spring_summer: "半年包 · 春暑班"
+};
+const packageFilterLabel = () => packageLabels[state.packageType] || packageLabels.half_summer_autumn;
 const courseFilters = {
-  g7_math: ["初一", "数学"], g8_math: ["初二", "数学"], g9_math: ["初三", "数学"],
-  g8_physics: ["初二", "物理"], g9_physics: ["初三", "物理"], g9_chemistry: ["初三", "化学"],
+  g7_chinese: ["初一", "语文"], g7_math: ["初一", "数学"], g7_english: ["初一", "英语"],
+  g8_english: ["初二", "英语"], g9_english: ["初三", "英语"],
+  g8_math: ["初二", "数学"], g9_math: ["初三", "数学"],
   all: ["全部年级", "全部学科"]
 };
 const courseFilter = () => courseFilters[state.gradeSubject] || courseFilters.g7_math;
@@ -140,9 +157,30 @@ function rankList(rows, color) {
 
 /* ===================== 总览 ===================== */
 
+function frameworkTemplate() {
+  const layers = [
+    { no: "01", tone: "scope", title: "先定比较口径", question: "谁和谁比，在哪段生命周期比？", items: [`${courseFilterLabel()}`, packageFilterLabel(), `${courseStartLabel()}开课`, `${lifecyclePeriod()[1]} · ${lifecyclePeriod()[2]}`, "结果人群 / 风险人群"] },
+    { no: "02", tone: "data", title: "还原学习事实", question: "孩子实际上做了什么？", items: ["学生与课包画像", "课时结果与周度汇总", "会话回放与事件序列", "动画 / 题目内容版本", "家长微信原声"] },
+    { no: "03", tone: "diagnose", title: "连续诊断与下钻", question: "异常发生在哪里、之前发生了什么？", items: ["用户 → 课时 → 会话 → 事件", "学：暂停 / 拖拽 / 快进 / 跳出", "练：秒答 / 超时 / 反复 / 正确率", "改：错题1/2/3掌握", "异常信号 → 情绪识别"] },
+    { no: "04", tone: "attribute", title: "形成可能性归因", question: "哪类原因最值得优先验证？", items: ["课时维度：扫除内容硬伤", "用户维度：连续断点归因", "客户决策：退费 / 续费主因", "行为证据 × 家长原声", "相关性结论，不冒充因果"] },
+    { no: "05", tone: "action", title: "迭代并验证", question: "改什么，怎样证明改对了？", items: ["内容 / 题目 / 节奏改版", "提醒 / 续学 / 指导策略", "效果证明与家长沟通", "绑定成功指标与护栏指标", "A/B或版本前后对照"] }
+  ];
+  return `<section class="fade-in framework-page">${detailHeader("分析框架导图", "用同一套证据链把学习事实、异常信号、用户与课时归因、客户决策结果串成可验证的产品迭代闭环。", "读图：从左向右，再回到验证")}
+    <div class="framework-principles"><article><span>原则 01</span><b>先结果，后过程</b><p>从退费、续费或体验异常出发，避免为了看指标而看指标。</p></article><article><span>原则 02</span><b>同批连续追踪</b><p>固定年级学科、课包与开课日期，再按生命周期 M 月比较。</p></article><article><span>原则 03</span><b>逐层下钻</b><p>用户 → 课时 → 会话 → 事件 / 题目，直到能对应产品触点。</p></article><article><span>原则 04</span><b>归因必须验证</b><p>行为与原声形成“可能性主因”，最终用实验确认因果。</p></article></div>
+    <article class="panel framework-canvas"><header class="framework-canvas-head"><div><span>ANALYSIS LOGIC</span><h3>从“发生了什么”到“应该改什么”</h3><p>每一层都有明确输入、分析动作和输出；没有证据的猜测不会进入迭代清单。</p></div><em>当前筛选：${courseFilterLabel()} · ${packageFilterLabel()} · ${lifecyclePeriod()[1]}</em></header>
+      <div class="framework-map">${layers.map((layer, index) => `<section class="framework-layer is-${layer.tone}"><header><i>${layer.no}</i><div><b>${layer.title}</b><small>${layer.question}</small></div></header><div>${layer.items.map(item => `<span>${item}</span>`).join("")}</div>${index < layers.length - 1 ? '<em class="framework-arrow">→</em>' : ""}</section>`).join("")}</div>
+      <div class="framework-loop"><span>验证结果回流</span><i></i><b>更新阈值、归因规则与内容版本，进入下一轮监测</b><i></i><span>持续迭代</span></div>
+    </article>
+    <div class="framework-use-head"><span>三种使用入口</span><h3>不同团队从自己的问题进入，但最终共享同一条证据链</h3></div>
+    <div class="framework-use-grid"><button data-open="overview"><i>业务 / 经营</i><b>客户为什么退费或续费？</b><p>从结果人群进入，匹配家长原声与孩子行为，找到可能性主因。</p><span>进入客户决策归因 →</span></button><button data-open="lesson"><i>内容 / 教研</i><b>哪节课、哪个内容存在硬伤？</b><p>从异常课时下钻到动画秒点和具体题目，形成改版优先级。</p><span>进入课时维度归因 →</span></button><button data-open="users"><i>产品 / 服务</i><b>哪个用户在什么位置断了？</b><p>按同批生命周期连续追踪，并回放单次会话识别情绪与断点。</p><span>进入用户行为归因 →</span></button></div>
+    <div class="framework-boundary"><b>解释边界</b><span>看板给出的是由行为证据与原声共同支持的“可能性主因”；只有经过对照实验或版本验证后，才能升级为因果结论。</span></div>
+  </section>`;
+}
+
 function overviewTemplate() {
   const focus = outcomeDetails[state.outcome];
   return `<section class="fade-in decision-page">
+    <button class="framework-entry" data-open="framework"><span><i>分析框架</i><b>先了解这套分析逻辑如何建立和使用</b><small>比较口径 → 学习事实 → 连续诊断 → 可能性归因 → 迭代验证</small></span><em>打开导图 ${icons.arrow}</em></button>
     <div class="intro-row decision-intro"><div><p class="decision-kicker">OUTCOME FIRST · 从结果倒推原因</p><h2>先看用户做了什么决定，再解释为什么</h2><p>以退费、未退费、续费、未续费四类结果为入口。退费用户进一步按完课表现拆分，避免把“没学”和“学了没效果”混成同一个问题；再用行为数据验证反馈原因。</p></div><span class="data-note"><i></i> 数量与占比为演示数据</span></div>
 
     <div class="outcome-grid" role="tablist" aria-label="用户结果分群">
@@ -654,7 +692,7 @@ function drawerShell() {
 
 function lessonTemplate() {
   return `<section class="fade-in">${detailHeader("课时维度归因—扫除硬伤", "沿解锁顺序比较每节课的参与、完成与答题体验，识别最值得优先迭代的内容。", "目标：找到指标变化的产品原因")}
-    <div class="analysis-toolbar"><div><span>当前班期</span><b>${courseFilterLabel()} · ${courseStartLabel()}开课 · A 班</b></div><label>对比口径<select><option>同班期全部用户</option><option>未流失用户</option><option>续费用户</option></select></label><span class="data-note"><i></i> 演示数据</span></div>
+    <div class="analysis-toolbar"><div><span>当前班期</span><b>${courseFilterLabel()} · ${packageFilterLabel()} · ${courseStartLabel()}开课 · A 班</b></div><label>对比口径<select><option>同班期全部用户</option><option>未流失用户</option><option>续费用户</option></select></label><span class="data-note"><i></i> 演示数据</span></div>
     <div class="kpi-grid">
       ${kpiCard("本月解锁课时","9 / 9","已全部解锁","四周 8 节 + 月度挑战 1 节","课")}
       ${kpiCard("平均参课率","82.6%","-2.1%","随课时推进略有下降","人",true)}
@@ -1149,7 +1187,7 @@ function usersTemplate() {
       <div class="tracking-wrap"><table class="tracking-table month-tracking-table"><thead><tr class="week-band"><th rowspan="2">用户</th><th rowspan="2">结果状态</th><th colspan="2">第 1 周</th><th colspan="2">第 2 周</th><th colspan="2">第 3 周</th><th colspan="2">第 4 周</th><th>月度加课</th></tr><tr>${lessonRows.map((_,i)=>`<th>L${String(i+1).padStart(2,"0")}</th>`).join("")}</tr></thead><tbody>${visibleUsers.map(u=>`<tr><td><button class="student-name-button" data-select-user="${u.id}"><b>${u.name}</b><small>${u.id} · ${u.city} · ${u.channel}</small><em>查看课时明细 →</em></button></td><td><span class="lifecycle ${u.churn?'churn':'active'}">${u.churn?'已退费':'未退费'}</span><span class="lifecycle ${u.renew?'renew':'no-renew'}">${u.renew?'已续费':'未续费'}</span>${isPotentialRisk(u)?'<span class="lifecycle risk">潜在风险</span>':''}</td>${u.states.map((s,i)=>`<td><button class="lesson-state ${statusMeta[s][1]}" data-user-detail="${u.id}" data-lesson="${i}" title="${u.name} · ${lessonRows[i].name} · ${statusMeta[s][0]}"><i></i><span>${s==="learning"||s==="exit"?"参未完":s==="missed"?"未参":"完课"}</span></button></td>`).join("")}</tr>`).join("")}</tbody></table></div>
     </article>`;
   return `<section class="fade-in">${detailHeader("用户行为归因", `按用户进入产品后的月份追踪：${lifecyclePeriod()[1]} 为${lifecyclePeriod()[2]}。每个月连续观察四周 8 节常规课和 1 节月度加课。`, "点击用户/课时：展开会话回放")}
-    <div class="analysis-toolbar"><div><span>当前生命周期月份</span><b>${lifecyclePeriod()[1]} · ${lifecyclePeriod()[2]} · ${courseFilterLabel()} · ${courseStartLabel()}开课</b></div><label>周期<select data-lifecycle-period>${lifecyclePeriodOptions()}</select></label><span class="cohort-range">同批进入 2,384 人 · ${lifecyclePeriod()[1]} 共 9 节</span></div>
+    <div class="analysis-toolbar"><div><span>当前生命周期月份</span><b>${lifecyclePeriod()[1]} · ${lifecyclePeriod()[2]} · ${courseFilterLabel()} · ${packageFilterLabel()} · ${courseStartLabel()}开课</b></div><label>周期<select data-lifecycle-period>${lifecyclePeriodOptions()}</select></label><span class="cohort-range">同批进入 2,384 人 · ${lifecyclePeriod()[1]} 共 9 节</span></div>
     <div class="month-plan"><span><b>第 1 周</b>L01–L02</span><i></i><span><b>第 2 周</b>L03–L04</span><i></i><span><b>第 3 周</b>L05–L06</span><i></i><span><b>第 4 周</b>L07–L08</span><i></i><span class="extra"><b>月度加课</b>L09 综合挑战</span></div>
     <div class="segment-tabs">${userGroups.map(g=>`<button class="${state.userGroup===g[0]?'active':''}" data-user-group="${g[0]}"><span>${g[1]}</span><b>${g[2]}</b></button>`).join("")}</div>
     <div class="segment-definition"><b>潜在流失风险口径</b><span>未退费且未续费，并在最近 4 节中至少 2 节出现未参、参未完或跳出。</span></div>
@@ -1180,7 +1218,7 @@ function openLessonDetail(index) {
   const r = lessonRows[index];
   const questions = lessonQuestionMetrics(index);
   const riskiest = [...questions].sort((a, b) => (Number(b.jump) + (100 - Number(b.accuracy)) / 5) - (Number(a.jump) + (100 - Number(a.accuracy)) / 5))[0];
-  openDrawer(`<div class="drawer-kicker">课时维度归因—扫除硬伤详情</div><h2>${r.name}</h2><p class="drawer-sub">${courseFilterLabel()} · ${courseStartLabel()}开课 · A 班 · 已解锁 2,384 人</p>
+  openDrawer(`<div class="drawer-kicker">课时维度归因—扫除硬伤详情</div><h2>${r.name}</h2><p class="drawer-sub">${courseFilterLabel()} · ${packageFilterLabel()} · ${courseStartLabel()}开课 · A 班 · 已解锁 2,384 人</p>
     <div class="drawer-metrics"><div><span>参课率</span><b>${r.attend}%</b></div><div><span>参完率</span><b>${r.finish}%</b></div><div><span>课时跳出率</span><b class="danger">${r.jump}%</b></div><div><span>课时正确率</span><b>${r.accuracy}%</b></div></div>
     <div class="drawer-question-summary"><span>需优先检查</span><b>${riskiest.no} · ${riskiest.type}</b><p>答题 ${riskiest.time}s · 正确率 ${riskiest.accuracy}% · 跳出率 ${riskiest.jump}%</p></div>
     <h3 class="drawer-title">逐题答题表现</h3>${questionMetricTable(index, true)}
@@ -1220,7 +1258,7 @@ const eventRows = [
 
 function modelTemplate() {
   const models = [
-    ["01", "用户基础表", "students", "年级学科、开课日期、渠道与学习阶段画像", ["student_id · 学生ID", "grade / subject · 年级学科", "city · 城市", "acquisition_channel · 购买渠道", "trial_lesson_count · 体验课次数", "device_type / model · 上课设备", "learning_year_type · 首/非首学年", "cohort_started_at · 开课日期"], "基础层", false],
+    ["01", "用户基础表", "students", "年级学科、课包属性、开课日期、渠道与学习阶段画像", ["student_id · 学生ID", "grade / subject · 年级学科", "package_type / term · 全年/半年及班型", "city · 城市", "acquisition_channel · 购买渠道", "trial_lesson_count · 体验课次数", "device_type / model · 上课设备", "learning_year_type · 首/非首学年", "cohort_started_at · 开课日期"], "基础层", false],
     ["02", "学习会话表", "learning_sessions", "一次打开到离开为一行 · 断点定位主表", ["session_id · 会话ID", "is_break · 是否断点", "break_stage · 断点环节", "break_position_label · 断点位置", "resume_mode · 续接方式", "boredom_score · 厌烦指数"], "连续行为层", true],
     ["03", "学习事件明细表", "learning_events", "原始行为事实 · 按 event_sequence 还原序列", ["event_name · 19 类事件", "stage · 所属环节", "prev_event_gap_seconds · 距上一步", "question_index · 题序", "answer_attempt · 尝试次数", "properties_json · 扩展"], "连续行为层", true],
     ["04", "异常信号字典", "anomaly_signal_dict", "20 类信号的判定规则与权重 · 可配置", ["signal_code · 信号编码", "detect_rule · 判定规则", "threshold_json · 阈值", "emotion_type · 情绪归属", "weight · 权重", "reference_lift · 参考提升度"], "信号层", true],
@@ -1249,6 +1287,7 @@ function modelTemplate() {
 /* ===================== 路由 ===================== */
 
 const views = {
+  framework: { title: "分析框架导图", eyebrow: "方法说明 / ANALYSIS LOGIC", render: frameworkTemplate },
   overview: { title: "客户决策行为背后的可能性主因", eyebrow: "决策驾驶舱 / OUTCOME FIRST", render: overviewTemplate },
   chain: { title: "连续行为链路还原", eyebrow: "方案 01 / 断点定位", render: chainTemplate },
   signal: { title: "断点前异常信号", eyebrow: "方案 02 / 异常归因", render: signalTemplate },
@@ -1261,8 +1300,10 @@ const views = {
 function render() {
   const view = views[state.view];
   document.getElementById("gradeSubjectSelect").value = state.gradeSubject;
+  document.getElementById("packageTypeSelect").value = state.packageType;
   document.getElementById("courseStartDate").value = state.courseStartDate;
   document.getElementById("segmentSelect").value = state.segment;
+  document.getElementById("periodSelect").innerHTML = lifecyclePeriodOptions();
   document.getElementById("periodSelect").value = state.period;
   document.getElementById("pageTitle").textContent = view.title;
   document.getElementById("pageEyebrow").textContent = view.eyebrow;
@@ -1341,12 +1382,19 @@ function navigate(view) {
 
 document.querySelectorAll(".nav-item").forEach(el => el.addEventListener("click", () => navigate(el.dataset.view)));
 document.getElementById("gradeSubjectSelect").addEventListener("change", e => { state.gradeSubject = e.target.value; state.selectedUser = null; state.selectedLessonSession = null; render(); });
+document.getElementById("packageTypeSelect").addEventListener("change", e => {
+  state.packageType = e.target.value;
+  if (isHalfYearPackage() && Number(state.period.slice(1)) > 6) state.period = "m1";
+  state.selectedUser = null;
+  state.selectedLessonSession = null;
+  render();
+});
 document.getElementById("courseStartDate").addEventListener("change", e => { state.courseStartDate = e.target.value || "2026-08-01"; state.selectedUser = null; state.selectedLessonSession = null; render(); });
 document.getElementById("periodSelect").addEventListener("change", e => { state.period = e.target.value; state.selectedUser = null; state.selectedLessonSession = null; render(); });
 document.getElementById("segmentSelect").addEventListener("change", e => { state.segment = e.target.value; state.userGroup = e.target.value; state.selectedUser = null; state.selectedLessonSession = null; render(); });
 document.getElementById("exportButton").addEventListener("click", () => {
-  const headers = ["方案", "指标", "当前值", "年级-学科", "开课时间", "周期", "人群"];
-  const rows = [[views[state.view].title, "页面数据快照", new Date().toLocaleString("zh-CN"), courseFilterLabel(), state.courseStartDate, `${lifecyclePeriod()[1]} · ${lifecyclePeriod()[2]}`, state.segment]];
+  const headers = ["方案", "指标", "当前值", "年级-学科", "课包属性", "开课时间", "周期", "人群"];
+  const rows = [[views[state.view].title, "页面数据快照", new Date().toLocaleString("zh-CN"), courseFilterLabel(), packageFilterLabel(), state.courseStartDate, `${lifecyclePeriod()[1]} · ${lifecyclePeriod()[2]}`, state.segment]];
   const csv = "﻿" + [headers, ...rows].map(row => row.join(",")).join("\n");
   const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
   const a = document.createElement("a"); a.href = url; a.download = `周周学，周周up_${views[state.view].title}.csv`; a.click(); URL.revokeObjectURL(url);

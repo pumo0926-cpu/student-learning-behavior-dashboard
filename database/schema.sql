@@ -1,4 +1,4 @@
--- 周周学，周周up用户行为监测数据模型 v2.6
+-- 周周学，周周up用户行为监测数据模型 v2.7
 -- SQLite 3.x；所有学生标识均应使用业务侧生成的匿名 ID。
 --
 -- v2.0 变更要点：从「课时维度聚合」升级为「会话维度连续行为序列」。
@@ -9,9 +9,10 @@
 --   v2.1 新增：用户结果决策表，从退费/续费结果反向关联完课表现与反馈原因。
 --   v2.2 新增：用户会话级归因视图，把连续表现、异常信号、情绪与断点优化串成一条链。
 --   v2.3 新增：学/练/改判定字段与语义视图，还原视频播放、训练答题和错题掌握过程。
---   v2.4 新增：按 purchased_at 计算 M1–M6 生命周期月份，替代自然周作为顶部周期筛选。
+--   v2.4 新增：按 purchased_at 计算生命周期月份，替代自然周作为顶部周期筛选。
 --   v2.5 新增：cohort_started_at 开课日期，支持年级-学科 × 开课年月日筛选，并优先作为生命周期起点。
 --   v2.6 新增：城市、体验课、学年类型画像及家长微信原声分类与行为归因表。
+--   v2.7 新增：语文学科、全年/半年课包与四类半年班型，全年包支持追踪 M1–M12。
 
 PRAGMA foreign_keys = ON;
 
@@ -25,10 +26,12 @@ BEGIN TRANSACTION;
 CREATE TABLE IF NOT EXISTS students (
     student_id          TEXT PRIMARY KEY,
     grade               INTEGER NOT NULL CHECK (grade BETWEEN 7 AND 9),
-    subject             TEXT NOT NULL DEFAULT 'math' CHECK (subject IN ('math', 'physics', 'chemistry', 'english', 'other')),
+    subject             TEXT NOT NULL DEFAULT 'math' CHECK (subject IN ('chinese', 'math', 'english', 'physics', 'chemistry', 'other')),
     purchased_at        TEXT NOT NULL,
     cohort_started_at   TEXT,                          -- 开课年月日；为空时以购买时间作为生命周期起点
     package_code        TEXT NOT NULL,
+    package_type        TEXT NOT NULL DEFAULT 'half_year' CHECK (package_type IN ('annual', 'half_year')),
+    package_term        TEXT NOT NULL DEFAULT 'summer_autumn' CHECK (package_term IN ('full_year', 'summer_autumn', 'autumn_winter', 'winter_spring', 'spring_summer')),
     cohort_code         TEXT NOT NULL,                 -- 同一购买/开课班期
     package_expires_at  TEXT,
     city                 TEXT,
@@ -566,6 +569,8 @@ SELECT
     w.week_start,
     s.grade,
     s.package_code,
+    s.package_type,
+    s.package_term,
     s.acquisition_channel,
     COUNT(*) AS student_count,
     SUM(w.started_lesson_count) AS learned_lessons,
@@ -575,7 +580,7 @@ SELECT
     SUM(CASE WHEN w.risk_level = 'high' THEN 1 ELSE 0 END) AS high_risk_students
 FROM user_weekly_summaries w
 JOIN students s ON s.student_id = w.student_id
-GROUP BY w.week_start, s.grade, s.package_code, s.acquisition_channel;
+GROUP BY w.week_start, s.grade, s.package_code, s.package_type, s.package_term, s.acquisition_channel;
 
 CREATE VIEW IF NOT EXISTS v_lesson_funnel AS
 SELECT
@@ -628,6 +633,8 @@ SELECT
     s.student_id,
     s.grade,
     s.subject,
+    s.package_type,
+    s.package_term,
     s.city,
     s.acquisition_channel AS purchase_channel,
     s.trial_lesson_count,

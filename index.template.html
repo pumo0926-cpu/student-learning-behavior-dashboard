@@ -27,6 +27,10 @@
 
         <nav class="primary-nav">
           <p class="nav-label">工作台</p>
+          <button class="nav-item" data-view="framework">
+            <svg viewBox="0 0 24 24"><path d="M5 4h5v5H5zM14 4h5v5h-5zM9 15h6v5H9zM7.5 9v3h9V9M12 12v3"/></svg>
+            <span>分析框架</span>
+          </button>
           <button class="nav-item active" data-view="overview">
             <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
             <span>客户决策行为背后的可能性主因</span>
@@ -75,7 +79,8 @@
             <h1 id="pageTitle">客户决策行为背后的可能性主因</h1>
           </div>
           <div class="top-actions">
-            <label class="select-wrap"><span>年级-学科</span><select id="gradeSubjectSelect"><option value="g7_math">初一 · 数学</option><option value="g8_math">初二 · 数学</option><option value="g9_math">初三 · 数学</option><option value="g8_physics">初二 · 物理</option><option value="g9_physics">初三 · 物理</option><option value="g9_chemistry">初三 · 化学</option><option value="all">全部年级 · 全部学科</option></select></label>
+            <label class="select-wrap"><span>年级-学科</span><select id="gradeSubjectSelect"><option value="g7_chinese">初一 · 语文</option><option value="g7_math" selected>初一 · 数学</option><option value="g7_english">初一 · 英语</option><option value="g8_english">初二 · 英语</option><option value="g9_english">初三 · 英语</option><option value="g8_math">初二 · 数学</option><option value="g9_math">初三 · 数学</option><option value="all">全部年级 · 全部学科</option></select></label>
+            <label class="select-wrap package-filter"><span>课包属性</span><select id="packageTypeSelect"><option value="annual">全年包</option><optgroup label="半年包"><option value="half_summer_autumn" selected>半年包 · 暑秋班</option><option value="half_autumn_winter">半年包 · 秋寒班</option><option value="half_winter_spring">半年包 · 寒春班</option><option value="half_spring_summer">半年包 · 春暑班</option></optgroup></select></label>
             <label class="select-wrap date-filter"><span>开课时间</span><input id="courseStartDate" type="date" value="2026-08-01" aria-label="开课时间，年月日" /></label>
             <label class="select-wrap"><span>人群</span><select id="segmentSelect"><option value="all">全部用户</option><option value="refunded">退费用户</option><option value="notRefunded">未退费用户</option><option value="renewed">续费用户</option><option value="notRefundedNotRenewed">未退费未续费用户</option><option value="risk">潜在流失风险用户</option></select></label>
             <label class="select-wrap"><span>周期</span><select id="periodSelect"><option value="m1">M1 · 进入后第1个月</option><option value="m2">M2 · 进入后第2个月</option><option value="m3">M3 · 进入后第3个月</option><option value="m4">M4 · 进入后第4个月</option><option value="m5">M5 · 进入后第5个月</option><option value="m6">M6 · 进入后第6个月</option></select></label>
