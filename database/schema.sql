@@ -1,4 +1,4 @@
--- 拾光学习用户行为监测数据模型 v2.3
+-- 周周学，周周up用户行为监测数据模型 v2.6
 -- SQLite 3.x；所有学生标识均应使用业务侧生成的匿名 ID。
 --
 -- v2.0 变更要点：从「课时维度聚合」升级为「会话维度连续行为序列」。
@@ -9,6 +9,9 @@
 --   v2.1 新增：用户结果决策表，从退费/续费结果反向关联完课表现与反馈原因。
 --   v2.2 新增：用户会话级归因视图，把连续表现、异常信号、情绪与断点优化串成一条链。
 --   v2.3 新增：学/练/改判定字段与语义视图，还原视频播放、训练答题和错题掌握过程。
+--   v2.4 新增：按 purchased_at 计算 M1–M6 生命周期月份，替代自然周作为顶部周期筛选。
+--   v2.5 新增：cohort_started_at 开课日期，支持年级-学科 × 开课年月日筛选，并优先作为生命周期起点。
+--   v2.6 新增：城市、体验课、学年类型画像及家长微信原声分类与行为归因表。
 
 PRAGMA foreign_keys = ON;
 
@@ -22,14 +25,19 @@ BEGIN TRANSACTION;
 CREATE TABLE IF NOT EXISTS students (
     student_id          TEXT PRIMARY KEY,
     grade               INTEGER NOT NULL CHECK (grade BETWEEN 7 AND 9),
+    subject             TEXT NOT NULL DEFAULT 'math' CHECK (subject IN ('math', 'physics', 'chemistry', 'english', 'other')),
     purchased_at        TEXT NOT NULL,
+    cohort_started_at   TEXT,                          -- 开课年月日；为空时以购买时间作为生命周期起点
     package_code        TEXT NOT NULL,
     cohort_code         TEXT NOT NULL,                 -- 同一购买/开课班期
     package_expires_at  TEXT,
-    acquisition_channel TEXT NOT NULL,
+    city                 TEXT,
+    acquisition_channel TEXT NOT NULL,                -- 购买渠道
+    trial_lesson_count   INTEGER NOT NULL DEFAULT 0 CHECK (trial_lesson_count >= 0),
     device_type         TEXT NOT NULL CHECK (device_type IN ('ios', 'android', 'web', 'tablet', 'other')),
     device_os_version   TEXT,
     device_model        TEXT,
+    learning_year_type  TEXT NOT NULL DEFAULT 'first_year' CHECK (learning_year_type IN ('first_year', 'returning')),
     churn_status        TEXT NOT NULL DEFAULT 'active' CHECK (churn_status IN ('active', 'churned')),
     churned_at           TEXT,
     refund_status       TEXT NOT NULL DEFAULT 'not_refunded' CHECK (refund_status IN ('refunded', 'not_refunded')),
@@ -327,12 +335,12 @@ CREATE TABLE IF NOT EXISTS user_outcome_decisions (
     completion_rate    REAL CHECK (completion_rate IS NULL OR completion_rate BETWEEN 0 AND 1),
     primary_reason_code TEXT CHECK (primary_reason_code IS NULL OR primary_reason_code IN (
                             'child_dislikes_learning', 'schoolwork_conflict', 'no_time_low_usage',
-                            'no_perceived_effect', 'interaction_format_ineffective',
+                            'no_perceived_effect', 'interaction_format_ineffective', 'process_feels_light',
                             'child_likes_learning', 'perceived_effect', 'no_score_change', 'other'
                           )),
     reason_text        TEXT,                         -- 原始回访摘要，保留语义但不存储敏感信息
     feedback_source    TEXT CHECK (feedback_source IS NULL OR feedback_source IN (
-                           'refund_form', 'renewal_survey', 'service_call', 'parent_interview', 'other'
+                           'refund_form', 'renewal_survey', 'service_call', 'parent_interview', 'wechat_advisor', 'other'
                          )),
     is_verified        INTEGER NOT NULL DEFAULT 0 CHECK (is_verified IN (0, 1)),
     created_at         TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -340,12 +348,40 @@ CREATE TABLE IF NOT EXISTS user_outcome_decisions (
     FOREIGN KEY (student_id) REFERENCES students(student_id)
 );
 
+-- 11. 家长微信原声表：指导师接收的脱敏原声、分类抽取及行为匹配结果。
+CREATE TABLE IF NOT EXISTS parent_voice_feedback (
+    voice_id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    student_id             TEXT NOT NULL,
+    outcome_record_id      INTEGER,
+    recorded_at            TEXT NOT NULL,
+    source_channel         TEXT NOT NULL DEFAULT 'wechat' CHECK (source_channel IN ('wechat')),
+    advisor_id             TEXT NOT NULL,               -- 指导师匿名ID
+    voice_text             TEXT NOT NULL,               -- 已脱敏的家长原声文本
+    primary_topic          TEXT NOT NULL CHECK (primary_topic IN (
+                               'process_feels_light', 'no_perceived_effect', 'no_score_change',
+                               'child_likes_learning', 'active_learning', 'correction_mastery',
+                               'time_conflict', 'other'
+                             )),
+    topic_labels_json      TEXT CHECK (topic_labels_json IS NULL OR json_valid(topic_labels_json)),
+    sentiment              TEXT NOT NULL CHECK (sentiment IN ('positive', 'neutral', 'negative', 'mixed')),
+    classification_confidence REAL CHECK (classification_confidence IS NULL OR classification_confidence BETWEEN 0 AND 1),
+    behavior_window_start  TEXT,
+    behavior_window_end    TEXT,
+    behavior_evidence_json TEXT CHECK (behavior_evidence_json IS NULL OR json_valid(behavior_evidence_json)),
+    attribution_conclusion TEXT,
+    recommended_action     TEXT,
+    is_deidentified        INTEGER NOT NULL DEFAULT 1 CHECK (is_deidentified IN (0, 1)),
+    created_at             TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (student_id) REFERENCES students(student_id),
+    FOREIGN KEY (outcome_record_id) REFERENCES user_outcome_decisions(outcome_record_id)
+);
+
 -- ============================================================
 -- 五、索引
 -- ============================================================
 
 CREATE INDEX IF NOT EXISTS idx_students_segment
-    ON students (cohort_code, grade, package_code, acquisition_channel, purchased_at);
+    ON students (cohort_code, grade, subject, cohort_started_at, city, acquisition_channel, learning_year_type, purchased_at);
 CREATE INDEX IF NOT EXISTS idx_students_cohort_lifecycle
     ON students (cohort_code, refund_status, renewal_status, churn_status);
 CREATE INDEX IF NOT EXISTS idx_sessions_student_time
@@ -378,6 +414,10 @@ CREATE INDEX IF NOT EXISTS idx_outcomes_status_band
     ON user_outcome_decisions (outcome_type, outcome_status, completion_band, observed_at);
 CREATE INDEX IF NOT EXISTS idx_outcomes_reason
     ON user_outcome_decisions (primary_reason_code, outcome_status, observed_at);
+CREATE INDEX IF NOT EXISTS idx_parent_voice_outcome_topic
+    ON parent_voice_feedback (primary_topic, recorded_at, outcome_record_id);
+CREATE INDEX IF NOT EXISTS idx_parent_voice_student_time
+    ON parent_voice_feedback (student_id, recorded_at);
 
 -- ============================================================
 -- 六、异常信号字典种子数据（配置项，非演示数据）
@@ -576,8 +616,24 @@ CREATE VIEW IF NOT EXISTS v_cohort_lesson_tracking AS
 SELECT
     s.cohort_code,
     date(r.unlocked_at, 'start of month') AS tracking_month,
+    s.cohort_started_at,
+    CASE WHEN r.unlocked_at IS NULL THEN NULL ELSE
+        (CAST(strftime('%Y', r.unlocked_at) AS INTEGER) - CAST(strftime('%Y', COALESCE(s.cohort_started_at, s.purchased_at)) AS INTEGER)) * 12
+        + CAST(strftime('%m', r.unlocked_at) AS INTEGER) - CAST(strftime('%m', COALESCE(s.cohort_started_at, s.purchased_at)) AS INTEGER) + 1
+    END AS lifecycle_month_number,
+    CASE WHEN r.unlocked_at IS NULL THEN NULL ELSE 'M' || (
+        (CAST(strftime('%Y', r.unlocked_at) AS INTEGER) - CAST(strftime('%Y', COALESCE(s.cohort_started_at, s.purchased_at)) AS INTEGER)) * 12
+        + CAST(strftime('%m', r.unlocked_at) AS INTEGER) - CAST(strftime('%m', COALESCE(s.cohort_started_at, s.purchased_at)) AS INTEGER) + 1
+    ) END AS lifecycle_month_code,
     s.student_id,
     s.grade,
+    s.subject,
+    s.city,
+    s.acquisition_channel AS purchase_channel,
+    s.trial_lesson_count,
+    s.device_type AS study_device,
+    s.device_model,
+    s.learning_year_type,
     s.churn_status,
     s.refund_status,
     s.renewal_status,
@@ -631,6 +687,12 @@ SELECT
     s.cohort_code,
     s.student_id,
     s.grade,
+    s.subject,
+    s.city,
+    s.acquisition_channel AS purchase_channel,
+    s.trial_lesson_count,
+    s.device_type AS study_device,
+    s.learning_year_type,
     s.refund_status,
     s.renewal_status,
     o.observed_at,
@@ -891,6 +953,64 @@ JOIN learning_sessions s ON s.session_id = w.session_id
 LEFT JOIN correction_summary c
   ON c.session_id = w.session_id
  AND c.question_id = w.question_id;
+
+-- 家长微信原声 × 孩子行为：支持退费、未续费、续费三类原声归因。
+CREATE VIEW IF NOT EXISTS v_parent_voice_behavior_attribution AS
+WITH behavior AS (
+    SELECT
+        student_id,
+        COUNT(*) AS unlocked_lesson_count,
+        SUM(attended) AS attended_lesson_count,
+        SUM(is_completed) AS completed_lesson_count,
+        ROUND(AVG(first_attempt_accuracy), 4) AS avg_first_attempt_accuracy,
+        SUM(wrong_question_count) AS wrong_question_count,
+        SUM(correction_correct_count) AS correction_correct_count,
+        ROUND(1.0 * SUM(correction_correct_count) / NULLIF(SUM(wrong_question_count), 0), 4) AS correction_mastery_rate,
+        SUM(total_learning_seconds) AS total_learning_seconds,
+        SUM(jumped_out) AS jumped_out_lesson_count
+    FROM course_learning_results
+    GROUP BY student_id
+)
+SELECT
+    v.voice_id,
+    v.student_id,
+    s.grade,
+    s.subject,
+    s.city,
+    s.acquisition_channel AS purchase_channel,
+    s.trial_lesson_count,
+    s.device_type AS study_device,
+    s.device_model,
+    s.learning_year_type,
+    s.refund_status,
+    s.renewal_status,
+    o.outcome_type,
+    o.outcome_status,
+    o.completion_band,
+    v.recorded_at,
+    v.source_channel,
+    v.advisor_id,
+    v.voice_text,
+    v.primary_topic,
+    v.topic_labels_json,
+    v.sentiment,
+    v.classification_confidence,
+    b.unlocked_lesson_count,
+    b.attended_lesson_count,
+    b.completed_lesson_count,
+    ROUND(1.0 * b.completed_lesson_count / NULLIF(b.attended_lesson_count, 0), 4) AS attendance_completion_rate,
+    b.avg_first_attempt_accuracy,
+    b.correction_mastery_rate,
+    b.total_learning_seconds,
+    b.jumped_out_lesson_count,
+    v.behavior_evidence_json,
+    v.attribution_conclusion,
+    v.recommended_action,
+    v.is_deidentified
+FROM parent_voice_feedback v
+JOIN students s ON s.student_id = v.student_id
+LEFT JOIN user_outcome_decisions o ON o.outcome_record_id = v.outcome_record_id
+LEFT JOIN behavior b ON b.student_id = v.student_id;
 
 -- 用户追踪诊断链：一行对应一次学习会话，既能回放 SES 行为序列，
 -- 也能把「异常发生在哪里 → 推断何种情绪 → 优先优化什么」直接交给产品迭代。

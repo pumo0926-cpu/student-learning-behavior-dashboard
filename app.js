@@ -1,4 +1,4 @@
-const state = { view: "overview", period: "week", segment: "all", userGroup: "all", selectedUser: null, selectedLessonSession: null, outcome: "refund", expandedLesson: 4 };
+const state = { view: "overview", period: "m1", segment: "all", gradeSubject: "g7_math", courseStartDate: "2026-08-01", userGroup: "all", selectedUser: null, selectedLessonSession: null, outcome: "refund", expandedLesson: 4 };
 
 const icons = {
   open: '<svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 8h8M8 12h6"/></svg>',
@@ -16,7 +16,28 @@ const icons = {
   idle: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5v5M14.5 9.5v5"/></svg>'
 };
 
-const periodFactors = { week: 1, lastWeek: .94, month: 3.82 };
+const lifecyclePeriods = [
+  ["m1", "M1", "进入后第1个月", 1],
+  ["m2", "M2", "进入后第2个月", .92],
+  ["m3", "M3", "进入后第3个月", .84],
+  ["m4", "M4", "进入后第4个月", .76],
+  ["m5", "M5", "进入后第5个月", .69],
+  ["m6", "M6", "进入后第6个月", .62]
+];
+const periodFactors = Object.fromEntries(lifecyclePeriods.map(p => [p[0], p[3]]));
+const lifecyclePeriod = () => lifecyclePeriods.find(p => p[0] === state.period) || lifecyclePeriods[0];
+const lifecyclePeriodOptions = () => lifecyclePeriods.map(p => `<option value="${p[0]}" ${state.period === p[0] ? "selected" : ""}>${p[1]} · ${p[2]}</option>`).join("");
+const courseFilters = {
+  g7_math: ["初一", "数学"], g8_math: ["初二", "数学"], g9_math: ["初三", "数学"],
+  g8_physics: ["初二", "物理"], g9_physics: ["初三", "物理"], g9_chemistry: ["初三", "化学"],
+  all: ["全部年级", "全部学科"]
+};
+const courseFilter = () => courseFilters[state.gradeSubject] || courseFilters.g7_math;
+const courseFilterLabel = () => `${courseFilter()[0]} · ${courseFilter()[1]}`;
+const courseStartLabel = () => {
+  const [year, month, day] = state.courseStartDate.split("-").map(Number);
+  return `${year} 年 ${month} 月 ${day} 日`;
+};
 const segmentFactors = { all: 1, refunded: .078, notRefunded: .922, renewed: .456, notRefundedNotRenewed: .466, risk: .14 };
 const formatNumber = (value) => Math.round(value).toLocaleString("zh-CN");
 const scaled = (value) => formatNumber(value * periodFactors[state.period] * segmentFactors[state.segment]);
@@ -148,7 +169,7 @@ function overviewTemplate() {
         <header><span class="branch-index">B</span><div><small>71 人 · 退费用户的 38.2%</small><h3>完课较好的退费用户</h3><p>核心判断：学习发生了，但家长没有认同效果或方式。</p></div><strong>优先解决<br>“学了没用”</strong></header>
         <div class="reason-list">
           ${decisionReason("孩子觉得学了没有什么效果", "效果感知", "有完课，但前后测与校内表现未呈现", "补阶段前后测、能力变化与校内知识点映射")}
-          ${decisionReason("点点选选的方式没效果", "练习方式", "选择题占比高，缺少主观表达证据", "加入主观题、过程作答与老师可见的思路反馈")}
+          ${decisionReason("家长看到孩子学习过程感知比较轻，点点选选不是真学习", "过程感知轻", "完课率较高，但选择题占比高、缺少主观作答与思路过程证据", "加入主观题、过程作答与指导师可见的思路反馈")}
         </div>
       </article>
     </div>
@@ -160,6 +181,8 @@ function overviewTemplate() {
       <article class="renewal-card not-renewed-card"><div class="renewal-label"><i></i>未续费用户</div><h3>孩子成绩没有什么明显变化</h3><p>完成课程不自动等于家长感知有效，续费前需要把产品内学习连接到校内成绩与能力变化。</p><div class="evidence-chips"><span>成绩无变化</span><span>能力不可见</span><span>价值感不足</span></div><footer><b>应验证</b><span>前后测 + 校内题型 + 成果报告</span></footer></article>
     </div>
 
+    ${parentVoiceAttributionPanel()}
+
     <article class="panel panel-full priority-panel">
       <div class="panel-header"><div><h3>本期决策优先级</h3><p>依据结果人群、反馈原因与行为证据安排产品动作</p></div><span class="panel-tag">从结果到行动</span></div>
       <div class="priority-list">
@@ -170,7 +193,7 @@ function overviewTemplate() {
       </div>
     </article>
 
-    <div class="decision-section-head behavior-entry"><div><span>03 / 行为证据下钻</span><h3>结果告诉我们先看谁，行为数据负责验证为什么</h3><p>保留现有三套连续行为分析能力，供每个结果人群继续下钻。</p></div></div>
+    <div class="decision-section-head behavior-entry"><div><span>04 / 行为证据下钻</span><h3>结果告诉我们先看谁，行为数据负责验证为什么</h3><p>保留现有三套连续行为分析能力，供每个结果人群继续下钻。</p></div></div>
     <div class="scheme-grid compact-schemes">${schemes.map(s => `<article class="scheme-card" data-open="${s.id}" style="--scheme-color:${s.color};--scheme-pale:${s.pale}"><div class="scheme-top"><span class="scheme-number">${s.no}</span><span class="scheme-arrow">${icons.arrow}</span></div><h3>${s.title}</h3><p>${s.desc}</p><footer><i></i>${s.footer}</footer></article>`).join("")}</div>
   </section>`;
 }
@@ -181,6 +204,38 @@ function decisionReason(title, tag, evidence, action) {
 
 function decisionPriority(level, group, reason, action, metric, color) {
   return `<div class="priority-row" style="--priority-color:${color}"><span class="priority-level">${level}</span><div><small>目标人群</small><b>${group}</b></div><div><small>核心原因</small><b>${reason}</b></div><div class="priority-action"><small>产品动作</small><b>${action}</b></div><div><small>验证指标</small><b>${metric}</b></div></div>`;
+}
+
+const parentVoiceCases = [
+  {
+    outcome: "退费归因", tone: "refund", sample: "完课较好 · n=71", advisor: "指导师 WX-A17",
+    quote: "看孩子课程也都学完了，但整个过程感觉比较轻，就是点点选选，我觉得这不算真正在学习。",
+    topics: ["学习过程感知轻", "点选方式不可信", "效果证据不足"], confidence: "94%",
+    behavior: ["完课率 82.4%", "选择题占比 91%", "过程作答 0 次", "订正掌握 56%"],
+    conclusion: "行为与原声一致：孩子完成了流程，但家长看不到深度思考证据。",
+    action: "增加主观题、草稿/步骤留痕及指导师过程反馈"
+  },
+  {
+    outcome: "未续费归因", tone: "not-renewed", sample: "未退费未续费 · n=1,112", advisor: "指导师 WX-B06",
+    quote: "孩子一直有在学，指导师也提醒得挺勤，但这学期成绩没看出什么明显变化，所以先不续了。",
+    topics: ["成绩无变化", "效果感知不足", "指导服务认可"], confidence: "91%",
+    behavior: ["参课率 81.6%", "完课率 73.5%", "正确率仅 +1.8pp", "阶段报告未查看"],
+    conclusion: "学习发生但效果没有被看见，问题集中在能力变化证明而非使用意愿。",
+    action: "续费前4周提供前后测、校内题型映射与能力变化报告"
+  },
+  {
+    outcome: "续费归因", tone: "renewed", sample: "已续费 · n=1,086", advisor: "指导师 WX-C12",
+    quote: "现在不用催他也会自己打开学，错题还会回去改，最近考试碰到这类题也能做出来了。",
+    topics: ["主动学习", "错题掌握", "效果可见"], confidence: "96%",
+    behavior: ["主动启动 3.6次/周", "完课率 82.4%", "订正掌握 78%", "同类题 +12.6pp"],
+    conclusion: "原声与行为形成正向闭环：愿意学、真正改会、家长能观察到迁移效果。",
+    action: "固化主动启动—订正掌握—阶段成果的正向路径"
+  }
+];
+
+function parentVoiceAttributionPanel() {
+  return `<div class="decision-section-head voice-section-head"><div><span>03 / 家长微信原声归因</span><h3>把指导师收到的用户原声与孩子真实学习行为匹配</h3><p>先抽取原声主题，再用学习事实验证，避免只凭一句反馈做产品判断。</p></div><em>原声为脱敏演示文本</em></div>
+    <article class="panel panel-full parent-voice-panel"><div class="voice-process"><span>微信原声</span><i>→</i><span>主题分类抽取</span><i>→</i><span>孩子行为匹配</span><i>→</i><span>归因与动作</span></div><div class="parent-voice-grid">${parentVoiceCases.map(v => `<section class="parent-voice-card is-${v.tone}"><header><div><span>${v.outcome}</span><b>${v.sample}</b></div><em>分类置信度 ${v.confidence}</em></header><blockquote>${v.quote}</blockquote><div class="voice-source"><i>微</i><span>微信 · ${v.advisor} · 已脱敏</span></div><div class="voice-topics"><small>分类抽取</small>${v.topics.map(t => `<span>${t}</span>`).join("")}</div><div class="voice-behavior"><small>匹配到孩子行为</small><div>${v.behavior.map(b => `<span>${b}</span>`).join("")}</div></div><footer><small>匹配结论</small><b>${v.conclusion}</b><p><em>产品动作</em>${v.action}</p></footer></section>`).join("")}</div></article>`;
 }
 
 const breakStages = [
@@ -260,13 +315,13 @@ function stageSignalCoverage() {
 
 function chainTemplate() {
   return `<section class="fade-in">${detailHeader("方案一 · 连续行为链路还原", "以「会话」而非「课时」为观测单位，把每一次打开到离开还原成带时间戳的事件序列，精确定位断点位置。", "核心目标：让每一次脱离可定位")}
-    <div class="kpi-grid">${kpiCard("本周会话数", scaled(5180), "+8.4%", "人均 2.2 次 / 周", "次")}${kpiCard("断点会话率", pct(28.4, true), "-2.1%", `${scaled(1472)} 次未完成即离开`, "!", true)}${kpiCard("断点后 24h 回归", pct(51.2), "+4.6%", "72 小时内回归 61.8%", "↻")}${kpiCard("回归后从头重来", pct(34.2, true), "+1.8%", "断点续学定位缺失", "↺", true)}</div>
+    <div class="kpi-grid">${kpiCard(`${lifecyclePeriod()[1]} 会话数`, scaled(5180), "+8.4%", "当前生命周期月内会话", "次")}${kpiCard("断点会话率", pct(28.4, true), "-2.1%", `${scaled(1472)} 次未完成即离开`, "!", true)}${kpiCard("断点后 24h 回归", pct(51.2), "+4.6%", "72 小时内回归 61.8%", "↻")}${kpiCard("回归后从头重来", pct(34.2, true), "+1.8%", "断点续学定位缺失", "↺", true)}</div>
     ${stageBehaviorJudgement()}
     <div class="dashboard-grid">
       <article class="panel panel-wide"><div class="panel-header"><div><h3>单次会话回放 · SES-8842</h3><p>初二 L*（已脱敏）· 8 月 6 日 20:14–20:41 · 27 分钟 · 断点脱离</p></div><span class="panel-tag alert-tag">厌烦指数 78 · 受挫型</span></div>${sessionTimeline()}</article>
-      <article class="panel"><div class="panel-header"><div><h3>断点位置分布</h3><p>本周 ${scaled(1472)} 次断点会话</p></div></div>${breakDistribution()}</article>
+      <article class="panel"><div class="panel-header"><div><h3>断点位置分布</h3><p>${lifecyclePeriod()[1]} · ${scaled(1472)} 次断点会话</p></div></div>${breakDistribution()}</article>
       <article class="panel"><div class="panel-header"><div><h3>断开之后去哪了</h3><p>断点会话的后续追踪</p></div><span class="panel-tag">连续性</span></div>${continuityMarkup()}</article>
-      <article class="panel panel-wide"><div class="panel-header"><div><h3>断点热区 TOP 5</h3><p>精确到动画时间段与题号，可直接派给内容团队</p></div><div class="panel-actions"><button class="mini-tab active">本周</button><button class="mini-tab">近 4 周</button></div></div>${rankList([
+      <article class="panel panel-wide"><div class="panel-header"><div><h3>断点热区 TOP 5</h3><p>精确到动画时间段与题号，可直接派给内容团队</p></div><div class="panel-actions"><button class="mini-tab active">${lifecyclePeriod()[1]}</button><button class="mini-tab">M1–${lifecyclePeriod()[1]} 累计</button></div></div>${rankList([
         { n: "L05 · 相交线与平行线 — 动画 03:00–04:30", v: 214, s: scaled(214) + " 次" },
         { n: "L05 · 相交线与平行线 — 练习第 4 题", v: 188, s: scaled(188) + " 次" },
         { n: "L07 · 平面直角坐标系 — 练习第 3 题", v: 156, s: scaled(156) + " 次" },
@@ -279,7 +334,7 @@ function chainTemplate() {
 // 一次真实会话的事件序列。flag 非空即为命中的异常信号。
 const sessionSteps = [
   ["00:00", "打开产品", "session_start · 来源：桌面图标", "", ""],
-  ["00:12", "进入课节「L05 · 相交线与平行线」", "unlock · 本周第 1 节", "", ""],
+  ["00:12", "进入课节「L05 · 相交线与平行线」", "unlock · 生命周期月内第 1 节", "", ""],
   ["00:20", "动画开始播放", "play · 时长 09:40", "", ""],
   ["03:42", "暂停", "pause · 停在「同位角与内错角怎么区分」", "", ""],
   ["03:50", "回看 02:50 → 03:42", "replay · 第 1 次", "", ""],
@@ -382,11 +437,11 @@ function comboChains() {
 
 function emotionTemplate() {
   return `<section class="fade-in">${detailHeader("方案三 · 厌烦情绪锚定与干预", "把断点前信号按情绪归属加权成 0–100 的厌烦指数，区分受挫、无聊、涣散三型，并配套差异化干预与效果验证。", "核心目标：把情绪推测变成可验证的动作")}
-    <div class="kpi-grid">${kpiCard("平均厌烦指数", "34.6", "-2.4", "0–100，越低越投入", "指")}${kpiCard("受挫型占比", pct(18.4, true), "-1.2%", "内容偏难，可直接迭代", "难", true)}${kpiCard("无聊型占比", pct(12.7, true), "+0.6%", "内容偏浅或节奏拖沓", "浅", true)}${kpiCard("高危学生", scaled(186), "-12 人", "指数 ≥ 60，需本周干预", "!", true)}</div>
+    <div class="kpi-grid">${kpiCard("平均厌烦指数", "34.6", "-2.4", "0–100，越低越投入", "指")}${kpiCard("受挫型占比", pct(18.4, true), "-1.2%", "内容偏难，可直接迭代", "难", true)}${kpiCard("无聊型占比", pct(12.7, true), "+0.6%", "内容偏浅或节奏拖沓", "浅", true)}${kpiCard("高危学生", scaled(186), "-12 人", `指数 ≥ 60，需在 ${lifecyclePeriod()[1]} 干预`, "!", true)}</div>
     <div class="dashboard-grid">
       <article class="panel panel-wide"><div class="panel-header"><div><h3>厌烦指数怎么算</h3><p>信号权重来自 anomaly_signal_dict，可随验证结果调参</p></div><span class="panel-tag">口径定义</span></div>${formulaBlock()}</article>
-      <article class="panel"><div class="panel-header"><div><h3>情绪分型分布</h3><p>本周 ${scaled(2384)} 名学习学生</p></div></div>${emotionDonut()}</article>
-      <article class="panel"><div class="panel-header"><div><h3>需本周干预</h3><p>指数最高的学生 · 已脱敏</p></div><span class="panel-tag alert-tag">查看全部</span></div>${alertList()}</article>
+      <article class="panel"><div class="panel-header"><div><h3>情绪分型分布</h3><p>${lifecyclePeriod()[1]} · ${scaled(2384)} 名学习学生</p></div></div>${emotionDonut()}</article>
+      <article class="panel"><div class="panel-header"><div><h3>${lifecyclePeriod()[1]} 需干预</h3><p>指数最高的学生 · 已脱敏</p></div><span class="panel-tag alert-tag">查看全部</span></div>${alertList()}</article>
       <article class="panel panel-full"><div class="panel-header"><div><h3>三种厌烦的行为特征不一样，干预也必须不一样</h3><p>把「孩子是不是烦了」拆成可区分、可动作的三类</p></div></div>${emotionCompare()}</article>
       <article class="panel panel-full"><div class="panel-header"><div><h3>干预动作矩阵</h3><p>每条干预都绑定触发条件与验证指标</p></div><span class="panel-tag">可直接排期</span></div>${interventionTable()}</article>
       <article class="panel panel-full"><div class="panel-header"><div><h3>这个指数可信吗 · 三重验证</h3><p>不做验证的情绪推测等于占卜</p></div><span class="panel-tag">已验证</span></div>${validationBlock()}</article>
@@ -568,14 +623,14 @@ function lessonAttributionRows() {
 }
 
 const trackingUsers = [
-  {id:"STU-1024",name:"林*然",churn:false,renew:true,states:["done","done","done","done","done","done","done","done","done"]},
-  {id:"STU-1087",name:"赵*宇",churn:false,renew:true,states:["done","done","done","done","done","done","learning","missed","learning"]},
-  {id:"STU-1132",name:"陈*欣",churn:false,renew:false,states:["done","done","done","exit","done","learning","missed","missed","missed"]},
-  {id:"STU-1196",name:"王*宁",churn:true,renew:false,states:["done","done","exit","missed","missed","missed","missed","missed","missed"]},
-  {id:"STU-1251",name:"周*文",churn:false,renew:false,states:["done","done","done","done","exit","done","learning","missed","missed"]},
-  {id:"STU-1308",name:"刘*浩",churn:true,renew:false,states:["done","exit","missed","missed","missed","missed","missed","missed","missed"]},
-  {id:"STU-1364",name:"许*彤",churn:false,renew:true,states:["done","done","done","done","done","done","done","learning","done"]},
-  {id:"STU-1419",name:"郑*一",churn:false,renew:false,states:["done","done","learning","done","done","exit","missed","missed","missed"]}
+  {id:"STU-1024",name:"林*然",city:"北京",channel:"抖音直播",trials:2,device:"iPad",studyYear:"首学年",churn:false,renew:true,states:["done","done","done","done","done","done","done","done","done"]},
+  {id:"STU-1087",name:"赵*宇",city:"上海",channel:"公众号",trials:1,device:"安卓平板",studyYear:"非首学年",churn:false,renew:true,states:["done","done","done","done","done","done","learning","missed","learning"]},
+  {id:"STU-1132",name:"陈*欣",city:"杭州",channel:"社群转介绍",trials:3,device:"iPad",studyYear:"首学年",churn:false,renew:false,states:["done","done","done","exit","done","learning","missed","missed","missed"]},
+  {id:"STU-1196",name:"王*宁",city:"成都",channel:"信息流广告",trials:1,device:"安卓手机",studyYear:"首学年",churn:true,renew:false,states:["done","done","exit","missed","missed","missed","missed","missed","missed"]},
+  {id:"STU-1251",name:"周*文",city:"南京",channel:"线下活动",trials:2,device:"Windows",studyYear:"非首学年",churn:false,renew:false,states:["done","done","done","done","exit","done","learning","missed","missed"]},
+  {id:"STU-1308",name:"刘*浩",city:"武汉",channel:"短视频",trials:1,device:"安卓平板",studyYear:"首学年",churn:true,renew:false,states:["done","exit","missed","missed","missed","missed","missed","missed","missed"]},
+  {id:"STU-1364",name:"许*彤",city:"深圳",channel:"老客转介绍",trials:2,device:"iPad",studyYear:"非首学年",churn:false,renew:true,states:["done","done","done","done","done","done","done","learning","done"]},
+  {id:"STU-1419",name:"郑*一",city:"西安",channel:"小红书",trials:3,device:"Mac",studyYear:"首学年",churn:false,renew:false,states:["done","done","learning","done","done","exit","missed","missed","missed"]}
 ];
 
 const userGroups = [
@@ -588,13 +643,18 @@ const userGroups = [
 ];
 const statusMeta = { done:["完课","done"], learning:["参课中","learning"], exit:["跳出","exit"], missed:["未参课","missed"] };
 
+function userProfileMarkup(user, compact = false) {
+  const fields = [["城市", user.city], ["购买渠道", user.channel], ["体验课次数", `${user.trials} 次`], ["上课设备", user.device], ["首/非首学年", user.studyYear]];
+  return `<div class="user-profile-strip ${compact ? "compact" : ""}">${fields.map(f => `<span><small>${f[0]}</small><b>${f[1]}</b></span>`).join("")}</div>`;
+}
+
 function drawerShell() {
   return `<div class="drawer-layer" id="detailDrawer"><button class="drawer-backdrop" data-close-drawer aria-label="关闭详情"></button><aside class="detail-drawer" aria-label="下钻详情"><button class="drawer-close" data-close-drawer aria-label="关闭">×</button><div id="drawerContent"></div></aside></div>`;
 }
 
 function lessonTemplate() {
-  return `<section class="fade-in">${detailHeader("课时维度归因", "沿解锁顺序比较每节课的参与、完成与答题体验，识别最值得优先迭代的内容。", "目标：找到指标变化的产品原因")}
-    <div class="analysis-toolbar"><div><span>当前班期</span><b>2026 暑期 · 初一数学 A 班</b></div><label>对比口径<select><option>同班期全部用户</option><option>未流失用户</option><option>续费用户</option></select></label><span class="data-note"><i></i> 演示数据</span></div>
+  return `<section class="fade-in">${detailHeader("课时维度归因—扫除硬伤", "沿解锁顺序比较每节课的参与、完成与答题体验，识别最值得优先迭代的内容。", "目标：找到指标变化的产品原因")}
+    <div class="analysis-toolbar"><div><span>当前班期</span><b>${courseFilterLabel()} · ${courseStartLabel()}开课 · A 班</b></div><label>对比口径<select><option>同班期全部用户</option><option>未流失用户</option><option>续费用户</option></select></label><span class="data-note"><i></i> 演示数据</span></div>
     <div class="kpi-grid">
       ${kpiCard("本月解锁课时","9 / 9","已全部解锁","四周 8 节 + 月度挑战 1 节","课")}
       ${kpiCard("平均参课率","82.6%","-2.1%","随课时推进略有下降","人",true)}
@@ -889,7 +949,7 @@ function userMonitoringFlow(user = null) {
     ["03", "用户情绪识别", moodText || "受挫 / 无聊 / 涣散三型", "把连续行为转成可验证的情绪判断", "emotion"],
     ["04", "断点优化点", fixText || "定位到动画秒段与具体题号", "将情绪原因落到可改的产品位置", "lesson"]
   ];
-  return `<section class="user-monitoring-flow"><div class="monitor-flow-head"><div><span>用户追踪下的监测方案</span><h3>连续表现 → 异常信号 → 情绪识别 → 断点优化</h3><p>${user ? `当前聚焦 ${user.name}，所有结论均从其月度连续行为推导。` : "先选择用户或打开示例会话，再沿四步诊断链定位产品优化点。"}</p></div>${user ? "" : '<button data-example-session>打开会话样例 · SES-8842</button>'}</div><div class="monitor-flow-grid">${steps.map((s,i)=>`<button data-open="${s[4]}" class="monitor-flow-card"><i>${s[0]}</i><span><b>${s[1]}</b><strong>${s[2]}</strong><small>${s[3]}</small></span>${i<steps.length-1?'<em>→</em>':""}</button>`).join("")}</div></section>`;
+  return `<section class="user-monitoring-flow"><div class="monitor-flow-head"><div><span>用户行为归因下的监测方案</span><h3>连续表现 → 异常信号 → 情绪识别 → 断点优化</h3><p>${user ? `当前聚焦 ${user.name}，所有结论均从其月度连续行为推导。` : "先选择用户或打开示例会话，再沿四步诊断链定位产品优化点。"}</p></div>${user ? "" : '<button data-example-session>打开会话样例 · SES-8842</button>'}</div><div class="monitor-flow-grid">${steps.map((s,i)=>`<button data-open="${s[4]}" class="monitor-flow-card"><i>${s[0]}</i><span><b>${s[1]}</b><strong>${s[2]}</strong><small>${s[3]}</small></span>${i<steps.length-1?'<em>→</em>':""}</button>`).join("")}</div></section>`;
 }
 
 // 会话回放全部由 record.questions 的真实逐题数据推导，不写死事件。
@@ -1070,7 +1130,8 @@ function userLessonDetailTable(user) {
   const completed = records.filter(r => r.status === "完课").length;
   const anomalies = records.reduce((sum, r) => sum + (r.questions || []).filter(q => q.anomaly).length, 0);
   return `<article class="panel user-detail-panel">
-    <div class="user-detail-heading"><button data-back-users><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>返回用户矩阵</button><div class="selected-user-avatar">${user.name.slice(0,1)}</div><div><span>当前学生</span><h3>${user.name} <small>${user.id}</small></h3><p>${user.churn ? "已退费" : "未退费"} · ${user.renew ? "已续费" : "未续费"} · 2026 年 8 月</p></div><div class="user-detail-summary"><span><b>${attended}/9</b>参课</span><span><b>${completed}/9</b>完课</span><span><b>${anomalies}</b>异常题</span></div></div>
+    <div class="user-detail-heading"><button data-back-users><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>返回用户矩阵</button><div class="selected-user-avatar">${user.name.slice(0,1)}</div><div><span>当前学生</span><h3>${user.name} <small>${user.id}</small></h3><p>${user.churn ? "已退费" : "未退费"} · ${user.renew ? "已续费" : "未续费"} · ${lifecyclePeriod()[1]} ${lifecyclePeriod()[2]}</p></div><div class="user-detail-summary"><span><b>${attended}/9</b>参课</span><span><b>${completed}/9</b>完课</span><span><b>${anomalies}</b>异常题</span></div></div>
+    ${userProfileMarkup(user)}
     <div class="detail-rule"><i></i><span>未参课仅保留状态，其余字段为空；参未完和完课均展示实际学习行为。</span></div>
     <div class="tracking-wrap"><table class="lesson-detail-table"><thead><tr><th>周次 / 课时</th><th>状态</th><th>学习时间</th><th>学习时长</th><th>跳出节点</th><th>正确率</th>${[1,2,3,4,5,6].map(i=>`<th>第 ${i} 题</th>`).join("")}</tr></thead><tbody>${records.map((r,i)=> {
       const week = i < 8 ? `第 ${Math.floor(i/2)+1} 周` : "月度加课";
@@ -1085,10 +1146,10 @@ function usersTemplate() {
   const visibleUsers = trackingUsers.filter(userMatchesGroup);
   const selectedUser = trackingUsers.find(user => user.id === state.selectedUser);
   const matrix = `<article class="panel tracking-panel"><div class="panel-header"><div><h3>月度用户课时状态矩阵</h3><p>一个月 9 节：四周每周解锁 2 节，另加 1 节月度综合课；点击用户名查看完整课时明细</p></div><div class="status-legend"><span><i class="done"></i>完课</span><span><i class="learning"></i>参未完</span><span><i class="exit"></i>跳出</span><span><i class="missed"></i>未参</span></div></div>
-      <div class="tracking-wrap"><table class="tracking-table month-tracking-table"><thead><tr class="week-band"><th rowspan="2">用户</th><th rowspan="2">结果状态</th><th colspan="2">第 1 周</th><th colspan="2">第 2 周</th><th colspan="2">第 3 周</th><th colspan="2">第 4 周</th><th>月度加课</th></tr><tr>${lessonRows.map((_,i)=>`<th>L${String(i+1).padStart(2,"0")}</th>`).join("")}</tr></thead><tbody>${visibleUsers.map(u=>`<tr><td><button class="student-name-button" data-select-user="${u.id}"><b>${u.name}</b><small>${u.id}</small><em>查看课时明细 →</em></button></td><td><span class="lifecycle ${u.churn?'churn':'active'}">${u.churn?'已退费':'未退费'}</span><span class="lifecycle ${u.renew?'renew':'no-renew'}">${u.renew?'已续费':'未续费'}</span>${isPotentialRisk(u)?'<span class="lifecycle risk">潜在风险</span>':''}</td>${u.states.map((s,i)=>`<td><button class="lesson-state ${statusMeta[s][1]}" data-user-detail="${u.id}" data-lesson="${i}" title="${u.name} · ${lessonRows[i].name} · ${statusMeta[s][0]}"><i></i><span>${s==="learning"||s==="exit"?"参未完":s==="missed"?"未参":"完课"}</span></button></td>`).join("")}</tr>`).join("")}</tbody></table></div>
+      <div class="tracking-wrap"><table class="tracking-table month-tracking-table"><thead><tr class="week-band"><th rowspan="2">用户</th><th rowspan="2">结果状态</th><th colspan="2">第 1 周</th><th colspan="2">第 2 周</th><th colspan="2">第 3 周</th><th colspan="2">第 4 周</th><th>月度加课</th></tr><tr>${lessonRows.map((_,i)=>`<th>L${String(i+1).padStart(2,"0")}</th>`).join("")}</tr></thead><tbody>${visibleUsers.map(u=>`<tr><td><button class="student-name-button" data-select-user="${u.id}"><b>${u.name}</b><small>${u.id} · ${u.city} · ${u.channel}</small><em>查看课时明细 →</em></button></td><td><span class="lifecycle ${u.churn?'churn':'active'}">${u.churn?'已退费':'未退费'}</span><span class="lifecycle ${u.renew?'renew':'no-renew'}">${u.renew?'已续费':'未续费'}</span>${isPotentialRisk(u)?'<span class="lifecycle risk">潜在风险</span>':''}</td>${u.states.map((s,i)=>`<td><button class="lesson-state ${statusMeta[s][1]}" data-user-detail="${u.id}" data-lesson="${i}" title="${u.name} · ${lessonRows[i].name} · ${statusMeta[s][0]}"><i></i><span>${s==="learning"||s==="exit"?"参未完":s==="missed"?"未参":"完课"}</span></button></td>`).join("")}</tr>`).join("")}</tbody></table></div>
     </article>`;
-  return `<section class="fade-in">${detailHeader("同批用户月度追踪", "以自然月为单元，连续追踪同批用户四周 8 节常规课和 1 节月度加课，并把异常信号、情绪识别与断点优化串成一条诊断链。", "点击用户/课时：展开会话回放")}
-    <div class="analysis-toolbar"><div><span>当前月度班期</span><b>2026 年 8 月 · 初一数学 A 班</b></div><label>月份<select><option>2026 年 8 月</option><option>2026 年 7 月</option><option>2026 年 6 月</option></select></label><span class="cohort-range">同批购买 2,384 人 · 本月 9 节</span></div>
+  return `<section class="fade-in">${detailHeader("用户行为归因", `按用户进入产品后的月份追踪：${lifecyclePeriod()[1]} 为${lifecyclePeriod()[2]}。每个月连续观察四周 8 节常规课和 1 节月度加课。`, "点击用户/课时：展开会话回放")}
+    <div class="analysis-toolbar"><div><span>当前生命周期月份</span><b>${lifecyclePeriod()[1]} · ${lifecyclePeriod()[2]} · ${courseFilterLabel()} · ${courseStartLabel()}开课</b></div><label>周期<select data-lifecycle-period>${lifecyclePeriodOptions()}</select></label><span class="cohort-range">同批进入 2,384 人 · ${lifecyclePeriod()[1]} 共 9 节</span></div>
     <div class="month-plan"><span><b>第 1 周</b>L01–L02</span><i></i><span><b>第 2 周</b>L03–L04</span><i></i><span><b>第 3 周</b>L05–L06</span><i></i><span><b>第 4 周</b>L07–L08</span><i></i><span class="extra"><b>月度加课</b>L09 综合挑战</span></div>
     <div class="segment-tabs">${userGroups.map(g=>`<button class="${state.userGroup===g[0]?'active':''}" data-user-group="${g[0]}"><span>${g[1]}</span><b>${g[2]}</b></button>`).join("")}</div>
     <div class="segment-definition"><b>潜在流失风险口径</b><span>未退费且未续费，并在最近 4 节中至少 2 节出现未参、参未完或跳出。</span></div>
@@ -1119,7 +1180,7 @@ function openLessonDetail(index) {
   const r = lessonRows[index];
   const questions = lessonQuestionMetrics(index);
   const riskiest = [...questions].sort((a, b) => (Number(b.jump) + (100 - Number(b.accuracy)) / 5) - (Number(a.jump) + (100 - Number(a.accuracy)) / 5))[0];
-  openDrawer(`<div class="drawer-kicker">课时归因详情</div><h2>${r.name}</h2><p class="drawer-sub">2026 暑期 · 初一数学 A 班 · 已解锁 2,384 人</p>
+  openDrawer(`<div class="drawer-kicker">课时维度归因—扫除硬伤详情</div><h2>${r.name}</h2><p class="drawer-sub">${courseFilterLabel()} · ${courseStartLabel()}开课 · A 班 · 已解锁 2,384 人</p>
     <div class="drawer-metrics"><div><span>参课率</span><b>${r.attend}%</b></div><div><span>参完率</span><b>${r.finish}%</b></div><div><span>课时跳出率</span><b class="danger">${r.jump}%</b></div><div><span>课时正确率</span><b>${r.accuracy}%</b></div></div>
     <div class="drawer-question-summary"><span>需优先检查</span><b>${riskiest.no} · ${riskiest.type}</b><p>答题 ${riskiest.time}s · 正确率 ${riskiest.accuracy}% · 跳出率 ${riskiest.jump}%</p></div>
     <h3 class="drawer-title">逐题答题表现</h3>${questionMetricTable(index, true)}
@@ -1132,7 +1193,7 @@ function openTrackingDetail(studentId, lessonIndex) {
   const duration = s==="done" ? 24 + lessonIndex : s==="learning" ? 13 : s==="exit" ? 8 : 0;
   const accuracy = s==="missed" ? "—" : `${Math.max(48,88-lessonIndex*3-(u.churn?14:0))}%`;
   const questions = [base,base+17,base+42,base+8,base+29];
-  openDrawer(`<div class="drawer-kicker">用户 × 课时下钻</div><div class="student-drawer-head"><span>${u.name.slice(0,1)}</span><div><h2>${u.name}</h2><p>${u.id} · ${u.churn?'退费用户':'未退费用户'} · ${u.renew?'已续费':'未续费'}</p></div></div>
+  openDrawer(`<div class="drawer-kicker">用户 × 课时下钻</div><div class="student-drawer-head"><span>${u.name.slice(0,1)}</span><div><h2>${u.name}</h2><p>${u.id} · ${u.churn?'退费用户':'未退费用户'} · ${u.renew?'已续费':'未续费'}</p></div></div>${userProfileMarkup(u, true)}
     <div class="lesson-focus"><small>当前课时</small><b>${lessonRows[lessonIndex].name}</b><span class="cause-pill ${s==='done'?'good':s==='exit'?'risk':'watch'}">${statusMeta[s][0]}</span></div>
     <div class="drawer-metrics six"><div><span>完成时间</span><b>${s==='done'?'07-18 20:46':'—'}</b></div><div><span>完成时长</span><b>${duration?duration+' min':'—'}</b></div><div><span>跳出</span><b class="${s==='exit'?'danger':''}">${s==='exit'?'是':'否'}</b></div><div><span>参课</span><b>${s==='missed'?'否':'是'}</b></div><div><span>完课</span><b>${s==='done'?'是':'否'}</b></div><div><span>正确率</span><b>${accuracy}</b></div></div>
     <h3 class="drawer-title">每道题答题时长</h3>${s==='missed'?'<div class="empty-state">该用户本节课未参课，暂无答题记录</div>':`<div class="question-bars">${questions.map((v,i)=>`<div><span>第 ${i+1} 题</span><i><em class="${v>90?'slow':''}" style="width:${Math.min(v/1.2,100)}%"></em></i><b>${v}s</b></div>`).join("")}</div>`}
@@ -1159,7 +1220,7 @@ const eventRows = [
 
 function modelTemplate() {
   const models = [
-    ["01", "用户基础表", "students", "同班期画像、购买与结果状态分群", ["student_id · 学生ID", "cohort_code · 班期", "refund_status · 退费状态", "renewal_status · 续费状态", "package_code · 套餐", "device_type · 设备"], "基础层", false],
+    ["01", "用户基础表", "students", "年级学科、开课日期、渠道与学习阶段画像", ["student_id · 学生ID", "grade / subject · 年级学科", "city · 城市", "acquisition_channel · 购买渠道", "trial_lesson_count · 体验课次数", "device_type / model · 上课设备", "learning_year_type · 首/非首学年", "cohort_started_at · 开课日期"], "基础层", false],
     ["02", "学习会话表", "learning_sessions", "一次打开到离开为一行 · 断点定位主表", ["session_id · 会话ID", "is_break · 是否断点", "break_stage · 断点环节", "break_position_label · 断点位置", "resume_mode · 续接方式", "boredom_score · 厌烦指数"], "连续行为层", true],
     ["03", "学习事件明细表", "learning_events", "原始行为事实 · 按 event_sequence 还原序列", ["event_name · 19 类事件", "stage · 所属环节", "prev_event_gap_seconds · 距上一步", "question_index · 题序", "answer_attempt · 尝试次数", "properties_json · 扩展"], "连续行为层", true],
     ["04", "异常信号字典", "anomaly_signal_dict", "20 类信号的判定规则与权重 · 可配置", ["signal_code · 信号编码", "detect_rule · 判定规则", "threshold_json · 阈值", "emotion_type · 情绪归属", "weight · 权重", "reference_lift · 参考提升度"], "信号层", true],
@@ -1168,10 +1229,11 @@ function modelTemplate() {
     ["07", "课程学习结果表", "course_learning_results", "每位学生 × 每节课", ["完成时间 / 完成时长", "参课 / 完课 / 跳出", "训练题数 / 首答正确", "错题数 / 订正正确", "lesson_sequence · 课序", "is_completed"], "结果层", false],
     ["08", "用户周度汇总表", "user_weekly_summaries", "每位学生 × 每自然周", ["解锁 / 学习 / 完成数", "session / break 计数", "resume_within_24h_count", "答题数 / 正确率", "health_score · 健康分", "risk_level · 风险等级"], "结果层", false],
     ["09", "内容质量表", "content_quality", "知识点 × 内容版本 × 日", ["动画ID / 版本", "题集ID / 版本", "break_session_rate · 断点率", "top_break_position · 断点热区", "难度 / 退出指标", "掌握指标"], "评估层", false],
-    ["10", "用户结果决策表", "user_outcome_decisions", "一次退费/续费结果一行，冻结当时完课表现与反馈原因", ["outcome_type · 决策类型", "outcome_status · 结果状态", "completion_band · 完课分层", "completion_rate · 当时完课率", "primary_reason_code · 原因", "feedback_source · 反馈来源"], "结果决策层", true]
+    ["10", "用户结果决策表", "user_outcome_decisions", "一次退费/续费结果一行，冻结当时完课表现与反馈原因", ["outcome_type · 决策类型", "outcome_status · 结果状态", "completion_band · 完课分层", "completion_rate · 当时完课率", "primary_reason_code · 原因", "feedback_source · 反馈来源"], "结果决策层", true],
+    ["11", "家长微信原声表", "parent_voice_feedback", "指导师收到的脱敏原声、分类主题及行为匹配结论", ["voice_text · 脱敏原声", "advisor_id · 指导师匿名ID", "primary_topic · 主主题", "topic_labels_json · 分类标签", "classification_confidence · 置信度", "behavior_evidence_json · 行为证据", "attribution_conclusion · 归因", "recommended_action · 动作"], "原声归因层", true]
   ];
-  return `<section class="fade-in">${detailHeader("底层数据模型", "十张表把用户结果、反馈原因、连续行为、异常信号、情绪状态与内容质量串起来。", "10 张表 · 19 类事件 · 15 个视图")}
-    <div class="model-flow"><span>结果决策</span><i>定位人群</i><span>学生画像</span><i>1 : N</i><span class="is-new">学习会话</span><i>1 : N</i><span class="is-new">行为事件</span><i>规则判定</i><span class="is-new">异常信号</span><i>加权</i><span class="is-new">情绪状态</span><i>验证</i><span>课节结果</span></div>
+  return `<section class="fade-in">${detailHeader("底层数据模型", "十一张表把用户结果、家长原声、用户画像、连续行为、情绪状态与内容质量串起来。", "11 张表 · 19 类事件 · 16 个视图")}
+    <div class="model-flow"><span>家长原声</span><i>分类抽取</i><span>结果决策</span><i>定位人群</i><span>学生画像</span><i>1 : N</i><span class="is-new">学习会话</span><i>1 : N</i><span class="is-new">行为事件</span><i>规则判定</i><span class="is-new">异常信号</span><i>加权</i><span class="is-new">情绪状态</span><i>验证</i><span>课节结果</span></div>
     <div class="model-grid">${models.map(m => `<article class="model-card ${m[6] ? "is-new" : ""}"><header><span>${m[0]}</span><div><h3>${m[1]}</h3><code>${m[2]}</code></div></header><p>${m[3]}</p><div class="field-list">${m[4].map(f => `<span>${f}</span>`).join("")}</div><footer><i></i>${m[5]}${m[6] ? " · 本次新增" : ""}</footer></article>`).join("")}</div>
     <div class="panel panel-full" style="margin-top:18px"><div class="panel-header"><div><h3>埋点事件口径</h3><p>同一 session_id 内按 event_sequence 排序，即可完整还原一次连续使用行为</p></div><span class="panel-tag">19 类事件 · 8 类新增</span></div><div class="table-wrap"><table class="event-table"><thead><tr><th>事件名</th><th>触发时机</th><th>关键属性</th><th>支持指标</th><th>状态</th></tr></thead><tbody>${eventRows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4] ? '<span class="status-dot is-new">待埋点</span>' : '<span class="status-dot">已上报</span>'}</td></tr>`).join("")}</tbody></table></div></div>
     <div class="panel panel-full" style="margin-top:18px"><div class="panel-header"><div><h3>落地节奏建议</h3><p>不必等全部埋点齐了再开始</p></div><span class="panel-tag">3 期</span></div>
@@ -1187,18 +1249,21 @@ function modelTemplate() {
 /* ===================== 路由 ===================== */
 
 const views = {
-  overview: { title: "用户结果决策看板", eyebrow: "决策驾驶舱 / OUTCOME FIRST", render: overviewTemplate },
+  overview: { title: "客户决策行为背后的可能性主因", eyebrow: "决策驾驶舱 / OUTCOME FIRST", render: overviewTemplate },
   chain: { title: "连续行为链路还原", eyebrow: "方案 01 / 断点定位", render: chainTemplate },
   signal: { title: "断点前异常信号", eyebrow: "方案 02 / 异常归因", render: signalTemplate },
   emotion: { title: "厌烦情绪锚定与干预", eyebrow: "方案 03 / 情绪与动作", render: emotionTemplate },
-  lesson: { title: "课时维度归因", eyebrow: "迭代归因 / 课时", render: lessonTemplate },
-  users: { title: "同批用户月度追踪", eyebrow: "迭代归因 / 用户", render: usersTemplate },
+  lesson: { title: "课时维度归因—扫除硬伤", eyebrow: "迭代归因 / 课时", render: lessonTemplate },
+  users: { title: "用户行为归因", eyebrow: "迭代归因 / 用户", render: usersTemplate },
   model: { title: "底层数据模型", eyebrow: "数据管理", render: modelTemplate }
 };
 
 function render() {
   const view = views[state.view];
+  document.getElementById("gradeSubjectSelect").value = state.gradeSubject;
+  document.getElementById("courseStartDate").value = state.courseStartDate;
   document.getElementById("segmentSelect").value = state.segment;
+  document.getElementById("periodSelect").value = state.period;
   document.getElementById("pageTitle").textContent = view.title;
   document.getElementById("pageEyebrow").textContent = view.eyebrow;
   // 上一视图移到 body 上的抽屉与原题浮层不会随 #content 重绘被清掉，先移除。
@@ -1262,6 +1327,7 @@ function render() {
   document.querySelectorAll("[data-example-session]").forEach(el => el.addEventListener("click", () => { state.selectedUser = "STU-1132"; state.selectedLessonSession = 3; render(); }));
   document.querySelectorAll("[data-back-users]").forEach(el => el.addEventListener("click", () => { state.selectedUser = null; state.selectedLessonSession = null; render(); }));
   document.querySelectorAll("[data-user-group]").forEach(el => el.addEventListener("click", () => { state.userGroup = el.dataset.userGroup; state.segment = el.dataset.userGroup; state.selectedUser = null; state.selectedLessonSession = null; render(); }));
+  document.querySelectorAll("[data-lifecycle-period]").forEach(el => el.addEventListener("change", () => { state.period = el.value; state.selectedUser = null; state.selectedLessonSession = null; render(); }));
   document.querySelectorAll("[data-outcome]").forEach(el => el.addEventListener("click", () => { state.outcome = el.dataset.outcome; render(); }));
   document.querySelectorAll("[data-close-drawer]").forEach(el => el.addEventListener("click", closeDrawer));
 }
@@ -1274,14 +1340,16 @@ function navigate(view) {
 }
 
 document.querySelectorAll(".nav-item").forEach(el => el.addEventListener("click", () => navigate(el.dataset.view)));
-document.getElementById("periodSelect").addEventListener("change", e => { state.period = e.target.value; render(); });
+document.getElementById("gradeSubjectSelect").addEventListener("change", e => { state.gradeSubject = e.target.value; state.selectedUser = null; state.selectedLessonSession = null; render(); });
+document.getElementById("courseStartDate").addEventListener("change", e => { state.courseStartDate = e.target.value || "2026-08-01"; state.selectedUser = null; state.selectedLessonSession = null; render(); });
+document.getElementById("periodSelect").addEventListener("change", e => { state.period = e.target.value; state.selectedUser = null; state.selectedLessonSession = null; render(); });
 document.getElementById("segmentSelect").addEventListener("change", e => { state.segment = e.target.value; state.userGroup = e.target.value; state.selectedUser = null; state.selectedLessonSession = null; render(); });
 document.getElementById("exportButton").addEventListener("click", () => {
-  const headers = ["方案", "指标", "当前值", "周期", "人群"];
-  const rows = [[views[state.view].title, "页面数据快照", new Date().toLocaleString("zh-CN"), state.period, state.segment]];
+  const headers = ["方案", "指标", "当前值", "年级-学科", "开课时间", "周期", "人群"];
+  const rows = [[views[state.view].title, "页面数据快照", new Date().toLocaleString("zh-CN"), courseFilterLabel(), state.courseStartDate, `${lifecyclePeriod()[1]} · ${lifecyclePeriod()[2]}`, state.segment]];
   const csv = "﻿" + [headers, ...rows].map(row => row.join(",")).join("\n");
   const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-  const a = document.createElement("a"); a.href = url; a.download = `拾光学习_${views[state.view].title}.csv`; a.click(); URL.revokeObjectURL(url);
+  const a = document.createElement("a"); a.href = url; a.download = `周周学，周周up_${views[state.view].title}.csv`; a.click(); URL.revokeObjectURL(url);
   const toast = document.getElementById("toast"); toast.classList.add("show"); setTimeout(() => toast.classList.remove("show"), 2200);
 });
 

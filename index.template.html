@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="拾光学习用户结果决策中心——从退费与续费结果倒推学习行为和产品原因。" />
-    <title>拾光学习 · 用户结果决策中心</title>
+    <meta name="description" content="周周学，周周up用户行为归因中心——从客户决策结果倒推学习行为和产品原因。" />
+    <title>周周学，周周up · 客户决策行为背后的可能性主因</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <!-- 字体异步加载：默认 media="print" 不阻塞首屏，onload 后再切回 all。
@@ -18,27 +18,27 @@
   <body>
     <div class="app-shell">
       <aside class="sidebar" aria-label="主导航">
-        <a class="brand" href="#" aria-label="拾光学习首页">
+        <a class="brand" href="#" aria-label="周周学，周周up首页">
           <span class="brand-mark" aria-hidden="true">
             <svg viewBox="0 0 32 32"><path d="M8 7.5 16 3l8 4.5v9L16 21l-8-4.5v-9Z"/><path d="m8 16.5 8 4.5 8-4.5V25l-8 4-8-4v-8.5Z" opacity=".52"/></svg>
           </span>
-          <span><b>拾光学习</b><small>INSIGHT CENTER</small></span>
+          <span><b>周周学，周周up</b><small>INSIGHT CENTER</small></span>
         </a>
 
         <nav class="primary-nav">
           <p class="nav-label">工作台</p>
           <button class="nav-item active" data-view="overview">
             <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
-            结果决策
+            <span>客户决策行为背后的可能性主因</span>
           </button>
           <p class="nav-label nav-label-spaced">迭代归因</p>
           <button class="nav-item" data-view="lesson">
             <svg viewBox="0 0 24 24"><path d="M4 19V9m6 10V5m6 14v-7m4 7H2"/></svg>
-            课时归因
+            <span>课时维度归因—扫除硬伤</span>
           </button>
           <button class="nav-item" data-view="users">
             <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>
-            用户追踪
+            <span>用户行为归因</span>
           </button>
           <div class="nav-subgroup">
             <span>用户连续性监测</span>
@@ -72,11 +72,13 @@
               <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
             </button>
             <p class="eyebrow" id="pageEyebrow">数据驾驶舱</p>
-            <h1 id="pageTitle">用户结果决策看板</h1>
+            <h1 id="pageTitle">客户决策行为背后的可能性主因</h1>
           </div>
           <div class="top-actions">
+            <label class="select-wrap"><span>年级-学科</span><select id="gradeSubjectSelect"><option value="g7_math">初一 · 数学</option><option value="g8_math">初二 · 数学</option><option value="g9_math">初三 · 数学</option><option value="g8_physics">初二 · 物理</option><option value="g9_physics">初三 · 物理</option><option value="g9_chemistry">初三 · 化学</option><option value="all">全部年级 · 全部学科</option></select></label>
+            <label class="select-wrap date-filter"><span>开课时间</span><input id="courseStartDate" type="date" value="2026-08-01" aria-label="开课时间，年月日" /></label>
             <label class="select-wrap"><span>人群</span><select id="segmentSelect"><option value="all">全部用户</option><option value="refunded">退费用户</option><option value="notRefunded">未退费用户</option><option value="renewed">续费用户</option><option value="notRefundedNotRenewed">未退费未续费用户</option><option value="risk">潜在流失风险用户</option></select></label>
-            <label class="select-wrap"><span>周期</span><select id="periodSelect"><option value="week">本周 · 第 18 周</option><option value="lastWeek">上周 · 第 17 周</option><option value="month">近 4 周</option></select></label>
+            <label class="select-wrap"><span>周期</span><select id="periodSelect"><option value="m1">M1 · 进入后第1个月</option><option value="m2">M2 · 进入后第2个月</option><option value="m3">M3 · 进入后第3个月</option><option value="m4">M4 · 进入后第4个月</option><option value="m5">M5 · 进入后第5个月</option><option value="m6">M6 · 进入后第6个月</option></select></label>
             <button class="icon-button" id="exportButton" title="导出本页数据" aria-label="导出本页数据">
               <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 18v2h14v-2"/></svg>
             </button>
