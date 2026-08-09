@@ -8,7 +8,7 @@
 --         session_anomaly_signals（断点前异常明细）、student_emotion_states（厌烦情绪状态）。
 --   v2.1 新增：用户结果决策表，从退费/续费结果反向关联完课表现与反馈原因。
 --   v2.2 新增：用户会话级归因视图，把连续表现、异常信号、情绪与断点优化串成一条链。
---   v2.3 新增：动画播放行为视图，还原学环节内的拖拽与暂停发生在视频的哪一秒。
+--   v2.3 新增：学/练/改判定字段与语义视图，还原视频播放、训练答题和错题掌握过程。
 
 PRAGMA foreign_keys = ON;
 
@@ -123,13 +123,23 @@ CREATE TABLE IF NOT EXISTS learning_events (
     question_index             INTEGER CHECK (question_index IS NULL OR question_index > 0),
     video_position_seconds     INTEGER CHECK (video_position_seconds IS NULL OR video_position_seconds >= 0),
     duration_seconds           INTEGER CHECK (duration_seconds IS NULL OR duration_seconds >= 0),
+    countdown_total_seconds    INTEGER CHECK (countdown_total_seconds IS NULL OR countdown_total_seconds > 0),
+    countdown_remaining_seconds INTEGER CHECK (
+                                   countdown_remaining_seconds IS NULL OR countdown_remaining_seconds >= 0
+                                 ),
     answer_value               TEXT,
     answer_attempt             INTEGER CHECK (answer_attempt IS NULL OR answer_attempt > 0),
     is_correct                 INTEGER CHECK (is_correct IS NULL OR is_correct IN (0, 1)),
+    source_wrong_event_id      INTEGER, -- 订正所对应的原始错题 answer.event_id
+    correction_round           INTEGER CHECK (correction_round IS NULL OR correction_round > 0),
+    mastery_status             TEXT CHECK (mastery_status IS NULL OR mastery_status IN (
+                                   'mastered', 'unmastered', 'pending'
+                                 )),
     properties_json            TEXT CHECK (properties_json IS NULL OR json_valid(properties_json)),
     ingested_at                TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (student_id) REFERENCES students(student_id),
-    FOREIGN KEY (session_id) REFERENCES learning_sessions(session_id)
+    FOREIGN KEY (session_id) REFERENCES learning_sessions(session_id),
+    FOREIGN KEY (source_wrong_event_id) REFERENCES learning_events(event_id)
 );
 
 -- ============================================================
@@ -347,6 +357,8 @@ CREATE INDEX IF NOT EXISTS idx_events_student_time
     ON learning_events (student_id, event_at);
 CREATE INDEX IF NOT EXISTS idx_events_lesson_name_time
     ON learning_events (lesson_id, event_name, event_at);
+CREATE INDEX IF NOT EXISTS idx_events_session_question
+    ON learning_events (session_id, stage, question_id, event_sequence);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_events_session_sequence
     ON learning_events (session_id, event_sequence);
 CREATE INDEX IF NOT EXISTS idx_anomaly_signal_break
@@ -383,7 +395,15 @@ INSERT OR REPLACE INTO anomaly_signal_dict
 ('long_idle',          '静默无操作',      'session',  '相邻事件 prev_event_gap_seconds 达到阈值且未退出',              '{"seconds":90}',          'distracted', 0.85, 2.9),
 ('stage_bouncing',     '环节来回横跳',    'session',  '单会话 stage_switch 往返次数达到阈值',                          '{"switches":4}',          'distracted', 0.65, 3.1),
 ('frequent_background','频繁切后台',      'session',  '单会话 app_background 次数达到阈值',                            '{"count":2}',             'distracted', 0.55, 1.9),
-('over_long_session',  '单次时长过长',    'session',  '会话 duration_seconds 超过阈值后的行为衰减',                    '{"minutes":45}',          'fatigued',   0.50, 2.4);
+('over_long_session',  '单次时长过长',    'session',  '会话 duration_seconds 超过阈值后的行为衰减',                    '{"minutes":45}',          'fatigued',   0.50, 2.4),
+('frequent_pause',     '视频频繁暂停',     'learn',    '同一动画 pause 次数达到阈值',                                  '{"pauses":3}',            'frustrated', 0.65, 2.3),
+('frequent_drag',      '视频频繁拖拽',     'learn',    'seek_forward 与 replay 合计次数达到阈值',                       '{"drags":4}',             'frustrated', 0.70, 2.4),
+('video_early_exit',   '视频未看完即跳出', 'learn',    '动画进度低于阈值且 exit 发生在 learn 环节',                     '{"progress":0.8}',        'frustrated', 0.85, 3.6),
+('deadline_submit',    '临近倒计时提交',   'practice', 'answer.countdown_remaining_seconds 小于等于阈值',              '{"seconds":5}',           'frustrated', 0.60, 2.8),
+('question_exit',      '答题中途跳出',     'practice', '已进入题目但未提交 answer 即退出课时',                         '{"submitted":false}',     'frustrated', 0.90, 4.0),
+('correction_overtime','错题订正耗时过长', 'correct',  '订正耗时大于该题历史订正中位数的 N 倍',                        '{"median_multiple":3}',   'frustrated', 0.80, 3.4),
+('correction_still_wrong','订正后仍答错',  'correct',  '同一错题最终 correction.is_correct = 0',                        '{"final_correct":false}', 'frustrated', 1.00, 4.7),
+('correction_exit',    '订正中途跳出',     'correct',  '进入错题后未完成 correction 即退出课时',                       '{"submitted":false}',     'frustrated', 0.95, 3.9);
 
 -- ============================================================
 -- 七、看板可直接查询的语义视图
@@ -481,6 +501,7 @@ SELECT
     e.session_id,
     e.student_id,
     SUM(CASE WHEN e.event_name = 'pause'        THEN 1 ELSE 0 END) AS pause_count,
+    SUM(CASE WHEN e.event_name IN ('seek_forward', 'replay') THEN 1 ELSE 0 END) AS drag_count,
     SUM(CASE WHEN e.event_name = 'seek_forward' THEN 1 ELSE 0 END) AS seek_forward_count,
     SUM(CASE WHEN e.event_name = 'replay'       THEN 1 ELSE 0 END) AS replay_count,
     -- 暂停停留总时长：pause 到下一个事件的间隔，记在下一条事件的 prev_event_gap_seconds 上
@@ -488,9 +509,13 @@ SELECT
     MIN(CASE WHEN e.event_name = 'pause'        THEN e.video_position_seconds END) AS first_pause_position,
     MAX(CASE WHEN e.event_name = 'seek_forward' THEN e.video_position_seconds END) AS last_seek_position,
     MAX(e.video_position_seconds)                                                  AS max_video_position,
+    MAX(CASE WHEN s.is_break = 1 AND s.break_stage = 'learn' THEN 1 ELSE 0 END)     AS is_video_jump_out,
+    MAX(CASE WHEN s.is_break = 1 AND s.break_stage = 'learn' THEN s.break_video_seconds END) AS jump_out_video_seconds,
+    MAX(CASE WHEN s.is_break = 1 AND s.break_stage = 'learn' THEN s.break_progress_rate END) AS jump_out_progress_rate,
     CASE WHEN SUM(CASE WHEN e.event_name IN ('pause','seek_forward','replay') THEN 1 ELSE 0 END) = 0
          THEN 'clean' ELSE 'interrupted' END                                       AS playback_pattern
 FROM learning_events e
+JOIN learning_sessions s ON s.session_id = e.session_id
 WHERE e.stage = 'learn'
 GROUP BY e.lesson_id, e.session_id, e.student_id;
 
@@ -686,6 +711,170 @@ LEFT JOIN break_stats b
   ON b.course_id = a.course_id
  AND b.lesson_id = a.lesson_id
  AND b.question_id = a.question_id;
+
+-- 练环节逐题判定：秒答、临近倒计时、首/末答正确率、反复提交与答题跳出。
+CREATE VIEW IF NOT EXISTS v_practice_question_judgement AS
+WITH ranked_answers AS (
+    SELECT
+        e.*,
+        ROW_NUMBER() OVER (
+            PARTITION BY e.session_id, e.question_id ORDER BY e.event_sequence
+        ) AS first_order,
+        ROW_NUMBER() OVER (
+            PARTITION BY e.session_id, e.question_id ORDER BY e.event_sequence DESC
+        ) AS last_order
+    FROM learning_events e
+    WHERE e.event_name = 'answer'
+      AND e.stage = 'practice'
+      AND e.question_id IS NOT NULL
+), answer_summary AS (
+    SELECT
+        session_id,
+        student_id,
+        course_id,
+        lesson_id,
+        question_id,
+        question_index,
+        question_version,
+        COUNT(*) AS submit_count,
+        SUM(COALESCE(duration_seconds, 0)) AS total_answer_seconds,
+        MAX(CASE WHEN first_order = 1 THEN duration_seconds END) AS first_answer_seconds,
+        MAX(CASE WHEN first_order = 1 THEN is_correct END) AS first_is_correct,
+        MAX(CASE WHEN last_order = 1 THEN is_correct END) AS final_is_correct,
+        MIN(countdown_remaining_seconds) AS min_countdown_remaining_seconds,
+        MAX(CASE WHEN duration_seconds <= 15 THEN 1 ELSE 0 END) AS is_instant_answer,
+        MAX(CASE WHEN countdown_remaining_seconds <= 5 THEN 1 ELSE 0 END) AS is_deadline_submit
+    FROM ranked_answers
+    GROUP BY session_id, student_id, course_id, lesson_id,
+             question_id, question_index, question_version
+), question_scope AS (
+    SELECT * FROM answer_summary
+    UNION ALL
+    SELECT
+        s.session_id,
+        s.student_id,
+        s.course_id,
+        s.lesson_id,
+        s.break_question_id,
+        s.break_question_index,
+        NULL AS question_version,
+        0 AS submit_count,
+        NULL AS total_answer_seconds,
+        NULL AS first_answer_seconds,
+        NULL AS first_is_correct,
+        NULL AS final_is_correct,
+        NULL AS min_countdown_remaining_seconds,
+        0 AS is_instant_answer,
+        0 AS is_deadline_submit
+    FROM learning_sessions s
+    WHERE s.is_break = 1
+      AND s.break_stage = 'practice'
+      AND s.break_question_id IS NOT NULL
+      AND NOT EXISTS (
+          SELECT 1
+          FROM answer_summary a
+          WHERE a.session_id = s.session_id
+            AND a.question_id = s.break_question_id
+      )
+)
+SELECT
+    a.*,
+    CASE WHEN a.submit_count >= 3 THEN 1 ELSE 0 END AS is_repeat_submit,
+    CASE WHEN s.is_break = 1
+               AND s.break_stage = 'practice'
+               AND (s.break_question_id = a.question_id OR s.break_question_index = a.question_index)
+         THEN 1 ELSE 0 END AS is_question_jump_out,
+    CASE
+        WHEN s.is_break = 1
+             AND s.break_stage = 'practice'
+             AND (s.break_question_id = a.question_id OR s.break_question_index = a.question_index)
+            THEN '答题中途跳出'
+        WHEN a.submit_count >= 3 THEN '反复提交'
+        WHEN a.is_deadline_submit = 1 THEN '临近倒计时提交'
+        WHEN a.is_instant_answer = 1 THEN '秒答'
+        WHEN a.final_is_correct = 0 THEN '最终仍答错'
+        ELSE '正常完成'
+    END AS behavior_judgement
+FROM question_scope a
+JOIN learning_sessions s ON s.session_id = a.session_id;
+
+-- 改环节错题掌握：错题 1/2/3 按原始错题顺序排列，并保留订正时长、正确率与跳出。
+CREATE VIEW IF NOT EXISTS v_correction_mastery AS
+WITH original_wrong AS (
+    SELECT
+        e.session_id,
+        e.student_id,
+        e.course_id,
+        e.lesson_id,
+        e.question_id,
+        e.question_index,
+        MIN(e.event_id) AS source_wrong_event_id,
+        MIN(e.event_sequence) AS first_wrong_sequence
+    FROM learning_events e
+    WHERE e.event_name = 'answer'
+      AND e.is_correct = 0
+      AND e.question_id IS NOT NULL
+    GROUP BY e.session_id, e.student_id, e.course_id, e.lesson_id,
+             e.question_id, e.question_index
+), numbered_wrong AS (
+    SELECT
+        w.*,
+        ROW_NUMBER() OVER (
+            PARTITION BY w.session_id ORDER BY w.first_wrong_sequence
+        ) AS wrong_number
+    FROM original_wrong w
+), ranked_corrections AS (
+    SELECT
+        e.*,
+        ROW_NUMBER() OVER (
+            PARTITION BY e.session_id, e.question_id ORDER BY e.event_sequence DESC
+        ) AS last_order
+    FROM learning_events e
+    WHERE e.event_name = 'correction'
+      AND e.question_id IS NOT NULL
+), correction_summary AS (
+    SELECT
+        session_id,
+        question_id,
+        COUNT(*) AS correction_submit_count,
+        SUM(COALESCE(duration_seconds, 0)) AS correction_seconds,
+        ROUND(AVG(is_correct), 4) AS correction_accuracy,
+        MAX(CASE WHEN last_order = 1 THEN is_correct END) AS final_is_correct
+    FROM ranked_corrections
+    GROUP BY session_id, question_id
+)
+SELECT
+    w.student_id,
+    w.session_id,
+    w.course_id,
+    w.lesson_id,
+    w.wrong_number,
+    '错题 ' || w.wrong_number AS wrong_label,
+    w.question_id,
+    w.question_index,
+    w.source_wrong_event_id,
+    COALESCE(c.correction_submit_count, 0) AS correction_submit_count,
+    c.correction_seconds,
+    c.correction_accuracy,
+    c.final_is_correct,
+    CASE WHEN s.is_break = 1
+               AND s.break_stage = 'correct'
+               AND (s.break_question_id = w.question_id OR s.break_question_index = w.question_index)
+         THEN 1 ELSE 0 END AS is_correction_jump_out,
+    CASE
+        WHEN c.final_is_correct = 1 THEN 'mastered'
+        WHEN c.final_is_correct = 0 THEN 'unmastered'
+        WHEN s.is_break = 1
+             AND s.break_stage = 'correct'
+             AND (s.break_question_id = w.question_id OR s.break_question_index = w.question_index)
+            THEN 'pending'
+        ELSE 'pending'
+    END AS mastery_status
+FROM numbered_wrong w
+JOIN learning_sessions s ON s.session_id = w.session_id
+LEFT JOIN correction_summary c
+  ON c.session_id = w.session_id
+ AND c.question_id = w.question_id;
 
 -- 用户追踪诊断链：一行对应一次学习会话，既能回放 SES 行为序列，
 -- 也能把「异常发生在哪里 → 推断何种情绪 → 优先优化什么」直接交给产品迭代。

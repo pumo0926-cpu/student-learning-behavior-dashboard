@@ -455,3 +455,49 @@
   .at-detail li { grid-template-columns: 1fr; gap: 2px; }
   .at-seg em, .at-pin em { display: none; }
 }
+
+/* ---------- 学—练—改行为判定补充 ---------- */
+.stage-judgement-panel, .signal-coverage-panel { margin: 18px 0; }
+.stage-judgement-grid { display: grid; grid-template-columns: 1fr 1.08fr 1fr; gap: 12px; }
+.stage-judgement-grid > section { min-width: 0; overflow: hidden; border: 1px solid var(--line); border-top: 3px solid var(--stage); border-radius: 12px; background: #fbfcfb; }
+.stage-judgement-grid > section > header { display: flex; align-items: center; gap: 9px; padding: 12px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--stage) 7%, white); }
+.stage-judgement-grid > section > header > i { width: 28px; height: 28px; display: grid; place-items: center; flex: none; border-radius: 8px; color: white; background: var(--stage); font-size: 10px; font-style: normal; font-weight: 700; }
+.stage-judgement-grid header b, .stage-judgement-grid header small { display: block; }
+.stage-judgement-grid header b { color: var(--ink); font-size: 10px; }
+.stage-judgement-grid header small { margin-top: 3px; color: var(--faint); font-size: 7px; }
+.stage-rule-list { padding: 4px 11px; }
+.stage-rule-list > div { display: grid; grid-template-columns: 58px minmax(88px,.8fr) 1.2fr; gap: 7px; align-items: center; padding: 8px 0; border-bottom: 1px dashed var(--line); }
+.stage-rule-list > div:last-child { border-bottom: 0; }
+.stage-rule-list b { color: var(--stage); font-size: 8px; }
+.stage-rule-list strong { color: var(--ink); font-size: 8px; }
+.stage-rule-list span { color: var(--muted); font-size: 7px; line-height: 1.4; }
+.stage-rule-list em { grid-column: 2 / -1; margin-top: -4px; color: var(--faint); font-size: 7px; font-style: normal; }
+.correction-judge-table { padding: 8px 11px 4px; }
+.correction-judge-table > div { display: grid; grid-template-columns: 1fr .75fr 1fr .6fr .8fr; gap: 5px; align-items: center; padding: 7px 2px; border-bottom: 1px dashed var(--line); color: var(--muted); font-size: 7px; }
+.correction-judge-table .cj-head { color: var(--faint); font-size: 6px; }
+.correction-judge-table b { color: var(--ink); font-size: 8px; }
+.correction-judge-table em { padding: 3px 4px; border-radius: 4px; font-style: normal; font-weight: 600; text-align: center; }
+.correction-judge-table em.mastered { color: var(--mint-deep); background: var(--mint-pale); }
+.correction-judge-table em.unmastered { color: #b6503d; background: var(--coral-pale); }
+.correction-judge-table em.pending { color: #997317; background: #fff5d6; }
+.stage-judgement-grid > section > footer { display: flex; gap: 12px; padding: 6px 12px 11px; color: var(--faint); font-size: 7px; }
+.stage-judgement-grid > section > footer b { color: var(--ink); }
+.stage-judgement-note { margin-top: 11px; padding: 9px 11px; border-left: 3px solid #8772bb; border-radius: 6px; color: var(--muted); background: #f7f4fb; font-size: 8px; line-height: 1.65; }
+.stage-judgement-note b { color: #6f5b9e; }
+.signal-coverage-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+.signal-coverage-grid > div { padding: 12px; border: 1px solid var(--line); border-top: 3px solid var(--signal); border-radius: 10px; background: #fbfcfb; }
+.signal-coverage-grid > div > span { display: block; margin-bottom: 7px; color: var(--signal); font-size: 8px; font-weight: 700; }
+.signal-coverage-grid > div > b { display: block; min-height: 42px; color: var(--ink); font-size: 8px; line-height: 1.65; }
+.signal-coverage-grid footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
+.signal-coverage-grid strong { color: var(--signal); font-size: 10px; }
+.signal-coverage-grid small { color: var(--faint); font-size: 7px; text-align: right; }
+@media (max-width: 1100px) {
+  .stage-judgement-grid { grid-template-columns: 1fr; }
+  .signal-coverage-grid { grid-template-columns: repeat(2,1fr); }
+}
+@media (max-width: 760px) {
+  .signal-coverage-grid { grid-template-columns: 1fr; }
+  .stage-rule-list > div { grid-template-columns: 54px 1fr; }
+  .stage-rule-list span { grid-column: 2; }
+  .stage-rule-list em { grid-column: 2; }
+}

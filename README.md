@@ -20,7 +20,7 @@
 | # | 方案 | 回答的问题 | 核心产出 |
 | --- | --- | --- | --- |
 | 01 | **连续行为链路还原** | 他在哪一步走的 | 会话回放时间轴、断点位置分布、断后回归与续接方式 |
-| 02 | **断点前异常信号** | 走之前发生了什么 | 12 类信号的提升度排行、脱离前最后 10 步、高危信号组合链 |
+| 02 | **断点前异常信号** | 走之前发生了什么 | 20 类信号覆盖学、练、改，提供提升度排行、脱离前最后 10 步和高危组合链 |
 | 03 | **厌烦情绪锚定与干预** | 是不是烦了、怎么办 | 厌烦指数 0–100、受挫/无聊/涣散三型、干预矩阵与三重验证 |
 
 另有两个直接服务迭代的归因视图：
@@ -65,25 +65,25 @@ node build-standalone.mjs
 
 ## 数据库
 
-[`database/schema.sql`](database/schema.sql) 是可直接执行的 SQLite 数据模型（v2.2），10 张表：
+[`database/schema.sql`](database/schema.sql) 是可直接执行的 SQLite 数据模型（v2.3），10 张表：
 
 | 层 | 表 | 说明 |
 | --- | --- | --- |
 | 基础 | `students` | 学生画像、套餐、班期、流失与续费状态 |
 | 连续行为 | `learning_sessions` | **一次打开到离开一行**，断点定位主表 |
 | 连续行为 | `learning_events` | 18 类事件明细，按 `event_sequence` 还原序列 |
-| 信号 | `anomaly_signal_dict` | 12 类信号的判定规则、阈值与权重（含种子数据） |
+| 信号 | `anomaly_signal_dict` | 20 类信号的判定规则、阈值与权重（含种子数据） |
 | 信号 | `session_anomaly_signals` | 会话命中的异常明细，含距断点的秒数与步数 |
 | 情绪 | `student_emotion_states` | 学生 × 周的厌烦指数、分型与预警等级 |
 | 结果 | `course_learning_results` / `user_weekly_summaries` | 课节结果与周度汇总 |
 | 评估 | `content_quality` | 知识点 × 内容版本的质量快照 |
 | 决策 | `user_outcome_decisions` | 退费/续费结果、当时完课分层与反馈原因快照 |
 
-外加 12 个语义视图：
+外加 15 个语义视图：
 
 - 结果决策：`v_user_outcome_decision`（结果状态 → 完课分层 → 反馈原因）
-- 连续行为：`v_breakpoint_distribution`（断点分布）、`v_pre_exit_signal_lift`（信号提升度）、`v_session_continuity`（断后回归）、`v_emotion_cohort`（情绪分层）
-- 迭代归因：`v_lesson_attribution`（课时归因）、`v_cohort_lesson_tracking`（班期用户追踪）、`v_question_duration`（单次作答）、`v_lesson_question_performance`（课时 × 题目的耗时/正确率/跳出率）、`v_user_breakpoint_emotion_attribution`（会话异常 → 情绪 → 断点优化）
+- 连续行为：`v_breakpoint_distribution`（断点分布）、`v_pre_exit_signal_lift`（信号提升度）、`v_session_continuity`（断后回归）、`v_emotion_cohort`（情绪分层）、`v_animation_playback`（暂停/拖拽/快进/视频跳出）
+- 迭代归因：`v_lesson_attribution`（课时归因）、`v_cohort_lesson_tracking`（班期用户追踪）、`v_question_duration`（单次作答）、`v_lesson_question_performance`（课时 × 题目的耗时/正确率/跳出率）、`v_practice_question_judgement`（秒答/倒计时/反复提交/答题跳出）、`v_correction_mastery`（错题 1/2/3 的订正耗时、正确率、跳出与掌握）、`v_user_breakpoint_emotion_attribution`（会话异常 → 情绪 → 断点优化）
 - 原有：`v_weekly_learning_monitor`、`v_lesson_funnel`
 
 ```bash

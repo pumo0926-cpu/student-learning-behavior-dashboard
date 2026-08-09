@@ -762,6 +762,52 @@ h1 { margin: 0; font-size: 23px; letter-spacing: -.035em; line-height: 1.15; }
   .at-seg em, .at-pin em { display: none; }
 }
 
+/* ---------- 学—练—改行为判定补充 ---------- */
+.stage-judgement-panel, .signal-coverage-panel { margin: 18px 0; }
+.stage-judgement-grid { display: grid; grid-template-columns: 1fr 1.08fr 1fr; gap: 12px; }
+.stage-judgement-grid > section { min-width: 0; overflow: hidden; border: 1px solid var(--line); border-top: 3px solid var(--stage); border-radius: 12px; background: #fbfcfb; }
+.stage-judgement-grid > section > header { display: flex; align-items: center; gap: 9px; padding: 12px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--stage) 7%, white); }
+.stage-judgement-grid > section > header > i { width: 28px; height: 28px; display: grid; place-items: center; flex: none; border-radius: 8px; color: white; background: var(--stage); font-size: 10px; font-style: normal; font-weight: 700; }
+.stage-judgement-grid header b, .stage-judgement-grid header small { display: block; }
+.stage-judgement-grid header b { color: var(--ink); font-size: 10px; }
+.stage-judgement-grid header small { margin-top: 3px; color: var(--faint); font-size: 7px; }
+.stage-rule-list { padding: 4px 11px; }
+.stage-rule-list > div { display: grid; grid-template-columns: 58px minmax(88px,.8fr) 1.2fr; gap: 7px; align-items: center; padding: 8px 0; border-bottom: 1px dashed var(--line); }
+.stage-rule-list > div:last-child { border-bottom: 0; }
+.stage-rule-list b { color: var(--stage); font-size: 8px; }
+.stage-rule-list strong { color: var(--ink); font-size: 8px; }
+.stage-rule-list span { color: var(--muted); font-size: 7px; line-height: 1.4; }
+.stage-rule-list em { grid-column: 2 / -1; margin-top: -4px; color: var(--faint); font-size: 7px; font-style: normal; }
+.correction-judge-table { padding: 8px 11px 4px; }
+.correction-judge-table > div { display: grid; grid-template-columns: 1fr .75fr 1fr .6fr .8fr; gap: 5px; align-items: center; padding: 7px 2px; border-bottom: 1px dashed var(--line); color: var(--muted); font-size: 7px; }
+.correction-judge-table .cj-head { color: var(--faint); font-size: 6px; }
+.correction-judge-table b { color: var(--ink); font-size: 8px; }
+.correction-judge-table em { padding: 3px 4px; border-radius: 4px; font-style: normal; font-weight: 600; text-align: center; }
+.correction-judge-table em.mastered { color: var(--mint-deep); background: var(--mint-pale); }
+.correction-judge-table em.unmastered { color: #b6503d; background: var(--coral-pale); }
+.correction-judge-table em.pending { color: #997317; background: #fff5d6; }
+.stage-judgement-grid > section > footer { display: flex; gap: 12px; padding: 6px 12px 11px; color: var(--faint); font-size: 7px; }
+.stage-judgement-grid > section > footer b { color: var(--ink); }
+.stage-judgement-note { margin-top: 11px; padding: 9px 11px; border-left: 3px solid #8772bb; border-radius: 6px; color: var(--muted); background: #f7f4fb; font-size: 8px; line-height: 1.65; }
+.stage-judgement-note b { color: #6f5b9e; }
+.signal-coverage-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+.signal-coverage-grid > div { padding: 12px; border: 1px solid var(--line); border-top: 3px solid var(--signal); border-radius: 10px; background: #fbfcfb; }
+.signal-coverage-grid > div > span { display: block; margin-bottom: 7px; color: var(--signal); font-size: 8px; font-weight: 700; }
+.signal-coverage-grid > div > b { display: block; min-height: 42px; color: var(--ink); font-size: 8px; line-height: 1.65; }
+.signal-coverage-grid footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
+.signal-coverage-grid strong { color: var(--signal); font-size: 10px; }
+.signal-coverage-grid small { color: var(--faint); font-size: 7px; text-align: right; }
+@media (max-width: 1100px) {
+  .stage-judgement-grid { grid-template-columns: 1fr; }
+  .signal-coverage-grid { grid-template-columns: repeat(2,1fr); }
+}
+@media (max-width: 760px) {
+  .signal-coverage-grid { grid-template-columns: 1fr; }
+  .stage-rule-list > div { grid-template-columns: 54px 1fr; }
+  .stage-rule-list span { grid-column: 2; }
+  .stage-rule-list em { grid-column: 2; }
+}
+
     </style>
 
   </head>
@@ -871,7 +917,7 @@ const pct = (value, invert = false) => {
 
 const schemes = [
   { id: "chain", no: "01", title: "连续行为链路还原", color: "#1b8c72", pale: "#e8f4ef", desc: "把「跳出率 28%」还原成「断在动画 03:42、练习第 4 题」，并追踪断开后有没有回来。", footer: "回答：他在哪一步走的" },
-  { id: "signal", no: "02", title: "断点前异常信号", color: "#5b7fc9", pale: "#edf2fb", desc: "对比脱离会话与完课会话，用提升度排出最能预测脱离的 12 类前置异常行为。", footer: "回答：走之前发生了什么" },
+  { id: "signal", no: "02", title: "断点前异常信号", color: "#5b7fc9", pale: "#edf2fb", desc: "按学、练、改三段对比脱离与完课会话，用提升度排出最能预测脱离的 20 类前置异常行为。", footer: "回答：走之前发生了什么" },
   { id: "emotion", no: "03", title: "厌烦情绪锚定与干预", color: "#f08068", pale: "#fff0ed", desc: "把异常信号加权成厌烦指数，区分受挫、无聊、涣散三型，并给出差异化干预。", footer: "回答：是不是烦了，怎么办" }
 ];
 
@@ -915,7 +961,7 @@ const outcomeDetails = {
   }
 };
 
-// 12 类断点前异常信号，与 anomaly_signal_dict 种子数据一一对应。
+// 20 类断点前异常信号，与 anomaly_signal_dict 种子数据一一对应。
 // brk = 断点会话中出现率；base = 完课会话基线；lift = brk / base。
 const signals = [
   { name: "连续答错 ≥3 题", stage: "练", rule: "同会话内连续 answer 判错 3 次", brk: 61.3, base: 12.4, lift: 4.9, emo: "受挫" },
@@ -929,7 +975,15 @@ const signals = [
   { name: "静默无操作 ≥90 秒", stage: "全", rule: "相邻事件间隔 ≥90 秒且未退出", brk: 54.2, base: 18.6, lift: 2.9, emo: "涣散" },
   { name: "单次时长 >45 分钟", stage: "全", rule: "会话时长超过 45 分钟后的行为衰减", brk: 24.7, base: 10.2, lift: 2.4, emo: "疲劳" },
   { name: "同片段重复回看 ≥2 次", stage: "学", rule: "同一动画区间 replay 达到 2 次", brk: 33.8, base: 14.9, lift: 2.3, emo: "受挫" },
-  { name: "频繁切后台 ≥2 次", stage: "全", rule: "单会话 app_background 达到 2 次", brk: 31.2, base: 16.4, lift: 1.9, emo: "涣散" }
+  { name: "频繁切后台 ≥2 次", stage: "全", rule: "单会话 app_background 达到 2 次", brk: 31.2, base: 16.4, lift: 1.9, emo: "涣散" },
+  { name: "视频频繁暂停 ≥3 次", stage: "学", rule: "同一动画 pause 达到 3 次", brk: 35.4, base: 15.2, lift: 2.3, emo: "受挫" },
+  { name: "视频频繁拖拽 ≥4 次", stage: "学", rule: "seek_forward + replay 合计达到 4 次", brk: 44.8, base: 18.7, lift: 2.4, emo: "受挫" },
+  { name: "视频未看完即跳出", stage: "学", rule: "动画进度 <80% 且 exit 发生在学环节", brk: 31.2, base: 8.7, lift: 3.6, emo: "受挫" },
+  { name: "临近倒计时提交", stage: "练", rule: "countdown_remaining_seconds ≤5", brk: 33.6, base: 12.0, lift: 2.8, emo: "受挫" },
+  { name: "答题中途跳出", stage: "练", rule: "进入题目但未 answer 即 exit", brk: 46.9, base: 11.6, lift: 4.0, emo: "受挫" },
+  { name: "错题订正耗时过长", stage: "改", rule: "correction 耗时 >该题订正中位数 3 倍", brk: 42.6, base: 12.5, lift: 3.4, emo: "受挫" },
+  { name: "订正后仍答错", stage: "改", rule: "同一错题最终 correction.is_correct = 0", brk: 49.8, base: 10.7, lift: 4.7, emo: "受挫" },
+  { name: "订正中途跳出", stage: "改", rule: "进入错题但未完成订正即 exit", brk: 37.9, base: 9.8, lift: 3.9, emo: "受挫" }
 ];
 
 const emoColor = { 受挫: "#f08068", 无聊: "#5b7fc9", 涣散: "#8772bb", 疲劳: "#e9b951" };
@@ -1048,11 +1102,54 @@ function emotionDonut() {
   return `<div class="donut-wrap"><div class="donut" style="background:conic-gradient(${stops})"><div class="donut-center"><strong>38.8%</strong><span>存在厌烦倾向</span></div></div><div class="legend-list">${emotions.map(e => `<div class="legend-row"><i style="background:${e.color}"></i><span>${e.name}</span><b>${e.share}%</b></div>`).join("")}</div></div>${insight("<b>可干预的部分：</b>受挫型与无聊型合计 <b>31.1%</b>，均由内容难度错配引起，是最直接的迭代对象；涣散型 7.7% 多与外部环境相关，只做体验减负、不做内容归因。")}`;
 }
 
+// “学—练—改”三段行为判定。常规指标负责描述过程，异常阈值负责触发诊断；
+// 两者分开呈现，避免把一次正常暂停或一次答错直接误判为负面情绪。
+function stageBehaviorJudgement() {
+  const learnRows = [
+    ["暂停", "1 次 · 03:42", "次数、位置、停留时长", "≥3 次判频繁暂停"],
+    ["拖拽", "5 次 · 向前 3 / 向后 2", "起止秒数、方向、跨度", "合计 ≥4 次判频繁拖拽"],
+    ["快进", "连续 3 次 · 跳过 03:35", "seek_forward 次数与跳过时长", "连续 ≥3 次判异常快进"],
+    ["视频跳出", "否 · 61% 时转入练", "exit + 视频播放进度", "仅 exit 发生在学环节才计视频跳出"]
+  ];
+  const practiceRows = [
+    ["答题时长", "题均 71s", "单题耗时 / 历史中位数", "≤15s 秒答；>3× 中位为过长"],
+    ["临近倒计时", "第 4 题 · 剩 4s 提交", "倒计时总时长 / 剩余秒数", "剩余 ≤5s 单独标记"],
+    ["正确率", "2/4 · 50%", "首答与最终答分别计算", "连续错 ≥3 题触发受挫信号"],
+    ["反复提交率", "1/4 · 25%", "提交 ≥3 次题数 / 已答题数", "同题提交 ≥3 次判反复"],
+    ["答题跳出", "第 4 题", "进入题目未提交即 exit", "保留题号与停留时长"]
+  ];
+  const corrections = [
+    ["错题 1", "62s", "✓ 正确", "否", "已掌握", "mastered"],
+    ["错题 2", "118s", "× 仍错", "否", "未掌握", "unmastered"],
+    ["错题 3", "74s", "— 未提交", "是", "待判断", "pending"]
+  ];
+  const miniTable = (rows) => `<div class="stage-rule-list">${rows.map(r => `<div><b>${r[0]}</b><strong>${r[1]}</strong><span>${r[2]}</span><em>${r[3]}</em></div>`).join("")}</div>`;
+  return `<article class="panel panel-full stage-judgement-panel"><div class="panel-header"><div><h3>学—练—改行为判定补充</h3><p>既看完整过程指标，也保留触发异常的阈值与具体位置</p></div><span class="panel-tag">三段闭环</span></div>
+    <div class="stage-judgement-grid">
+      <section style="--stage:#1b8c72"><header><i>学</i><div><b>视频播放行为</b><small>暂停 · 拖拽 · 跳出 · 快进</small></div></header>${miniTable(learnRows)}</section>
+      <section style="--stage:#5b7fc9"><header><i>练</i><div><b>训练答题行为</b><small>耗时 · 倒计时 · 正确率 · 提交 · 跳出</small></div></header>${miniTable(practiceRows)}</section>
+      <section style="--stage:#8772bb"><header><i>改</i><div><b>错题掌握判定</b><small>独立订正会话 · 逐题核验是否真正掌握</small></div></header><div class="correction-judge-table"><div class="cj-head"><span>错题</span><span>时长</span><span>结果</span><span>跳出</span><span>掌握</span></div>${corrections.map(r => `<div><b>${r[0]}</b><span>${r[1]}</span><span>${r[2]}</span><span>${r[3]}</span><em class="${r[5]}">${r[4]}</em></div>`).join("")}</div><footer><span>订正正确率 <b>50%</b></span><span>错题掌握率 <b>33.3%</b></span></footer></section>
+    </div>
+    <div class="stage-judgement-note"><b>掌握判定：</b>原答错误 + 完成订正 + 最终答对 = 已掌握；订正后仍错 = 未掌握；进入错题后跳出或未提交 = 待判断，不计入正确率但计入订正跳出率。</div>
+  </article>`;
+}
+
+function stageSignalCoverage() {
+  const groups = [
+    ["学 · 视频", "暂停 / 拖拽 / 快进 / 回看 / 视频跳出", "6 类", "定位到动画秒数", "#1b8c72"],
+    ["练 · 答题", "秒答 / 临近倒计时 / 超时 / 连续答错 / 反复提交 / 答题跳出", "7 类", "另同步计算逐题正确率", "#5b7fc9"],
+    ["改 · 错题", "订正耗时 / 订正正确率 / 仍答错 / 订正跳出 / 掌握状态", "3 类", "错题 1、2、3 逐题判断", "#8772bb"],
+    ["跨环节", "静默 / 切后台 / 来回横跳 / 超长会话", "4 类", "判断分心与疲劳", "#e9b951"]
+  ];
+  return `<article class="panel panel-full signal-coverage-panel"><div class="panel-header"><div><h3>异常信号覆盖范围</h3><p>20 类信号已覆盖学、练、改三段；指标异常需连续或达到阈值才触发</p></div><span class="panel-tag">20 类信号</span></div><div class="signal-coverage-grid">${groups.map(g => `<div style="--signal:${g[4]}"><span>${g[0]}</span><b>${g[1]}</b><footer><strong>${g[2]}</strong><small>${g[3]}</small></footer></div>`).join("")}</div></article>`;
+}
+
 /* ===================== 方案一 · 连续行为链路还原 ===================== */
 
 function chainTemplate() {
   return `<section class="fade-in">${detailHeader("方案一 · 连续行为链路还原", "以「会话」而非「课时」为观测单位，把每一次打开到离开还原成带时间戳的事件序列，精确定位断点位置。", "核心目标：让每一次脱离可定位")}
     <div class="kpi-grid">${kpiCard("本周会话数", scaled(5180), "+8.4%", "人均 2.2 次 / 周", "次")}${kpiCard("断点会话率", pct(28.4, true), "-2.1%", `${scaled(1472)} 次未完成即离开`, "!", true)}${kpiCard("断点后 24h 回归", pct(51.2), "+4.6%", "72 小时内回归 61.8%", "↻")}${kpiCard("回归后从头重来", pct(34.2, true), "+1.8%", "断点续学定位缺失", "↺", true)}</div>
+    ${stageBehaviorJudgement()}
     <div class="dashboard-grid">
       <article class="panel panel-wide"><div class="panel-header"><div><h3>单次会话回放 · SES-8842</h3><p>初二 L*（已脱敏）· 8 月 6 日 20:14–20:41 · 27 分钟 · 断点脱离</p></div><span class="panel-tag alert-tag">厌烦指数 78 · 受挫型</span></div>${sessionTimeline()}</article>
       <article class="panel"><div class="panel-header"><div><h3>断点位置分布</h3><p>本周 ${scaled(1472)} 次断点会话</p></div></div>${breakDistribution()}</article>
@@ -1081,7 +1178,7 @@ const sessionSteps = [
   ["08:30", "第 2 题 · 答对", "answer · 用时 52 秒", "", ""],
   ["11:02", "第 3 题 · 答错", "answer · 用时 138 秒（该题中位 43 秒）", "单题停留 3.2× 中位", "warn"],
   ["13:40", "第 3 题 · 再次提交 · 仍错", "answer · 第 3 次尝试", "同题反复提交 ≥3 次", "warn"],
-  ["16:20", "第 4 题 · 答错", "answer · 本会话连续第 3 次答错", "连续答错 ≥3 题", "danger"],
+  ["16:20", "第 4 题 · 答错", "answer · 本会话连续第 3 次答错 · 倒计时剩 4 秒", "连续答错 ≥3 题 / 临近倒计时提交", "danger"],
   ["17:50", "第 4 题 · 反复改答案", "answer_change ×4 · 未提交", "答案反复修改 ≥3 次", "warn"],
   ["19:20", "无任何操作", "idle · 持续 142 秒", "静默无操作 ≥90 秒", "danger"],
   ["22:10", "切到后台", "app_background · 5 分 12 秒未回", "频繁切后台", "warn"],
@@ -1104,8 +1201,9 @@ function continuityMarkup() {
 /* ===================== 方案二 · 断点前异常信号 ===================== */
 
 function signalTemplate() {
-  return `<section class="fade-in">${detailHeader("方案二 · 断点前异常信号", "以完课会话为基线，统计脱离前 5 分钟窗口内各类异常行为的出现率与提升度，找出最能预测脱离的前置动作。", "核心目标：在孩子走之前预测到")}
-    <div class="kpi-grid">${kpiCard("信号库规模", "12 项", "+3 项", "可配置阈值，改配置不改代码", "⚡")}${kpiCard("断点前命中率", pct(87.6), "+3.5%", "脱离前 5 分钟命中 ≥1 个信号", "✓")}${kpiCard("最强信号提升度", "4.9×", "—", "连续答错 ≥3 题", "↑")}${kpiCard("平均提前量", "6.4 分钟", "+0.8", "首个信号到真实退出的间隔", "时")}</div>
+  return `<section class="fade-in">${detailHeader("方案二 · 断点前异常信号", "以完课会话为基线，按学、练、改统计脱离前窗口内各类异常行为的出现率与提升度，找出最能预测脱离的前置动作。", "核心目标：在孩子走之前预测到")}
+    <div class="kpi-grid">${kpiCard("信号库规模", "20 项", "+8 项", "覆盖学、练、改完整闭环", "⚡")}${kpiCard("断点前命中率", pct(87.6), "+3.5%", "脱离前 5 分钟命中 ≥1 个信号", "✓")}${kpiCard("最强信号提升度", "4.9×", "—", "连续答错 ≥3 题", "↑")}${kpiCard("平均提前量", "6.4 分钟", "+0.8", "首个信号到真实退出的间隔", "时")}</div>
+    ${stageSignalCoverage()}
     <div class="dashboard-grid">
       <article class="panel panel-full"><div class="panel-header"><div><h3>断点前异常信号提升度排行</h3><p>深色 = 脱离会话出现率　浅色 = 完课会话基线　提升度 = 两者之比</p></div><div class="panel-actions"><button class="mini-tab active">按提升度</button><button class="mini-tab">按覆盖率</button></div></div>${liftTable()}</article>
       <article class="panel"><div class="panel-header"><div><h3>脱离前最后 10 步</h3><p>会话 SES-8842 · 逆序回放</p></div><span class="panel-tag alert-tag">6 步命中</span></div>${replayStrip()}</article>
@@ -1116,7 +1214,10 @@ function signalTemplate() {
 
 function liftTable() {
   const maxLift = Math.max(...signals.map(s => s.lift));
-  return `<div class="lift-list">${signals.map(s => `
+  // 在渲染时排序，而不是依赖 signals 的书写顺序——新信号追加到末尾时，
+  // 面板标着「按提升度」却不再有序。
+  const ranked = [...signals].sort((a, b) => b.lift - a.lift || b.brk - a.brk);
+  return `<div class="lift-list">${ranked.map(s => `
     <div class="lift-row" style="--emo:${emoColor[s.emo]}">
       <div class="lift-name"><b>${s.name}</b><small><em>${s.stage}</em>${s.rule}</small></div>
       <div class="lift-bars">
@@ -1408,27 +1509,64 @@ function userLessonRecord(user, lessonIndex) {
   const minute = (seed * 3) % 48;
   const endTotal = hour * 60 + minute + duration;
   const time = `08/${day} ${String(hour).padStart(2,"0")}:${String(minute).padStart(2,"0")}–${String(Math.floor(endTotal/60)).padStart(2,"0")}:${String(endTotal%60).padStart(2,"0")}`;
-  const jumpNodes = ["学·动画 68%", "练·第 3 题", "改·订正入口"];
-  const accuracy = Math.max(46, 91 - lessonIndex * 3 - (user.churn ? 13 : 0) - seed % 6);
+  const done = status === "done";
+  // 断点落在哪个环节，决定了这次会话走到哪一步——之前不管断在哪都渲染全部 6 题，
+  // 与「断在练第 3 题」自相矛盾。
+  const breakStage = done ? null : ["learn", "practice", "correct"][lessonIndex % 3];
+  const questionLimits = [90, 120, 150, 60, 120, 180];   // 每题倒计时上限（秒）
   const baseTimes = [38, 56, 82, 11, 69, 104];
+  const breakQuestion = breakStage === "practice" ? 2 + seed % 3 : null;   // 断在第几题（0 基）
   const questions = baseTimes.map((base, q) => {
     const seconds = Math.max(7, base + (seed + q * 5) % 17 - 8);
+    const limit = questionLimits[q];
     const correct = (seed + q + lessonIndex) % 4 !== 0;
+    const repeated = q === 2 && (seed + lessonIndex) % 3 === 0;
+    const attempts = repeated ? 3 : (seed + q) % 5 === 0 ? 2 : 1;
+    const buzzer = seconds >= limit - 12 && seconds < limit;              // 压哨提交
+    const abandoned = breakQuestion !== null && q === breakQuestion;      // 进入未提交即离开
+    const skipped = breakQuestion !== null && q > breakQuestion;          // 断点之后根本没做
     let anomaly = "";
-    if (seconds <= 15) anomaly = "秒答";
-    else if (q === 2 && (seed + lessonIndex) % 3 === 0) anomaly = "反复×3";
+    if (abandoned) anomaly = "未提交";
+    else if (seconds <= 15) anomaly = "秒答";
+    else if (repeated) anomaly = "反复×3";
+    else if (buzzer) anomaly = "压哨";
     else if (seconds >= 100) anomaly = "过长";
-    return { seconds, correct, anomaly };
+    return { seconds, limit, correct: abandoned || skipped ? false : correct, attempts, buzzer, abandoned, skipped, anomaly };
   });
+  const answered = questions.filter(q => !q.abandoned && !q.skipped);
+  // 正确率从题目实际对错算，不再另起一套公式——否则表头 89% 和下面 2 道错题对不上。
+  const accuracy = answered.length ? Math.round(answered.filter(q => q.correct).length / answered.length * 100) : 0;
+
+  // 改错环节：练中做错的题逐题重做，用来判断「之前错的是否掌握了」。
+  const reachedCorrection = done || breakStage === "correct";
+  const wrongs = questions.map((q, i) => ({ ...q, no: i + 1 })).filter(q => !q.correct && !q.skipped && !q.abandoned);
+  const breakCorrection = breakStage === "correct" ? seed % Math.max(1, wrongs.length) : null;
+  const corrections = !reachedCorrection ? [] : wrongs.map((w, k) => {
+    const abandoned = breakCorrection !== null && k === breakCorrection;
+    const skipped = breakCorrection !== null && k > breakCorrection;
+    const seconds = Math.max(12, Math.round(w.seconds * (1.1 + ((seed + k * 3) % 7) * .08)));
+    const attempts = (seed + k) % 4 === 0 ? 2 : 1;
+    return {
+      no: w.no, seconds, attempts, abandoned, skipped,
+      fixed: abandoned || skipped ? false : (seed + k * 5 + lessonIndex) % 5 !== 0   // 订正后是否答对
+    };
+  });
+  const attemptedFix = corrections.filter(c => !c.abandoned && !c.skipped);
+  const masteryRate = attemptedFix.length ? Math.round(attemptedFix.filter(c => c.fixed).length / attemptedFix.length * 100) : null;
+
+  const jumpLabel = breakStage === "learn" ? "学·动画中途"
+    : breakStage === "practice" ? `练·第 ${breakQuestion + 1} 题`
+      : breakStage === "correct" ? `改·错题 ${breakCorrection + 1}` : "—";
   return {
     attended: true,
-    status: status === "done" ? "完课" : "参未完",
-    statusClass: status === "done" ? "done" : "unfinished",
+    status: done ? "完课" : "参未完",
+    statusClass: done ? "done" : "unfinished",
     time,
     duration: `${duration} min`,
-    jump: status === "done" ? "—" : status === "learning" ? "当前·练第 4 题" : jumpNodes[lessonIndex % jumpNodes.length],
+    jump: done ? "—" : jumpLabel,
     accuracy: `${accuracy}%`,
-    questions
+    questions, breakStage, breakQuestion, breakCorrection,
+    reachedCorrection, corrections, masteryRate, wrongCount: wrongs.length
   };
 }
 
@@ -1573,12 +1711,17 @@ function sessionEmotion(record) {
   const instant = qs.filter(q => q.anomaly === "秒答");
   const repeat = qs.filter(q => q.anomaly.includes("反复"));
   const slow = qs.filter(q => q.anomaly === "过长");
+  const buzzer = qs.filter(q => q.anomaly === "压哨");            // 临近倒计时才提交
+  const dropped = qs.filter(q => q.abandoned);                    // 进入某题未提交即离开
+  const unfixed = (record.corrections || []).filter(c => !c.fixed && !c.skipped);  // 订正后仍未掌握
   let streak = 0, maxStreak = 0;
-  qs.forEach(q => { streak = q.correct ? 0 : streak + 1; maxStreak = Math.max(maxStreak, streak); });
-  const flagCount = instant.length + repeat.length + slow.length + (isBreak ? 3 : 0);
-  const score = Math.min(96, (isBreak ? 46 : 12) + repeat.length * 9 + slow.length * 7 + maxStreak * 6 + instant.length * 4);
-  const type = score < 40 ? "投入型" : (repeat.length + slow.length + maxStreak) >= instant.length ? "受挫型" : "无聊型";
-  return { isBreak, qs, instant, repeat, slow, maxStreak, flagCount, score, type };
+  qs.filter(q => !q.skipped).forEach(q => { streak = q.correct ? 0 : streak + 1; maxStreak = Math.max(maxStreak, streak); });
+  const flagCount = instant.length + repeat.length + slow.length + buzzer.length + dropped.length + (isBreak ? 3 : 0);
+  const score = Math.min(96, (isBreak ? 46 : 12) + repeat.length * 9 + slow.length * 7 + maxStreak * 6
+    + instant.length * 4 + buzzer.length * 5 + dropped.length * 8 + unfixed.length * 6);
+  const type = score < 40 ? "投入型"
+    : (repeat.length + slow.length + maxStreak + unfixed.length) >= instant.length ? "受挫型" : "无聊型";
+  return { isBreak, qs, instant, repeat, slow, buzzer, dropped, unfixed, maxStreak, flagCount, score, type };
 }
 
 // 月度聚合：把该学生所有参课会话的判定汇总，四步链的每个数字都由此而来。
@@ -1614,7 +1757,7 @@ function userMonitoringFlow(user = null) {
   }
   const steps = [
     ["01", "连续学习表现", user ? `${attended}/9 参课 · ${completed}/9 完课` : "月度 9 节状态 + 会话回放", "先还原每次打开到离开的真实过程", "chain"],
-    ["02", "异常信号", signalText || "断点前 5 分钟 · 12 类信号", "判断离开前发生了什么", "signal"],
+    ["02", "异常信号", signalText || "断点前 5 分钟 · 20 类信号", "判断离开前发生了什么", "signal"],
     ["03", "用户情绪识别", moodText || "受挫 / 无聊 / 涣散三型", "把连续行为转成可验证的情绪判断", "emotion"],
     ["04", "断点优化点", fixText || "定位到动画秒段与具体题号", "将情绪原因落到可改的产品位置", "lesson"]
   ];
@@ -1626,7 +1769,7 @@ function userMonitoringFlow(user = null) {
 // 动画（学环节）内的播放行为：是否拖拽、拖到哪、是否暂停、停在哪。
 // 用「模拟播放」生成：视频位置线性推进，暂停额外消耗墙钟，拖拽瞬时改变位置。
 // 因此每个标记同时有 atVideo（视频位置）和 atSession（会话时刻），两者不会互相矛盾。
-function animationBehavior(user, lessonIndex, isBreak, totalSec) {
+function animationBehavior(user, lessonIndex, isBreak, totalSec, breakStage) {
   const seed = Number(user.id.slice(-2)) + lessonIndex * 7;
   // 先定暂停时长，再倒推动画时长，保证「学环节墙钟 = 12s + 播放 + 暂停」不超过上限。
   // 否则暂停会把学环节顶出预算，外层再夹一次就会出现「切到练习」排在暂停之前的时间倒挂。
@@ -1645,24 +1788,33 @@ function animationBehavior(user, lessonIndex, isBreak, totalSec) {
     const span = videoSec * (backward ? .05 + (seed % 4) * .012 : .12 + (seed % 5) * .022);
     raw.push({ kind: "seek", at, to: Math.max(0, Math.min(videoSec, at + (backward ? -span : span))), backward });
   }
+  // 倍速快进：与「拖拽跳过」不同——不跳过内容，只是加速播放，指向的是「嫌慢」而非「嫌难」。
+  const speedUp = (seed % 5 === 0 || isBreak) ? { kind: "speed", at: videoSec * (.55 + (seed % 4) * .03), rate: seed % 3 === 0 ? 2 : 1.5 } : null;
+  if (speedUp) raw.push(speedUp);
   raw.sort((a, b) => a.at - b.at);
 
-  let wall = 12, pos = 0, play = 0, maxPos = 0;   // 12s = 进入动画的时刻
+  let wall = 12, pos = 0, play = 0, maxPos = 0, rate = 1;   // 12s = 进入动画的时刻
   const marks = [];
   for (const m of raw) {
     if (m.at < pos) continue;                       // 已被拖过去的位置不再触发
-    wall += m.at - pos; play += m.at - pos; pos = m.at; maxPos = Math.max(maxPos, pos);
+    wall += (m.at - pos) / rate; play += m.at - pos; pos = m.at; maxPos = Math.max(maxPos, pos);
     marks.push({ ...m, atSession: Math.round(wall), atVideo: Math.round(pos), toVideo: m.to != null ? Math.round(m.to) : null });
-    if (m.kind === "pause") wall += m.hold; else { pos = m.to; maxPos = Math.max(maxPos, pos); }
+    if (m.kind === "pause") wall += m.hold;
+    else if (m.kind === "speed") rate = m.rate;                 // 之后的播放按倍速走
+    else { pos = m.to; maxPos = Math.max(maxPos, pos); }
   }
-  const endPos = isBreak ? Math.min(videoSec, pos + videoSec * .18) : videoSec;
-  wall += Math.max(0, endPos - pos); play += Math.max(0, endPos - pos);
+  // 断在学环节的会话不会看到底；断在别处的说明动画已看完。
+  const endPos = breakStage === "learn" ? Math.min(videoSec, pos + videoSec * .12) : videoSec;
+  const tail = Math.max(0, endPos - pos);
+  wall += tail / rate; play += tail;
   maxPos = Math.max(maxPos, endPos);
   return {
     videoSec, marks, learnEnd: Math.round(wall), playSeconds: Math.round(play),
     progress: Math.min(1, maxPos / videoSec),   // 完成度按到达过的最远位置算，回看不应拉低它
+    exitedInVideo: breakStage === "learn",
     pauses: marks.filter(m => m.kind === "pause"),
-    seeks: marks.filter(m => m.kind === "seek")
+    seeks: marks.filter(m => m.kind === "seek"),
+    speeds: marks.filter(m => m.kind === "speed")
   };
 }
 
@@ -1698,47 +1850,77 @@ function lessonSessionReplay(user, lessonIndex, record) {
   const sessionId = isBreak ? "SES-8842" : `SES-${8200 + lessonIndex * 37 + Number(user.id.slice(-2))}`;
   const totalSec = parseInt(record.duration, 10) * 60;
   const mmss = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.round(s % 60)).padStart(2, "0")}`;
-  const { qs, instant, repeat, slow, maxStreak, flagCount, score, type } = sessionEmotion(record);
+  const { qs, instant, repeat, slow, buzzer, dropped, unfixed, maxStreak, score, type } = sessionEmotion(record);
 
-  const anim = animationBehavior(user, lessonIndex, isBreak, totalSec);
+  const anim = animationBehavior(user, lessonIndex, isBreak, totalSec, record.breakStage);
   const learnEnd = anim.learnEnd;   // animationBehavior 内部已保证不超预算，此处不能再夹
   const events = [["00:00", "打开课时", "session_start", ""],
     ["00:12", "进入动画", `play · 时长 ${mmss(anim.videoSec)}`, ""]];
   // 学环节事件用模拟播放算出的真实时刻，视频位置与会话时刻一一对应。
-  anim.marks.forEach(m => events.push(m.kind === "pause"
-    ? [mmss(m.atSession), `暂停 · 视频 ${mmss(m.atVideo)}`, `pause · 停留 ${m.hold} 秒`, "warn"]
+  anim.marks.forEach(m => events.push(
+    m.kind === "pause" ? [mmss(m.atSession), `暂停 · 视频 ${mmss(m.atVideo)}`, `pause · 停留 ${m.hold} 秒`, "warn"]
+    : m.kind === "speed" ? [mmss(m.atSession), `倍速快进 ${m.rate}×`, `playback_rate · 从视频 ${mmss(m.atVideo)} 起`, "warn"]
     : [mmss(m.atSession), `${m.backward ? "拖拽回看" : "拖拽跳过"} · 视频 ${mmss(m.atVideo)}`,
        `${m.backward ? "replay" : "seek_forward"} · ${mmss(m.atVideo)} → ${mmss(m.toVideo)}`, "warn"]));
-  events.push([mmss(learnEnd), "切到练习", `stage_switch · 动画完成 ${(anim.progress * 100).toFixed(0)}%`, ""]);
-  const slot = (totalSec - learnEnd) / (qs.length + 1);
-  qs.forEach((q, i) => {
-    const tone = q.anomaly === "过长" || q.anomaly.includes("反复") ? "danger" : q.anomaly === "秒答" ? "warn" : "";
-    events.push([
-      mmss(learnEnd + slot * (i + 1)),
-      q.anomaly ? `第 ${q.no} 题 · ${q.anomaly}` : `第 ${q.no} 题 · ${q.correct ? "答对" : "答错"}`,
-      `用时 ${q.seconds}s · ${q.correct ? "正确" : "错误"}`, tone, `${lessonIndex}-${i}`
-    ]);
-  });
-  if (isBreak) {
-    // 静默必须落在最后一题之后。固定取「总时长 − 90s」时，若题目间隔本就小于 90s，
-    // 会被插到最后一题前面，时间轴出现倒挂。这里锚在最后一题之后，并按实际间隔报时长。
-    const idleAt = Math.max(learnEnd + slot * qs.length + 8, totalSec - 90);
-    events.push([mmss(idleAt), "静默无操作", `idle · ${Math.round(totalSec - idleAt)} 秒未响应`, "warn"]);
+
+  // 断在学环节：不进练习，直接结束。之前不管断在哪都渲染全部 6 题，与断点位置矛盾。
+  if (record.breakStage === "learn") {
+    events.push([mmss(totalSec), "退出课时", `exit · 视频 ${mmss(Math.round(anim.videoSec * anim.progress))}（完成 ${(anim.progress * 100).toFixed(0)}%）`, "break"]);
+  } else {
+    events.push([mmss(learnEnd), "切到练习", `stage_switch · 动画完成 ${(anim.progress * 100).toFixed(0)}%`, ""]);
+    const played = qs.filter(q => !q.skipped);
+    const tail = record.reachedCorrection ? Math.round(totalSec * .78) : totalSec;
+    const slot = (tail - learnEnd) / (played.length + 1);
+    played.forEach((q, i) => {
+      const at = learnEnd + slot * (i + 1);
+      if (q.abandoned) {
+        events.push([mmss(at), `第 ${q.no} 题 · 未提交`, `exit · 停留 ${q.seconds}s 未提交（限时 ${q.limit}s）`, "danger", `${lessonIndex}-${q.no - 1}`]);
+        return;
+      }
+      const tone = q.anomaly === "过长" || q.anomaly.includes("反复") || q.anomaly === "压哨" ? "danger" : q.anomaly === "秒答" ? "warn" : "";
+      const extra = q.attempts > 1 ? ` · 提交 ${q.attempts} 次` : q.buzzer ? ` · 限时 ${q.limit}s 压哨` : "";
+      events.push([mmss(at), q.anomaly ? `第 ${q.no} 题 · ${q.anomaly}` : `第 ${q.no} 题 · ${q.correct ? "答对" : "答错"}`,
+        `用时 ${q.seconds}s · ${q.correct ? "正确" : "错误"}${extra}`, tone, `${lessonIndex}-${q.no - 1}`]);
+    });
+    if (record.breakStage === "practice") {
+      events.push([mmss(totalSec), "退出课时", `exit · ${record.jump}`, "break"]);
+    } else {
+      // 改错环节：把练中错题逐题重做，判断是否掌握。
+      events.push([mmss(tail), "切到订正", `stage_switch · ${record.wrongCount} 道错题待订正`, ""]);
+      const cs = record.corrections.filter(c => !c.skipped);
+      const cslot = (totalSec - tail) / (cs.length + 1);
+      cs.forEach((c, i) => {
+        const at = tail + cslot * (i + 1);
+        if (c.abandoned) {
+          events.push([mmss(at), `错题 ${i + 1}（原第 ${c.no} 题）· 未完成`, `exit · 停留 ${c.seconds}s 未提交`, "danger", `${lessonIndex}-${c.no - 1}`]);
+          return;
+        }
+        events.push([mmss(at), `错题 ${i + 1}（原第 ${c.no} 题）· ${c.fixed ? "已掌握" : "仍错"}`,
+          `correction · 用时 ${c.seconds}s${c.attempts > 1 ? ` · 提交 ${c.attempts} 次` : ""}`, c.fixed ? "" : "danger", `${lessonIndex}-${c.no - 1}`]);
+      });
+      events.push([mmss(totalSec), isBreak ? "退出课时" : "完成学练改",
+        isBreak ? `exit · ${record.jump}` : `complete · 订正掌握 ${record.masteryRate === null ? "—" : record.masteryRate + "%"}`, isBreak ? "break" : "done"]);
+    }
   }
-  events.push([mmss(totalSec), isBreak ? "退出课时" : "完成学练改",
-    isBreak ? `exit · ${record.jump}` : "complete · 学练改闭环", isBreak ? "break" : "done"]);
 
   // 时间轴上真正被标记的事件数：动画行为 + 异常题 + 静默。统计框必须与之相等。
-  const timelineFlags = anim.marks.length + instant.length + repeat.length + slow.length + (isBreak ? 1 : 0);
+  // 直接数时间轴上真正标了色的事件，而不是另起一套公式平行推导——
+  // 平行推导会在「断在学环节、练习题根本没渲染」时把它们也算进去。
+  const timelineFlags = events.filter(e => e[3] === "warn" || e[3] === "danger").length;
   const chain = [];
   if (anim.seeks.some(x => !x.backward)) chain.push(`拖拽跳过 ×${anim.seeks.filter(x => !x.backward).length}`);
   if (anim.seeks.some(x => x.backward)) chain.push(`回看 ×${anim.seeks.filter(x => x.backward).length}`);
+  if (anim.speeds.length) chain.push(`倍速快进 ×${anim.speeds.length}`);
   if (anim.pauses.length) chain.push(`暂停 ×${anim.pauses.length}`);
+  if (anim.exitedInVideo) chain.push("视频中途跳出");
   if (slow.length) chain.push(`单题过长 ×${slow.length}`);
+  if (buzzer.length) chain.push(`压哨提交 ×${buzzer.length}`);
+  if (dropped.length) chain.push(`答题未提交跳出 ×${dropped.length}`);
   if (repeat.length) chain.push(`反复提交 ×${repeat.length}`);
   if (maxStreak >= 2) chain.push(`连续答错 ×${maxStreak}`);
   if (instant.length) chain.push(`秒答 ×${instant.length}`);
-  if (isBreak) chain.push("静默");
+  if (unfixed.length) chain.push(`订正未掌握 ×${unfixed.length}`);
+  if (isBreak && record.breakStage === "correct") chain.push("订正中途跳出");
 
   const worst = [...qs].sort((a, b) => b.seconds - a.seconds)[0];
   const mood = type === "受挫型" ? `多次尝试仍未通过，判为受挫型（指数 ${score}）`
@@ -1749,7 +1931,7 @@ function lessonSessionReplay(user, lessonIndex, record) {
     : type === "无聊型" ? "开放「我会了」跳测，直给挑战题"
       : repeat.length || slow.length ? `第 ${worst.no} 题（${worst.seconds}s）拆解为两问` : "保持当前内容梯度";
 
-  return `<tr class="session-replay-row"><td colspan="12"><div class="inline-session-replay"><header><div><span>单次会话回放</span><h4>${sessionId} · 行为还原</h4><p>${user.name} · ${lessonRows[lessonIndex].name} · ${record.time}</p></div><div class="session-replay-stats"><span><b>${record.duration}</b>会话时长</span><span class="${timelineFlags >= 4 ? "risk" : ""}"><b>${timelineFlags} 个</b>异常信号</span><span class="${score >= 60 ? "risk" : ""}"><b>${score} · ${type}</b>情绪识别</span></div></header>${animationTrack(anim)}<div class="session-event-track">${events.map(e => e[4]
+  return `<tr class="session-replay-row"><td colspan="12"><div class="inline-session-replay"><header><div><span>单次会话回放</span><h4>${sessionId} · 行为还原</h4><p>${user.name} · ${lessonRows[lessonIndex].name} · ${record.time}</p></div><div class="session-replay-stats"><span><b>${record.duration}</b>会话时长</span><span class="${timelineFlags >= 4 ? "risk" : ""}"><b>${timelineFlags} 个</b>异常信号</span><span class="${record.reachedCorrection && record.masteryRate !== null && record.masteryRate < 60 ? "risk" : ""}"><b>${!record.reachedCorrection ? "未进入" : record.masteryRate === null ? "无有效订正" : `${record.masteryRate}%`}</b>订正掌握</span><span class="${score >= 60 ? "risk" : ""}"><b>${score} · ${type}</b>情绪识别</span></div></header>${animationTrack(anim)}<div class="session-event-track">${events.map(e => e[4]
       ? `<button class="session-event is-question ${e[3] ? "is-" + e[3] : ""}" data-question="${e[4]}" title="点击查看原题"><time>${e[0]}</time><i></i><b>${e[1]}</b><small>${e[2]}</small></button>`
       : `<div class="session-event ${e[3] ? "is-" + e[3] : ""}"><time>${e[0]}</time><i></i><b>${e[1]}</b><small>${e[2]}</small></div>`).join("")}</div><footer><div><span>异常信号</span><b>${chain.length ? chain.join(" → ") : "全程无异常信号"}</b></div><i>→</i><div><span>情绪判断</span><b>${mood}</b></div><i>→</i><div class="optimize"><span>产品优化点</span><b>${optimize}</b></div></footer></div></td></tr>`;
 }
@@ -1835,9 +2017,9 @@ const eventRows = [
   ["seek_forward", "动画向前拖动", "起止位置、连续次数", "快进率 / 跳过区间", ""],
   ["replay", "回看已播片段", "区间起止、重复次数", "重复回看信号", "新增"],
   ["stage_switch", "学 / 练 / 改环节切换", "来源环节、目标环节、当前进度", "跳过讲解 / 来回横跳信号", "新增"],
-  ["answer", "提交题目答案", "题目ID、题序、尝试次数、正误、耗时", "正确率 / 单题耗时 / 连错信号", ""],
+  ["answer", "提交题目答案", "题目ID、题序、尝试次数、正误、耗时、倒计时剩余", "秒答 / 临近倒计时 / 正确率 / 反复提交", ""],
   ["answer_change", "提交前修改答案", "题目ID、修改次数", "答案反复修改信号", "新增"],
-  ["correction", "提交错题订正", "题目ID、二答正误、订正次数", "订正率 / 掌握率", ""],
+  ["correction", "提交错题订正", "原错题事件ID、错题序号、耗时、正误、订正轮次", "错题1/2/3 · 订正正确率 / 跳出率 / 掌握率", ""],
   ["hint_view", "查看提示或解析", "题目ID、提示层级", "求助率 / 受挫佐证", "新增"],
   ["idle", "静默超时无操作", "静默时长、所在位置", "静默信号 / 空转时长", "新增"],
   ["app_background / app_foreground", "切后台与回前台", "离开时长、所在位置", "切后台信号 / 分心度", "新增"],
@@ -1850,7 +2032,7 @@ function modelTemplate() {
     ["01", "用户基础表", "students", "同班期画像、购买与结果状态分群", ["student_id · 学生ID", "cohort_code · 班期", "refund_status · 退费状态", "renewal_status · 续费状态", "package_code · 套餐", "device_type · 设备"], "基础层", false],
     ["02", "学习会话表", "learning_sessions", "一次打开到离开为一行 · 断点定位主表", ["session_id · 会话ID", "is_break · 是否断点", "break_stage · 断点环节", "break_position_label · 断点位置", "resume_mode · 续接方式", "boredom_score · 厌烦指数"], "连续行为层", true],
     ["03", "学习事件明细表", "learning_events", "原始行为事实 · 按 event_sequence 还原序列", ["event_name · 18 类事件", "stage · 所属环节", "prev_event_gap_seconds · 距上一步", "question_index · 题序", "answer_attempt · 尝试次数", "properties_json · 扩展"], "连续行为层", true],
-    ["04", "异常信号字典", "anomaly_signal_dict", "12 类信号的判定规则与权重 · 可配置", ["signal_code · 信号编码", "detect_rule · 判定规则", "threshold_json · 阈值", "emotion_type · 情绪归属", "weight · 权重", "reference_lift · 参考提升度"], "信号层", true],
+    ["04", "异常信号字典", "anomaly_signal_dict", "20 类信号的判定规则与权重 · 可配置", ["signal_code · 信号编码", "detect_rule · 判定规则", "threshold_json · 阈值", "emotion_type · 情绪归属", "weight · 权重", "reference_lift · 参考提升度"], "信号层", true],
     ["05", "会话异常明细表", "session_anomaly_signals", "一次会话命中一个信号一行", ["session_id · 会话ID", "signal_code · 信号编码", "seconds_before_break · 距断点秒数", "steps_before_break · 距断点步数", "position_label · 命中位置", "intensity · 强度"], "信号层", true],
     ["06", "学生情绪状态表", "student_emotion_states", "学生 × 自然周 · 厌烦指数与分型", ["boredom_index · 厌烦指数", "emotion_type · 情绪分型", "frustration / boredom / distraction", "top_signal_codes · 主导信号", "alert_level · 预警等级", "suggested_action · 建议动作"], "情绪层", true],
     ["07", "课程学习结果表", "course_learning_results", "每位学生 × 每节课", ["完成时间 / 完成时长", "参课 / 完课 / 跳出", "训练题数 / 首答正确", "错题数 / 订正正确", "lesson_sequence · 课序", "is_completed"], "结果层", false],
@@ -1858,7 +2040,7 @@ function modelTemplate() {
     ["09", "内容质量表", "content_quality", "知识点 × 内容版本 × 日", ["动画ID / 版本", "题集ID / 版本", "break_session_rate · 断点率", "top_break_position · 断点热区", "难度 / 退出指标", "掌握指标"], "评估层", false],
     ["10", "用户结果决策表", "user_outcome_decisions", "一次退费/续费结果一行，冻结当时完课表现与反馈原因", ["outcome_type · 决策类型", "outcome_status · 结果状态", "completion_band · 完课分层", "completion_rate · 当时完课率", "primary_reason_code · 原因", "feedback_source · 反馈来源"], "结果决策层", true]
   ];
-  return `<section class="fade-in">${detailHeader("底层数据模型", "十张表把用户结果、反馈原因、连续行为、异常信号、情绪状态与内容质量串起来。", "10 张表 · 18 类事件 · 12 个视图")}
+  return `<section class="fade-in">${detailHeader("底层数据模型", "十张表把用户结果、反馈原因、连续行为、异常信号、情绪状态与内容质量串起来。", "10 张表 · 18 类事件 · 15 个视图")}
     <div class="model-flow"><span>结果决策</span><i>定位人群</i><span>学生画像</span><i>1 : N</i><span class="is-new">学习会话</span><i>1 : N</i><span class="is-new">行为事件</span><i>规则判定</i><span class="is-new">异常信号</span><i>加权</i><span class="is-new">情绪状态</span><i>验证</i><span>课节结果</span></div>
     <div class="model-grid">${models.map(m => `<article class="model-card ${m[6] ? "is-new" : ""}"><header><span>${m[0]}</span><div><h3>${m[1]}</h3><code>${m[2]}</code></div></header><p>${m[3]}</p><div class="field-list">${m[4].map(f => `<span>${f}</span>`).join("")}</div><footer><i></i>${m[5]}${m[6] ? " · 本次新增" : ""}</footer></article>`).join("")}</div>
     <div class="panel panel-full" style="margin-top:18px"><div class="panel-header"><div><h3>埋点事件口径</h3><p>同一 session_id 内按 event_sequence 排序，即可完整还原一次连续使用行为</p></div><span class="panel-tag">18 类事件 · 7 类新增</span></div><div class="table-wrap"><table class="event-table"><thead><tr><th>事件名</th><th>触发时机</th><th>关键属性</th><th>支持指标</th><th>状态</th></tr></thead><tbody>${eventRows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4] ? '<span class="status-dot is-new">待埋点</span>' : '<span class="status-dot">已上报</span>'}</td></tr>`).join("")}</tbody></table></div></div>
