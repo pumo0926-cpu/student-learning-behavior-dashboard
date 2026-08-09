@@ -729,6 +729,39 @@ h1 { margin: 0; font-size: 23px; letter-spacing: -.035em; line-height: 1.15; }
 .question-open { padding: 3px 6px; border: 1px solid var(--line); border-radius: 5px; background: white; color: var(--ink); cursor: pointer; font: inherit; font-weight: 600; }
 .question-open:hover { border-color: var(--mint); color: var(--mint-deep); background: var(--mint-pale); }
 
+/* ---------- 动画播放行为轨道：拖拽区间与暂停点标在视频时间轴上 ---------- */
+.anim-track { margin: 13px 0 4px; padding: 12px 14px 11px; border: 1px solid var(--line); border-radius: 11px; background: #fbfcfb; }
+.at-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 9px; margin-bottom: 11px; }
+.at-head span { color: var(--faint); font-size: 8px; letter-spacing: .06em; }
+.at-head b { color: var(--ink); font-size: 9px; font-weight: 600; }
+.at-bar { position: relative; height: 12px; margin-bottom: 22px; border-radius: 6px; background: #e9edeb; }
+.at-watched { position: absolute; left: 0; top: 0; height: 100%; border-radius: 6px; background: linear-gradient(90deg, #bfe0d3, #9ccfbc); }
+.at-seg { position: absolute; top: 0; height: 100%; min-width: 3px; border-radius: 3px; }
+.at-seg.is-skip { background: repeating-linear-gradient(45deg, #f4a48f 0 4px, #f6b8a6 4px 8px); }
+.at-seg.is-replay { background: repeating-linear-gradient(45deg, #9fb6e0 0 4px, #b6c8e9 4px 8px); }
+.at-seg em { position: absolute; left: 50%; top: 15px; white-space: nowrap; font-size: 7px; font-style: normal; transform: translateX(-50%); }
+.at-seg.is-skip em { color: #b6503d; }
+.at-seg.is-replay em { color: #4d68a3; }
+.at-pin { position: absolute; top: -3px; }
+.at-pin i { display: block; width: 3px; height: 18px; margin-left: -1.5px; border-radius: 2px; background: var(--yellow); box-shadow: 0 0 0 2px rgba(233,185,81,.22); }
+.at-pin em { position: absolute; left: 50%; top: 20px; color: #997317; white-space: nowrap; font-size: 7px; font-style: normal; transform: translateX(-50%); }
+.at-axis { display: flex; justify-content: space-between; margin-top: -14px; color: var(--faint); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 7px; }
+.at-detail { display: grid; gap: 5px; margin: 11px 0 0; padding: 10px 0 0; border-top: 1px dashed var(--line); list-style: none; }
+.at-detail li { display: grid; grid-template-columns: 104px 1fr auto auto; align-items: center; gap: 9px; font-size: 8px; }
+.at-detail li b { padding: 3px 6px; border-radius: 4px; font-size: 7px; text-align: center; }
+.at-detail li span { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.at-detail li i { color: var(--ink); font-style: normal; font-weight: 600; }
+.at-detail li small { color: var(--faint); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.at-detail li.is-pause b { color: #997317; background: #fff5d6; }
+.at-detail li.is-skip b { color: #b6503d; background: var(--coral-pale); }
+.at-detail li.is-replay b { color: #4d68a3; background: var(--blue-pale); }
+.at-detail li.is-clean { grid-template-columns: 104px 1fr; }
+.at-detail li.is-clean b { color: var(--mint-deep); background: var(--mint-pale); }
+@media (max-width: 760px) {
+  .at-detail li { grid-template-columns: 1fr; gap: 2px; }
+  .at-seg em, .at-pin em { display: none; }
+}
+
     </style>
 
   </head>
@@ -1590,6 +1623,76 @@ function userMonitoringFlow(user = null) {
 
 // 会话回放全部由 record.questions 的真实逐题数据推导，不写死事件。
 // 否则完课的会话也会显示「连续答错、静默 142 秒」，与统计框和页脚结论互相矛盾。
+// 动画（学环节）内的播放行为：是否拖拽、拖到哪、是否暂停、停在哪。
+// 用「模拟播放」生成：视频位置线性推进，暂停额外消耗墙钟，拖拽瞬时改变位置。
+// 因此每个标记同时有 atVideo（视频位置）和 atSession（会话时刻），两者不会互相矛盾。
+function animationBehavior(user, lessonIndex, isBreak, totalSec) {
+  const seed = Number(user.id.slice(-2)) + lessonIndex * 7;
+  // 先定暂停时长，再倒推动画时长，保证「学环节墙钟 = 12s + 播放 + 暂停」不超过上限。
+  // 否则暂停会把学环节顶出预算，外层再夹一次就会出现「切到练习」排在暂停之前的时间倒挂。
+  const cap = Math.round(totalSec * .58);
+  const raw = [];
+  const pauseCount = isBreak ? 1 + seed % 2 : seed % 3 === 0 ? 1 : 0;
+  const holds = Array.from({ length: pauseCount }, (_, i) => 16 + (seed + i * 11) % 46);
+  const totalHold = holds.reduce((a, b) => a + b, 0);
+  const videoSec = Math.max(180, Math.min(Math.round(cap * .84), cap - 12 - totalHold));
+  for (let i = 0; i < pauseCount; i++)
+    raw.push({ kind: "pause", at: videoSec * (.3 + i * .3 + (seed % 6) * .012), hold: holds[i] });
+  const seekCount = isBreak ? 1 + (seed % 3 === 0 ? 1 : 0) : seed % 4 === 0 ? 1 : 0;
+  for (let i = 0; i < seekCount; i++) {
+    const at = videoSec * (.42 + i * .26 + (seed % 5) * .014);
+    const backward = isBreak ? i > 0 : true;   // 断点会话首次拖拽多为快进跳过；完课会话的拖拽多为回看
+    const span = videoSec * (backward ? .05 + (seed % 4) * .012 : .12 + (seed % 5) * .022);
+    raw.push({ kind: "seek", at, to: Math.max(0, Math.min(videoSec, at + (backward ? -span : span))), backward });
+  }
+  raw.sort((a, b) => a.at - b.at);
+
+  let wall = 12, pos = 0, play = 0, maxPos = 0;   // 12s = 进入动画的时刻
+  const marks = [];
+  for (const m of raw) {
+    if (m.at < pos) continue;                       // 已被拖过去的位置不再触发
+    wall += m.at - pos; play += m.at - pos; pos = m.at; maxPos = Math.max(maxPos, pos);
+    marks.push({ ...m, atSession: Math.round(wall), atVideo: Math.round(pos), toVideo: m.to != null ? Math.round(m.to) : null });
+    if (m.kind === "pause") wall += m.hold; else { pos = m.to; maxPos = Math.max(maxPos, pos); }
+  }
+  const endPos = isBreak ? Math.min(videoSec, pos + videoSec * .18) : videoSec;
+  wall += Math.max(0, endPos - pos); play += Math.max(0, endPos - pos);
+  maxPos = Math.max(maxPos, endPos);
+  return {
+    videoSec, marks, learnEnd: Math.round(wall), playSeconds: Math.round(play),
+    progress: Math.min(1, maxPos / videoSec),   // 完成度按到达过的最远位置算，回看不应拉低它
+    pauses: marks.filter(m => m.kind === "pause"),
+    seeks: marks.filter(m => m.kind === "seek")
+  };
+}
+
+function animationTrack(anim) {
+  const fmt = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.round(s % 60)).padStart(2, "0")}`;
+  const pct = (s) => `${(s / anim.videoSec * 100).toFixed(1)}%`;
+  const segs = anim.seeks.map(s => {
+    const a = Math.min(s.atVideo, s.toVideo), b = Math.max(s.atVideo, s.toVideo);
+    return `<span class="at-seg ${s.backward ? "is-replay" : "is-skip"}" style="left:${pct(a)};width:${pct(b - a)}" title="${s.backward ? "回看" : "快进跳过"} ${fmt(s.atVideo)} → ${fmt(s.toVideo)}（会话 ${fmt(s.atSession)}）"><em>${s.backward ? "回看" : "跳过"} ${fmt(b - a)}</em></span>`;
+  }).join("");
+  const pins = anim.pauses.map(p => `<span class="at-pin" style="left:${pct(p.atVideo)}" title="暂停在 ${fmt(p.atVideo)}，停留 ${p.hold} 秒（会话 ${fmt(p.atSession)}）"><i></i><em>暂停 ${fmt(p.atVideo)}</em></span>`).join("");
+  const summary = [
+    `时长 ${fmt(anim.videoSec)}`,
+    `观看至 ${(anim.progress * 100).toFixed(0)}%`,
+    anim.pauses.length ? `暂停 ${anim.pauses.length} 次` : "无暂停",
+    anim.seeks.length ? `拖拽 ${anim.seeks.length} 次` : "无拖拽"
+  ].join(" · ");
+  const detail = anim.marks.length
+    ? anim.marks.map(m => m.kind === "pause"
+        ? `<li class="is-pause"><b>暂停</b><span>视频 ${fmt(m.atVideo)}</span><i>停留 ${m.hold}s</i><small>会话 ${fmt(m.atSession)}</small></li>`
+        : `<li class="${m.backward ? "is-replay" : "is-skip"}"><b>${m.backward ? "向后拖拽 · 回看" : "向前拖拽 · 跳过"}</b><span>视频 ${fmt(m.atVideo)} → ${fmt(m.toVideo)}</span><i>${m.backward ? "重看" : "略过"} ${fmt(Math.abs(m.toVideo - m.atVideo))}</i><small>会话 ${fmt(m.atSession)}</small></li>`).join("")
+    : `<li class="is-clean"><b>无拖拽、无暂停</b><span>完整顺序观看</span></li>`;
+  return `<div class="anim-track">
+    <div class="at-head"><span>动画播放行为</span><b>${summary}</b></div>
+    <div class="at-bar"><i class="at-watched" style="width:${(anim.progress * 100).toFixed(1)}%"></i>${segs}${pins}</div>
+    <div class="at-axis"><span>00:00</span><span>${fmt(anim.videoSec)}</span></div>
+    <ul class="at-detail">${detail}</ul>
+  </div>`;
+}
+
 function lessonSessionReplay(user, lessonIndex, record) {
   const isBreak = record.status === "参未完";
   const sessionId = isBreak ? "SES-8842" : `SES-${8200 + lessonIndex * 37 + Number(user.id.slice(-2))}`;
@@ -1597,13 +1700,16 @@ function lessonSessionReplay(user, lessonIndex, record) {
   const mmss = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.round(s % 60)).padStart(2, "0")}`;
   const { qs, instant, repeat, slow, maxStreak, flagCount, score, type } = sessionEmotion(record);
 
-  const learnEnd = Math.round(totalSec * (isBreak ? .34 : .42));
-  const events = [["00:00", "打开课时", "session_start", ""], ["00:12", "进入动画", "play · 从 00:00 开始", ""]];
-  if (isBreak) {
-    events.push([mmss(learnEnd * .55), "暂停难点", "pause · 停在讲解难点处", "warn"]);
-    events.push([mmss(learnEnd * .78), "重复回看", "replay ×2 · 同一片段", "warn"]);
-  }
-  events.push([mmss(learnEnd), "切到练习", `stage_switch · 动画完成 ${isBreak ? 61 : 100}%`, ""]);
+  const anim = animationBehavior(user, lessonIndex, isBreak, totalSec);
+  const learnEnd = anim.learnEnd;   // animationBehavior 内部已保证不超预算，此处不能再夹
+  const events = [["00:00", "打开课时", "session_start", ""],
+    ["00:12", "进入动画", `play · 时长 ${mmss(anim.videoSec)}`, ""]];
+  // 学环节事件用模拟播放算出的真实时刻，视频位置与会话时刻一一对应。
+  anim.marks.forEach(m => events.push(m.kind === "pause"
+    ? [mmss(m.atSession), `暂停 · 视频 ${mmss(m.atVideo)}`, `pause · 停留 ${m.hold} 秒`, "warn"]
+    : [mmss(m.atSession), `${m.backward ? "拖拽回看" : "拖拽跳过"} · 视频 ${mmss(m.atVideo)}`,
+       `${m.backward ? "replay" : "seek_forward"} · ${mmss(m.atVideo)} → ${mmss(m.toVideo)}`, "warn"]));
+  events.push([mmss(learnEnd), "切到练习", `stage_switch · 动画完成 ${(anim.progress * 100).toFixed(0)}%`, ""]);
   const slot = (totalSec - learnEnd) / (qs.length + 1);
   qs.forEach((q, i) => {
     const tone = q.anomaly === "过长" || q.anomaly.includes("反复") ? "danger" : q.anomaly === "秒答" ? "warn" : "";
@@ -1613,12 +1719,21 @@ function lessonSessionReplay(user, lessonIndex, record) {
       `用时 ${q.seconds}s · ${q.correct ? "正确" : "错误"}`, tone, `${lessonIndex}-${i}`
     ]);
   });
-  if (isBreak) events.push([mmss(totalSec - 90), "静默无操作", "idle · 90 秒未响应", "warn"]);
+  if (isBreak) {
+    // 静默必须落在最后一题之后。固定取「总时长 − 90s」时，若题目间隔本就小于 90s，
+    // 会被插到最后一题前面，时间轴出现倒挂。这里锚在最后一题之后，并按实际间隔报时长。
+    const idleAt = Math.max(learnEnd + slot * qs.length + 8, totalSec - 90);
+    events.push([mmss(idleAt), "静默无操作", `idle · ${Math.round(totalSec - idleAt)} 秒未响应`, "warn"]);
+  }
   events.push([mmss(totalSec), isBreak ? "退出课时" : "完成学练改",
     isBreak ? `exit · ${record.jump}` : "complete · 学练改闭环", isBreak ? "break" : "done"]);
 
+  // 时间轴上真正被标记的事件数：动画行为 + 异常题 + 静默。统计框必须与之相等。
+  const timelineFlags = anim.marks.length + instant.length + repeat.length + slow.length + (isBreak ? 1 : 0);
   const chain = [];
-  if (isBreak) chain.push("重复回看");
+  if (anim.seeks.some(x => !x.backward)) chain.push(`拖拽跳过 ×${anim.seeks.filter(x => !x.backward).length}`);
+  if (anim.seeks.some(x => x.backward)) chain.push(`回看 ×${anim.seeks.filter(x => x.backward).length}`);
+  if (anim.pauses.length) chain.push(`暂停 ×${anim.pauses.length}`);
   if (slow.length) chain.push(`单题过长 ×${slow.length}`);
   if (repeat.length) chain.push(`反复提交 ×${repeat.length}`);
   if (maxStreak >= 2) chain.push(`连续答错 ×${maxStreak}`);
@@ -1634,7 +1749,7 @@ function lessonSessionReplay(user, lessonIndex, record) {
     : type === "无聊型" ? "开放「我会了」跳测，直给挑战题"
       : repeat.length || slow.length ? `第 ${worst.no} 题（${worst.seconds}s）拆解为两问` : "保持当前内容梯度";
 
-  return `<tr class="session-replay-row"><td colspan="12"><div class="inline-session-replay"><header><div><span>单次会话回放</span><h4>${sessionId} · 行为还原</h4><p>${user.name} · ${lessonRows[lessonIndex].name} · ${record.time}</p></div><div class="session-replay-stats"><span><b>${record.duration}</b>会话时长</span><span class="${flagCount >= 4 ? "risk" : ""}"><b>${flagCount} 个</b>异常信号</span><span class="${score >= 60 ? "risk" : ""}"><b>${score} · ${type}</b>情绪识别</span></div></header><div class="session-event-track">${events.map(e => e[4]
+  return `<tr class="session-replay-row"><td colspan="12"><div class="inline-session-replay"><header><div><span>单次会话回放</span><h4>${sessionId} · 行为还原</h4><p>${user.name} · ${lessonRows[lessonIndex].name} · ${record.time}</p></div><div class="session-replay-stats"><span><b>${record.duration}</b>会话时长</span><span class="${timelineFlags >= 4 ? "risk" : ""}"><b>${timelineFlags} 个</b>异常信号</span><span class="${score >= 60 ? "risk" : ""}"><b>${score} · ${type}</b>情绪识别</span></div></header>${animationTrack(anim)}<div class="session-event-track">${events.map(e => e[4]
       ? `<button class="session-event is-question ${e[3] ? "is-" + e[3] : ""}" data-question="${e[4]}" title="点击查看原题"><time>${e[0]}</time><i></i><b>${e[1]}</b><small>${e[2]}</small></button>`
       : `<div class="session-event ${e[3] ? "is-" + e[3] : ""}"><time>${e[0]}</time><i></i><b>${e[1]}</b><small>${e[2]}</small></div>`).join("")}</div><footer><div><span>异常信号</span><b>${chain.length ? chain.join(" → ") : "全程无异常信号"}</b></div><i>→</i><div><span>情绪判断</span><b>${mood}</b></div><i>→</i><div class="optimize"><span>产品优化点</span><b>${optimize}</b></div></footer></div></td></tr>`;
 }

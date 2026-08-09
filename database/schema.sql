@@ -1,4 +1,4 @@
--- 拾光学习用户行为监测数据模型 v2.2
+-- 拾光学习用户行为监测数据模型 v2.3
 -- SQLite 3.x；所有学生标识均应使用业务侧生成的匿名 ID。
 --
 -- v2.0 变更要点：从「课时维度聚合」升级为「会话维度连续行为序列」。
@@ -8,6 +8,7 @@
 --         session_anomaly_signals（断点前异常明细）、student_emotion_states（厌烦情绪状态）。
 --   v2.1 新增：用户结果决策表，从退费/续费结果反向关联完课表现与反馈原因。
 --   v2.2 新增：用户会话级归因视图，把连续表现、异常信号、情绪与断点优化串成一条链。
+--   v2.3 新增：动画播放行为视图，还原学环节内的拖拽与暂停发生在视频的哪一秒。
 
 PRAGMA foreign_keys = ON;
 
@@ -470,6 +471,28 @@ SELECT
 FROM student_emotion_states e
 JOIN students s ON s.student_id = e.student_id
 GROUP BY e.week_start, e.emotion_type, s.grade;
+
+-- 动画播放行为：是否拖拽、拖到哪、是否暂停、停在哪。
+-- 直接由 learning_events 的 play / pause / seek_forward / replay 事件推出，
+-- 关键是 video_position_seconds——它才是「在动画的哪一秒」，与会话墙钟不是一回事。
+CREATE VIEW IF NOT EXISTS v_animation_playback AS
+SELECT
+    e.lesson_id,
+    e.session_id,
+    e.student_id,
+    SUM(CASE WHEN e.event_name = 'pause'        THEN 1 ELSE 0 END) AS pause_count,
+    SUM(CASE WHEN e.event_name = 'seek_forward' THEN 1 ELSE 0 END) AS seek_forward_count,
+    SUM(CASE WHEN e.event_name = 'replay'       THEN 1 ELSE 0 END) AS replay_count,
+    -- 暂停停留总时长：pause 到下一个事件的间隔，记在下一条事件的 prev_event_gap_seconds 上
+    SUM(CASE WHEN e.event_name = 'pause' THEN COALESCE(e.duration_seconds, 0) ELSE 0 END) AS pause_hold_seconds,
+    MIN(CASE WHEN e.event_name = 'pause'        THEN e.video_position_seconds END) AS first_pause_position,
+    MAX(CASE WHEN e.event_name = 'seek_forward' THEN e.video_position_seconds END) AS last_seek_position,
+    MAX(e.video_position_seconds)                                                  AS max_video_position,
+    CASE WHEN SUM(CASE WHEN e.event_name IN ('pause','seek_forward','replay') THEN 1 ELSE 0 END) = 0
+         THEN 'clean' ELSE 'interrupted' END                                       AS playback_pattern
+FROM learning_events e
+WHERE e.stage = 'learn'
+GROUP BY e.lesson_id, e.session_id, e.student_id;
 
 -- 周度监测与课节漏斗（v1.0 保留）。
 CREATE VIEW IF NOT EXISTS v_weekly_learning_monitor AS
