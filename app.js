@@ -1393,7 +1393,8 @@ function usersTemplate() {
   const matrix = `<article class="panel tracking-panel"><div class="panel-header"><div><h3>月度用户课时状态矩阵</h3><p>一个月 9 节：四周每周解锁 2 节，另加 1 节月度综合课；点击用户名查看完整课时明细</p></div><div class="status-legend"><span><i class="done"></i>完课</span><span><i class="learning"></i>参未完</span><span><i class="exit"></i>跳出</span><span><i class="missed"></i>未参</span></div></div>
       <div class="tracking-wrap"><table class="tracking-table month-tracking-table"><thead><tr class="week-band"><th rowspan="2">用户</th><th rowspan="2">结果状态</th><th colspan="2">第 1 周</th><th colspan="2">第 2 周</th><th colspan="2">第 3 周</th><th colspan="2">第 4 周</th><th>月度加课</th></tr><tr>${lessonRows.map((_,i)=>`<th>L${String(i+1).padStart(2,"0")}</th>`).join("")}</tr></thead><tbody>${visibleUsers.map(u=>`<tr><td><button class="student-name-button" data-select-user="${u.id}"><b>${u.name}</b><small>${u.id} · ${u.city} · ${u.channel}</small><em>查看课时明细 →</em></button></td><td><span class="lifecycle ${u.refunded?'churn':'active'}">${u.refunded?'已退费':'未退费'}</span><span class="lifecycle ${u.renew?'renew':'no-renew'}">${u.renew?'已续费':'未续费'}</span>${isPotentialRisk(u)?'<span class="lifecycle risk">潜在风险</span>':''}</td>${u.states.map((s,i)=>`<td><button class="lesson-state ${statusMeta[s][1]}" data-user-detail="${u.id}" data-lesson="${i}" title="${u.name} · ${lessonRows[i].name} · ${statusMeta[s][0]}"><i></i><span>${s==="learning"||s==="exit"?"参未完":s==="missed"?"未参":"完课"}</span></button></td>`).join("")}</tr>`).join("")}</tbody></table></div>
     </article>`;
-  const groupAnalysis = selectedUser ? "" : `<section id="analysis-step-02" class="analysis-step-section" data-analysis-section="02">${signalDistributionPanel()}</section>
+  // 单用户下钻只替换第 01 步的矩阵；02–04 仍作为同一筛选人群的对照基线保留。
+  const groupAnalysis = `<section id="analysis-step-02" class="analysis-step-section" data-analysis-section="02">${signalDistributionPanel()}</section>
     <section id="analysis-step-03" class="analysis-step-section" data-analysis-section="03">${userEmotionAndWarningPanel(visibleUsers)}</section>
     <section id="analysis-step-04" class="analysis-step-section optimization-output-section" data-analysis-section="04"><div class="optimization-step-head"><div><span>04 / 断点优化</span><h2>把共性断点转成产品优化动作</h2><p>用结果人群对照判断优先级，再将动作定位到提醒时机、动画片段、具体题目与订正路径。</p></div><em>输出：可执行、可验证</em></div>
       <div class="compare-grid"><article><span>退费用户典型路径</span><b>连续 2 节未参课 → 退费风险升高</b><p>首次跳出多集中于 L03、L05，且跳出前一节正确率均值低于 65%。</p></article><article><span>续费用户典型路径</span><b>前 6 节完成 ≥ 5 节 → 续费率 71%</b><p>稳定完课用户的错题订正率比未续费用户高 19.4 个百分点。</p></article></div>
@@ -1402,7 +1403,7 @@ function usersTemplate() {
     </section>`;
   return `<section class="fade-in">${detailHeader("用户行为归因：连续学表现 → 异常信号 → 情绪识别 → 断点优化", "先看连续学习事实，再定位异常、识别使用情绪，并将断点落到可执行的产品优化位置。", "点击用户/课时：展开会话回放")}
     ${userMonitoringFlow(selectedUser)}
-    ${selectedUser ? "" : analysisProcessNav()}
+    ${analysisProcessNav()}
     <section id="analysis-step-01" class="analysis-step-section" data-analysis-section="01"><div class="continuity-section-head"><div><span>01 / 连续学表现</span><h2>用户学习行为的连续性表现</h2><p>从当前用户生命周期月份开始，每月连续观察四周 8 节常规课和 1 节月度加课。</p></div><em>当前用户生命周期月份开始</em></div>
       <div class="analysis-toolbar"><div><span>当前用户生命周期月份开始</span><b>${lifecyclePeriod()[1]} · ${lifecyclePeriod()[2]} · ${courseFilterLabel()} · ${packageFilterLabel()} · ${courseStartLabel()}开课</b></div><label>周期<select data-lifecycle-period>${lifecyclePeriodOptions()}</select></label><span class="cohort-range">同批进入 2,384 人 · ${lifecyclePeriod()[1]} 共 9 节</span></div>
       <div class="month-plan"><span><b>第 1 周</b>L01–L02</span><i></i><span><b>第 2 周</b>L03–L04</span><i></i><span><b>第 3 周</b>L05–L06</span><i></i><span><b>第 4 周</b>L07–L08</span><i></i><span class="extra"><b>月度加课</b>L09 综合挑战</span></div>
@@ -1410,7 +1411,8 @@ function usersTemplate() {
       <div class="segment-definition"><b>潜在流失风险口径</b><span>未退费且未续费，并在最近 4 节中至少 2 节出现未参、参未完或跳出。</span></div>
       ${selectedUser ? userLessonDetailTable(selectedUser) : matrix}
     </section>
-    ${selectedUser ? insight(`<b>${selectedUser.name} 的月度行为：</b>异常标签已按题目阈值标记——≤15 秒为秒答，同题提交 ≥3 次为反复，≥100 秒为过长；可直接定位需要回放的题目。`) : groupAnalysis}
+    ${selectedUser ? insight(`<b>${selectedUser.name} 的月度行为：</b>异常标签已按题目阈值标记——≤15 秒为秒答，同题提交 ≥3 次为反复，≥100 秒为过长；可直接定位需要回放的题目。下方继续保留同一筛选人群的异常信号、情绪预警、断点优化与已流失用户共性分析，便于将个体表现放回群体基线中对照。`) : ""}
+    ${groupAnalysis}
     ${drawerShell()}
   </section>`;
 }
