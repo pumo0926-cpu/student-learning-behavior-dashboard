@@ -4,13 +4,6 @@
 
 ## 这一版解决什么问题
 
-新增**学习报告中心**，把用户行为证据转成两套可交付内容：
-
-- 日报、周报、月报、阶段报告四种周期，支持切换学生与报告期次；
-- 家长版只展示学习完成、投入时间、练习表现、订正掌握、阶段亮点和陪伴建议，不暴露快进、秒答、发呆等监控细节；
-- 服务方版按“结论 → 学习事实 → 结果表现 → 过程信号 → 服务动作”给出证据链，同时提供可复制话术、追问清单与沟通边界；
-- 家长报告可直接调用浏览器打印，保存为 PDF；当前页数据也可继续导出 CSV。
-
 看板默认从**用户最终决策结果**出发，而不是先看行为指标：
 
 - 顶部及用户行为归因统一使用五类针对人群：全部、退费、未退费、续费、未续费；
@@ -83,7 +76,7 @@ node build-standalone.mjs
 
 ## 数据库
 
-[`database/schema.sql`](database/schema.sql) 是可直接执行的 SQLite 数据模型（v2.9），13 张表：
+[`database/schema.sql`](database/schema.sql) 是可直接执行的 SQLite 数据模型（v2.8），11 张表：
 
 | 层 | 表 | 说明 |
 | --- | --- | --- |
@@ -97,16 +90,13 @@ node build-standalone.mjs
 | 评估 | `content_quality` | 知识点 × 内容版本的质量快照 |
 | 决策 | `user_outcome_decisions` | 退费/续费结果、当时完课分层与反馈原因快照 |
 | 原声 | `parent_voice_feedback` | 指导师收到的脱敏家长微信原声、分类标签及行为匹配结论 |
-| 报告 | `learning_report_snapshots` | 学生 × 日/周/月/阶段报告快照、审核与发布状态 |
-| 服务 | `report_service_interpretations` | 服务方证据链、话术、沟通边界与跟进结果 |
 
-外加 18 个语义视图：
+外加 17 个语义视图：
 
 - 结果决策：`v_user_outcome_decision`（结果状态 → 完课分层 → 反馈原因）、`v_parent_voice_behavior_attribution`（家长原声 → 分类主题 → 孩子行为 → 归因动作）
 - 连续行为：`v_breakpoint_distribution`（断点分布）、`v_pre_exit_signal_lift`（信号提升度）、`v_session_continuity`（断后回归）、`v_emotion_cohort`（情绪分层）、`v_animation_playback`（暂停/拖拽/快进/视频跳出）
 - 迭代归因：`v_lesson_attribution`（课时归因）、`v_lesson_stage_effectiveness`（视频行为 → 题目表现 → 解析/改错/二次正确的三段效果链）、`v_cohort_lesson_tracking`（班期用户追踪）、`v_question_duration`（单次作答）、`v_lesson_question_performance`（课时 × 题目的耗时/正确率/跳出率）、`v_practice_question_judgement`（秒答/倒计时/反复提交/答题跳出）、`v_correction_mastery`（错题 1/2/3 的解析查看、订正耗时、改错命中、二次正确、跳出与掌握）、`v_user_breakpoint_emotion_attribution`（会话异常 → 情绪 → 断点优化）
 - 原有：`v_weekly_learning_monitor`、`v_lesson_funnel`
-- 报告交付：`v_learning_report_delivery`（家长报告 → 服务解读 → 跟进状态）
 
 ```bash
 sqlite3 learning_analytics.db < database/schema.sql

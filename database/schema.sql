@@ -1,4 +1,4 @@
--- 周周学，周周up用户行为监测数据模型 v2.9
+-- 周周学，周周up用户行为监测数据模型 v2.8
 -- SQLite 3.x；所有学生标识均应使用业务侧生成的匿名 ID。
 --
 -- v2.0 变更要点：从「课时维度聚合」升级为「会话维度连续行为序列」。
@@ -14,7 +14,6 @@
 --   v2.6 新增：城市、体验课、学年类型画像及家长微信原声分类与行为归因表。
 --   v2.7 新增：语文学科、全年/半年课包与四类半年班型，全年包支持追踪 M1–M12。
 --   v2.8 新增：课时“视频→题目→改错”效果视图，补充解析查看、改错命中与二次正确口径。
---   v2.9 新增：日/周/月/阶段学习报告及服务方解读快照，支持审核、分享与话术追溯。
 
 PRAGMA foreign_keys = ON;
 
@@ -406,56 +405,6 @@ CREATE TABLE IF NOT EXISTS parent_voice_feedback (
     FOREIGN KEY (outcome_record_id) REFERENCES user_outcome_decisions(outcome_record_id)
 );
 
--- 12. 学习报告快照：固化生成当时的口径与家长版文案，避免后续数据变化导致已分享报告变动。
-CREATE TABLE IF NOT EXISTS learning_report_snapshots (
-    report_id                TEXT PRIMARY KEY,
-    student_id               TEXT NOT NULL,
-    report_type              TEXT NOT NULL CHECK (report_type IN ('daily', 'weekly', 'monthly', 'stage')),
-    period_start             TEXT NOT NULL,
-    period_end               TEXT NOT NULL,
-    generated_at             TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    unlocked_lesson_count    INTEGER NOT NULL DEFAULT 0 CHECK (unlocked_lesson_count >= 0),
-    attended_lesson_count    INTEGER NOT NULL DEFAULT 0 CHECK (attended_lesson_count >= 0),
-    completed_lesson_count   INTEGER NOT NULL DEFAULT 0 CHECK (completed_lesson_count >= 0),
-    learning_seconds         INTEGER NOT NULL DEFAULT 0 CHECK (learning_seconds >= 0),
-    accuracy_rate            REAL CHECK (accuracy_rate IS NULL OR accuracy_rate BETWEEN 0 AND 1),
-    correction_mastery_rate  REAL CHECK (correction_mastery_rate IS NULL OR correction_mastery_rate BETWEEN 0 AND 1),
-    rhythm_label             TEXT,
-    highlight_json           TEXT CHECK (highlight_json IS NULL OR json_valid(highlight_json)),
-    focus_topic_json         TEXT CHECK (focus_topic_json IS NULL OR json_valid(focus_topic_json)),
-    parent_summary           TEXT NOT NULL,
-    parent_action_json       TEXT CHECK (parent_action_json IS NULL OR json_valid(parent_action_json)),
-    data_cutoff_at           TEXT NOT NULL,
-    review_status            TEXT NOT NULL DEFAULT 'draft' CHECK (review_status IN ('draft', 'reviewed', 'published', 'withdrawn')),
-    reviewed_by              TEXT,
-    reviewed_at              TEXT,
-    published_at             TEXT,
-    share_token_hash         TEXT,
-    FOREIGN KEY (student_id) REFERENCES students(student_id),
-    CHECK (date(period_end) >= date(period_start)),
-    UNIQUE (student_id, report_type, period_start, period_end)
-);
-
--- 13. 服务方报告解读：与家长版一对一，保留证据、话术、边界和跟进结果。
-CREATE TABLE IF NOT EXISTS report_service_interpretations (
-    interpretation_id       INTEGER PRIMARY KEY AUTOINCREMENT,
-    report_id                TEXT NOT NULL UNIQUE,
-    possible_primary_cause   TEXT,
-    evidence_json            TEXT NOT NULL CHECK (json_valid(evidence_json)),
-    risk_level               TEXT NOT NULL CHECK (risk_level IN ('stable', 'watch', 'high')),
-    service_action           TEXT NOT NULL,
-    suggested_script         TEXT NOT NULL,
-    followup_questions_json  TEXT CHECK (followup_questions_json IS NULL OR json_valid(followup_questions_json)),
-    communication_boundary   TEXT,
-    owner_advisor_id         TEXT,
-    followup_due_at          TEXT,
-    followup_status          TEXT NOT NULL DEFAULT 'pending' CHECK (followup_status IN ('pending', 'contacted', 'completed', 'cancelled')),
-    followup_result          TEXT,
-    created_at               TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at               TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (report_id) REFERENCES learning_report_snapshots(report_id)
-);
-
 -- ============================================================
 -- 五、索引
 -- ============================================================
@@ -498,12 +447,6 @@ CREATE INDEX IF NOT EXISTS idx_parent_voice_outcome_topic
     ON parent_voice_feedback (primary_topic, recorded_at, outcome_record_id);
 CREATE INDEX IF NOT EXISTS idx_parent_voice_student_time
     ON parent_voice_feedback (student_id, recorded_at);
-CREATE INDEX IF NOT EXISTS idx_report_student_period
-    ON learning_report_snapshots (student_id, report_type, period_start, period_end);
-CREATE INDEX IF NOT EXISTS idx_report_publish_status
-    ON learning_report_snapshots (review_status, published_at);
-CREATE INDEX IF NOT EXISTS idx_report_service_followup
-    ON report_service_interpretations (followup_status, followup_due_at, risk_level);
 
 -- ============================================================
 -- 六、异常信号字典种子数据（配置项，非演示数据）
@@ -1404,40 +1347,5 @@ LEFT JOIN student_emotion_states es
        WHERE e2.student_id = ls.student_id
          AND e2.week_start <= date(ls.started_at)
    );
-
--- 报告交付视图：一行展示一份家长报告的学习结果、服务解读与跟进状态。
-CREATE VIEW IF NOT EXISTS v_learning_report_delivery AS
-SELECT
-    r.report_id,
-    r.student_id,
-    s.grade,
-    s.subject,
-    s.package_type,
-    s.cohort_code,
-    r.report_type,
-    r.period_start,
-    r.period_end,
-    r.unlocked_lesson_count,
-    r.attended_lesson_count,
-    r.completed_lesson_count,
-    r.learning_seconds,
-    r.accuracy_rate,
-    r.correction_mastery_rate,
-    r.rhythm_label,
-    r.parent_summary,
-    r.parent_action_json,
-    r.review_status,
-    r.published_at,
-    i.possible_primary_cause,
-    i.evidence_json,
-    i.risk_level,
-    i.service_action,
-    i.suggested_script,
-    i.followup_due_at,
-    i.followup_status,
-    i.followup_result
-FROM learning_report_snapshots r
-JOIN students s ON s.student_id = r.student_id
-LEFT JOIN report_service_interpretations i ON i.report_id = r.report_id;
 
 COMMIT;

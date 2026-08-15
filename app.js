@@ -1,4 +1,4 @@
-const state = { view: "framework", period: "m1", analysisCycle: "product", segment: "all", grade: "g7", subject: "math", packageType: "half", courseStartDate: "2026-08-01", userGroup: "all", selectedUser: null, selectedLessonSession: null, outcome: "refund", expandedLesson: 4, signalSort: "lift", chainRange: "current", reportType: "week", reportStudent: "STU-1132", reportAudience: "parent", reportOffset: 0 };
+const state = { view: "framework", period: "m1", analysisCycle: "product", segment: "all", grade: "g7", subject: "math", packageType: "half", courseStartDate: "2026-08-01", userGroup: "all", selectedUser: null, selectedLessonSession: null, outcome: "refund", expandedLesson: 4, signalSort: "lift", chainRange: "current" };
 let analysisStepObserver = null;
 let drawerReturnFocus = null;
 
@@ -1417,104 +1417,6 @@ function usersTemplate() {
   </section>`;
 }
 
-/* ===================== 学习报告中心 ===================== */
-
-const reportTypes = [
-  ["day", "日报", "当日学习反馈"],
-  ["week", "周报", "一周节奏与收获"],
-  ["month", "月报", "四周进步总结"],
-  ["stage", "阶段报告", "阶段能力与规划"]
-];
-
-function reportRange(type) {
-  const offset = state.reportOffset;
-  if (type === "day") {
-    const index = Math.max(0, Math.min(8, 5 + offset));
-    return { indexes: [index], label: `2026 年 8 月 ${12 + index} 日`, short: lessonRows[index].name.split("·")[0].trim() };
-  }
-  if (type === "week") {
-    const week = Math.max(1, Math.min(4, 3 + offset));
-    return { indexes: [(week - 1) * 2, (week - 1) * 2 + 1], label: `2026 年 8 月第 ${week} 周`, short: `W${week}` };
-  }
-  if (type === "month") return { indexes: [0,1,2,3,4,5,6,7,8], label: "2026 年 8 月", short: "M1" };
-  return { indexes: [0,1,2,3,4,5,6,7,8], label: "M1 · 基础建立阶段（2026 年 8 月）", short: "M1 阶段" };
-}
-
-function reportSnapshot(user, type) {
-  const range = reportRange(type);
-  const records = range.indexes.map(index => ({ index, ...userLessonRecord(user, index) }));
-  const learned = records.filter(record => record.attended);
-  const completed = learned.filter(record => record.status === "完课");
-  const minutes = learned.reduce((sum, record) => sum + (parseInt(record.duration, 10) || 0), 0);
-  const accuracy = learned.length ? Math.round(learned.reduce((sum, record) => sum + (parseInt(record.accuracy, 10) || 0), 0) / learned.length) : 0;
-  const masteryRows = learned.filter(record => record.masteryRate !== null && record.masteryRate !== undefined);
-  const mastery = masteryRows.length ? Math.round(masteryRows.reduce((sum, record) => sum + Number(record.masteryRate), 0) / masteryRows.length) : 0;
-  const profile = userMonthlyProfile(user);
-  const rhythm = completed.length === records.length ? "稳定" : completed.length >= Math.max(1, records.length - 1) ? "基本稳定" : "需要陪伴";
-  const focusLesson = learned.length ? learned.reduce((worst, record) => (parseInt(record.accuracy, 10) || 100) < (parseInt(worst.accuracy, 10) || 100) ? record : worst, learned[0]) : null;
-  return { range, records, learned, completed, minutes, accuracy, mastery, profile, rhythm, focusLesson };
-}
-
-function reportTrend(snapshot, type) {
-  if (type === "day") return [58, 62, 68, 66, 74, snapshot.accuracy || 72];
-  if (type === "week") return [62, 68, 66, 73, 76, snapshot.accuracy || 74];
-  if (type === "month") return [64, 69, 72, snapshot.accuracy || 73];
-  return [63, 71, Math.max(74, snapshot.accuracy || 74)];
-}
-
-function sparkline(values) {
-  const min = Math.min(...values) - 4, max = Math.max(...values) + 4;
-  const points = values.map((value, index) => `${index * (100 / (values.length - 1))},${52 - (value - min) / (max - min) * 44}`).join(" ");
-  return `<svg class="report-spark" viewBox="0 0 100 56" preserveAspectRatio="none" aria-label="正确率变化趋势"><defs><linearGradient id="reportArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b8c72" stop-opacity=".22"/><stop offset="1" stop-color="#1b8c72" stop-opacity="0"/></linearGradient></defs><polygon points="0,56 ${points} 100,56" fill="url(#reportArea)" stroke="none"/><polyline points="${points}" fill="none" stroke="#1b8c72" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>`;
-}
-
-function parentReport(user, snapshot, type) {
-  const typeLabel = reportTypes.find(item => item[0] === type)[1];
-  const total = snapshot.records.length;
-  const learned = snapshot.learned.length;
-  const focusName = snapshot.focusLesson ? lessonRows[snapshot.focusLesson.index].name.split("·")[1].trim() : "本期学习内容";
-  const positive = snapshot.completed.length === total
-    ? `本${typeLabel.replace("报", "")}的学习节奏很稳定，解锁内容均已完成。`
-    : learned ? `本${typeLabel.replace("报", "")}已开始 ${learned} 节课，学习节奏正在建立。`
-      : "本期尚未开始学习，可以和孩子一起选一个轻松的时间启动。";
-  const stageCopy = type === "stage" ? `<section class="report-stage-road"><header><span>阶段成长路径</span><b>从“跟着做”到“能迁移”</b></header><div><span class="done"><i>✓</i><b>基础概念</b><small>能识别并完成基础题</small></span><em>→</em><span class="done"><i>✓</i><b>方法运用</b><small>能在类似题中使用方法</small></span><em>→</em><span><i>3</i><b>综合迁移</b><small>下阶段重点</small></span></div></section>` : "";
-  return `<article class="parent-report-paper">
-    <header class="parent-report-cover"><div><span>${typeLabel} · ${snapshot.range.short}</span><h2>${user.name.replace("*", "同学")}的${subjectFilterLabel()}学习报告</h2><p>${snapshot.range.label} · ${gradeFilterLabel()} · ${packageFilterLabel()}</p></div><i>${user.name.slice(0,1)}</i></header>
-    <section class="parent-opening"><span>给家长的一句话</span><h3>${positive}</h3><p>我们更关注孩子是否愿意继续学、是否真正掌握，而不是单纯追求时长。</p></section>
-    <section class="parent-metric-grid"><div><small>学习完成</small><b>${snapshot.completed.length}<em> / ${total} 节</em></b><span>${snapshot.rhythm}</span></div><div><small>投入时间</small><b>${snapshot.minutes}<em> 分钟</em></b><span>有效学习累计</span></div><div><small>练习表现</small><b>${snapshot.accuracy || "—"}<em>${snapshot.accuracy ? "%" : ""}</em></b><span>答题正确率</span></div><div><small>订正掌握</small><b>${snapshot.mastery || "—"}<em>${snapshot.mastery ? "%" : ""}</em></b><span>改错后二次答对</span></div></section>
-    <section class="report-learning-view"><div><span>学习状态</span><h3>${snapshot.rhythm === "稳定" ? "节奏稳定，正在形成好习惯" : "已经起步，需要把节奏稳下来"}</h3><p>${focusName}是本期最值得再巩固的内容。从练习结果看，孩子已经有一定基础，再给一次独立完成同类题的机会，更容易把方法真正掌握。</p><div class="report-trend"><span>近期练习趋势</span>${sparkline(reportTrend(snapshot, type))}<small>整体呈向上趋势</small></div></div><aside><span>本期亮点</span><ul><li><i>✓</i><p><b>愿意继续尝试</b><small>遇到错题后有订正动作</small></p></li><li><i>✓</i><p><b>基础知识较扎实</b><small>常规练习正确率 ${snapshot.accuracy || 0}%</small></p></li><li><i>↑</i><p><b>学习节奏在进步</b><small>从提醒启动向主动完成过渡</small></p></li></ul></aside></section>
-    ${stageCopy}
-    <section class="parent-action"><span>下一步，家长可以这样陪伴</span><h3>一次 15 分钟的轻陪伴，比追问分数更有效</h3><div><p><b>1</b>请孩子用自己的话讲一遍“${focusName}”的解题思路。</p><p><b>2</b>只问“哪一步最需要帮助”，不回放快进、答错等过程细节。</p><p><b>3</b>按计划完成下一节课，继续观察是否能独立迁移。</p></div></section>
-    <footer><span>数据截至 2026-08-15 10:32</span><span>报告用于学习陪伴，不作为对孩子的评价或心理判断</span></footer>
-  </article>`;
-}
-
-function serviceInterpretation(user, snapshot, type) {
-  const focus = snapshot.focusLesson;
-  const focusName = focus ? lessonRows[focus.index].name : "暂无有效学习记录";
-  const warning = dropoutWarning(user);
-  const issue = snapshot.profile.type === "受挫型" ? "难度受挫" : snapshot.profile.type === "无聊型" ? "节奏偏慢" : snapshot.profile.type === "涣散型" ? "学习节奏中断" : "整体正向";
-  const script = `您好，这期我们看到${user.name.replace("*", "同学")}已完成 ${snapshot.completed.length} 节课，一共投入 ${snapshot.minutes} 分钟。好的地方是孩子愿意继续尝试，并且有改错动作。接下来最值得关注的是${focusName.split("·")[1]?.trim() || focusName}，建议这周用 15 分钟让孩子讲一遍思路，我们会继续看下一节的独立完成情况。`;
-  return `<article class="service-brief">
-    <header><div><span>SERVICE BRIEF · 仅服务方可见</span><h2>${user.name}报告解读单</h2><p>${snapshot.range.label} · 解读路径：先结论 → 再证据 → 后建议</p></div><em class="service-risk is-${warning.level === "高危" ? "high" : "watch"}">${warning.level} · ${warning.score}</em></header>
-    <section class="service-conclusion"><span>01 · 先说结论</span><h3>${snapshot.rhythm === "稳定" ? "学习节奏稳定，需继续强化效果感知" : "学习已经发生，但连续性需要优先稳住"}</h3><p>当前可能性主因为<b>${issue}</b>。这是基于行为的服务判断，不是对孩子的心理定性。</p></section>
-    <section class="evidence-chain"><header><span>02 · 证据链</span><b>每个判断都要能回到行为事实</b></header><div><article><i>1</i><span>学习事实</span><b>${snapshot.learned.length}/${snapshot.records.length} 节参课 · ${snapshot.completed.length} 节完课</b><small>${snapshot.minutes} 分钟有效学习</small></article><em>→</em><article><i>2</i><span>结果表现</span><b>正确率 ${snapshot.accuracy || 0}% · 订正 ${snapshot.mastery || 0}%</b><small>薄弱内容：${focusName}</small></article><em>→</em><article><i>3</i><span>过程信号</span><b>${snapshot.profile.type} · 指数 ${snapshot.profile.index}</b><small>过长 ${snapshot.profile.slow} · 反复 ${snapshot.profile.repeat} · 秒答 ${snapshot.profile.instant}</small></article><em>→</em><article><i>4</i><span>服务动作</span><b>${warning.level === "高危" ? "24 小时内触达" : "本周完成一次解读"}</b><small>陪伴后观察下一节独立完成</small></article></div></section>
-    <section class="service-grid"><article><span>03 · 建议话术</span><blockquote id="serviceScript">${script}</blockquote><button data-copy-script>复制解读话术</button></article><article><span>04 · 沟通追问</span><ul><li>孩子最近一般在什么时间学？这个时间是否容易被打断？</li><li>孩子会不会主动提到哪一部分有意思或有点难？</li><li>家长更希望下一阶段看到习惯、能力还是成绩变化？</li></ul></article></section>
-    <section class="service-boundary"><span>沟通边界</span><div><p class="do"><b>✓ 建议说</b>“这段内容值得再巩固一次”、“我们一起找合适节奏”</p><p class="dont"><b>× 不要说</b>“孩子不认真”、“经常乱选”、“我们监测到他发呆”</p></div></section>
-  </article>`;
-}
-
-function reportsTemplate() {
-  const user = trackingUsers.find(item => item.id === state.reportStudent) || trackingUsers[0];
-  const snapshot = reportSnapshot(user, state.reportType);
-  return `<section class="fade-in report-center">
-    <div class="report-center-head"><div><span>BEHAVIOR TO GROWTH</span><h2>从行为数据，到家长看得懂的成长报告</h2><p>家长版只呈现学习进展、收获和陪伴建议；服务方版保留行为证据、解读话术与沟通边界。</p></div><span class="data-note"><i></i> 演示报告 · 数据已脱敏</span></div>
-    <div class="report-toolbar"><label><span>学生</span><select data-report-student>${trackingUsers.map(item => `<option value="${item.id}" ${item.id === user.id ? "selected" : ""}>${item.name} · ${item.id}</option>`).join("")}</select></label><div class="report-type-tabs">${reportTypes.map(item => `<button class="${state.reportType === item[0] ? "active" : ""}" data-report-type="${item[0]}"><b>${item[1]}</b><small>${item[2]}</small></button>`).join("")}</div><div class="report-period"><button data-report-shift="-1" aria-label="上一期">‹</button><span><small>报告周期</small><b>${snapshot.range.label}</b></span><button data-report-shift="1" aria-label="下一期">›</button></div></div>
-    <div class="audience-switch"><span>查看视角</span><button class="${state.reportAudience === "parent" ? "active" : ""}" data-report-audience="parent"><i>家</i><b>家长版报告</b><small>可分享·无监控语言</small></button><button class="${state.reportAudience === "service" ? "active" : ""}" data-report-audience="service"><i>服</i><b>服务方解读</b><small>证据链·话术·行动</small></button><div class="audience-actions"><button data-print-report>打印 / 导出 PDF</button></div></div>
-    <div id="reportDocument">${state.reportAudience === "parent" ? parentReport(user, snapshot, state.reportType) : serviceInterpretation(user, snapshot, state.reportType)}</div>
-  </section>`;
-}
-
 function openDrawer(content) {
   const layer = document.getElementById("detailDrawer");
   if (!layer) return;
@@ -1593,11 +1495,9 @@ function modelTemplate() {
     ["08", "用户周度汇总表", "user_weekly_summaries", "每位学生 × 每自然周", ["解锁 / 学习 / 完成数", "session / break 计数", "resume_within_24h_count", "答题数 / 正确率", "health_score · 健康分", "risk_level · 风险等级"], "结果层", false],
     ["09", "内容质量表", "content_quality", "知识点 × 内容版本 × 日", ["动画ID / 版本", "题集ID / 版本", "break_session_rate · 断点率", "top_break_position · 断点热区", "难度 / 退出指标", "掌握指标"], "评估层", false],
     ["10", "用户结果决策表", "user_outcome_decisions", "一次退费/续费结果一行，冻结当时完课表现与反馈原因", ["outcome_type · 决策类型", "outcome_status · 结果状态", "completion_band · 完课分层", "completion_rate · 当时完课率", "primary_reason_code · 原因", "feedback_source · 反馈来源"], "结果决策层", true],
-    ["11", "家长微信原声表", "parent_voice_feedback", "指导师收到的脱敏原声、分类主题及行为匹配结论", ["voice_text · 脱敏原声", "advisor_id · 指导师匿名ID", "primary_topic · 主主题", "topic_labels_json · 分类标签", "classification_confidence · 置信度", "behavior_evidence_json · 行为证据", "attribution_conclusion · 归因", "recommended_action · 动作"], "原声归因层", true],
-    ["12", "学习报告快照表", "learning_report_snapshots", "学生 × 日/周/月/阶段的家长版报告快照", ["report_type · 报告类型", "period_start / end · 周期", "learning_seconds · 学习时长", "accuracy / mastery · 结果", "parent_summary · 家长摘要", "review_status · 审核发布", "data_cutoff_at · 数据截止"], "报告交付层", true],
-    ["13", "服务解读表", "report_service_interpretations", "证据链、解读话术、跟进任务与结果", ["possible_primary_cause · 可能主因", "evidence_json · 行为证据", "risk_level · 风险等级", "suggested_script · 建议话术", "communication_boundary · 沟通边界", "followup_due_at · 跟进时点", "followup_result · 跟进结果"], "报告交付层", true]
+    ["11", "家长微信原声表", "parent_voice_feedback", "指导师收到的脱敏原声、分类主题及行为匹配结论", ["voice_text · 脱敏原声", "advisor_id · 指导师匿名ID", "primary_topic · 主主题", "topic_labels_json · 分类标签", "classification_confidence · 置信度", "behavior_evidence_json · 行为证据", "attribution_conclusion · 归因", "recommended_action · 动作"], "原声归因层", true]
   ];
-  return `<section class="fade-in">${detailHeader("底层数据模型", "十三张表把用户结果、家长原声、连续行为、学习报告与服务解读串起来。", "13 张表 · 19 类事件 · 18 个视图")}
+  return `<section class="fade-in">${detailHeader("底层数据模型", "十一张表把用户结果、家长原声、用户画像、连续行为、情绪状态与内容质量串起来。", "11 张表 · 19 类事件 · 17 个视图")}
     <div class="model-flow"><span>家长原声</span><i>分类抽取</i><span>结果决策</span><i>定位人群</i><span>学生画像</span><i>1 : N</i><span class="is-new">学习会话</span><i>1 : N</i><span class="is-new">行为事件</span><i>规则判定</i><span class="is-new">异常信号</span><i>加权</i><span class="is-new">情绪状态</span><i>验证</i><span>课节结果</span></div>
     <div class="model-grid">${models.map(m => `<article class="model-card ${m[6] ? "is-new" : ""}"><header><span>${m[0]}</span><div><h3>${m[1]}</h3><code>${m[2]}</code></div></header><p>${m[3]}</p><div class="field-list">${m[4].map(f => `<span>${f}</span>`).join("")}</div><footer><i></i>${m[5]}${m[6] ? " · 本次新增" : ""}</footer></article>`).join("")}</div>
     <div class="panel panel-full" style="margin-top:18px"><div class="panel-header"><div><h3>埋点事件口径</h3><p>同一 session_id 内按 event_sequence 排序，即可完整还原一次连续使用行为</p></div><span class="panel-tag">19 类事件 · 8 类新增</span></div><div class="table-wrap"><table class="event-table"><thead><tr><th>事件名</th><th>触发时机</th><th>关键属性</th><th>支持指标</th><th>状态</th></tr></thead><tbody>${eventRows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4] ? '<span class="status-dot is-new">待埋点</span>' : '<span class="status-dot">已上报</span>'}</td></tr>`).join("")}</tbody></table></div></div>
@@ -1621,7 +1521,6 @@ const views = {
   emotion: { title: "厌烦情绪锚定与干预", eyebrow: "方案 03 / 情绪与动作", render: emotionTemplate },
   lesson: { title: "课时维度归因—扫除硬伤", eyebrow: "迭代归因 / 课时", render: lessonTemplate },
   users: { title: "用户行为归因", eyebrow: "迭代归因 / 用户", render: usersTemplate },
-  reports: { title: "学习报告中心", eyebrow: "家长沟通 / LEARNING REPORT", render: reportsTemplate },
   model: { title: "底层数据模型", eyebrow: "数据管理", render: modelTemplate }
 };
 
@@ -1742,33 +1641,6 @@ function render() {
     state.selectedLessonSession = null;
     render();
   }));
-  document.querySelectorAll("[data-report-type]").forEach(el => el.addEventListener("click", () => {
-    state.reportType = el.dataset.reportType;
-    state.reportOffset = 0;
-    render();
-  }));
-  document.querySelectorAll("[data-report-audience]").forEach(el => el.addEventListener("click", () => {
-    state.reportAudience = el.dataset.reportAudience;
-    render();
-  }));
-  document.querySelectorAll("[data-report-student]").forEach(el => el.addEventListener("change", () => {
-    state.reportStudent = el.value;
-    render();
-  }));
-  document.querySelectorAll("[data-report-shift]").forEach(el => el.addEventListener("click", () => {
-    const next = state.reportOffset + Number(el.dataset.reportShift);
-    state.reportOffset = state.reportType === "day" ? Math.max(-5, Math.min(3, next)) : state.reportType === "week" ? Math.max(-2, Math.min(1, next)) : 0;
-    render();
-  }));
-  document.querySelectorAll("[data-print-report]").forEach(el => el.addEventListener("click", () => window.print()));
-  document.querySelectorAll("[data-copy-script]").forEach(el => el.addEventListener("click", async () => {
-    const script = document.getElementById("serviceScript")?.textContent.trim() || "";
-    try { await navigator.clipboard.writeText(script); }
-    catch (_) {
-      const area = document.createElement("textarea"); area.value = script; document.body.appendChild(area); area.select(); document.execCommand("copy"); area.remove();
-    }
-    el.textContent = "已复制解读话术 ✓";
-  }));
   document.querySelectorAll("[data-close-drawer]").forEach(el => el.addEventListener("click", closeDrawer));
 }
 
@@ -1800,11 +1672,6 @@ function exportTableForCurrentView() {
   } else if (state.view === "users") {
     headers = ["用户ID", "脱敏姓名", "退费状态", "续费状态", "城市", "渠道", ...lessonRows.map((_, index) => `L${String(index + 1).padStart(2, "0")}`)];
     rows = trackingUsers.filter(userMatchesGroup).map(user => [user.id, user.name, user.refunded ? "已退费" : "未退费", user.renew ? "已续费" : "未续费", user.city, user.channel, ...user.states.map(status => statusMeta[status][0])]);
-  } else if (state.view === "reports") {
-    const user = trackingUsers.find(item => item.id === state.reportStudent) || trackingUsers[0];
-    const snapshot = reportSnapshot(user, state.reportType);
-    headers = ["学生ID", "学生", "报告类型", "报告周期", "解锁节数", "参课节数", "完课节数", "学习分钟", "练习正确率", "订正掌握率", "学习节奏", "服务风险等级"];
-    rows = [[user.id, user.name, reportTypes.find(item => item[0] === state.reportType)[1], snapshot.range.label, snapshot.records.length, snapshot.learned.length, snapshot.completed.length, snapshot.minutes, `${snapshot.accuracy}%`, `${snapshot.mastery}%`, snapshot.rhythm, dropoutWarning(user).level]];
   } else if (state.view === "model") {
     headers = ["事件名", "触发时机", "关键属性", "支持指标", "状态"];
     rows = eventRows.map(row => [row[0], row[1], row[2], row[3], row[4] ? "待埋点" : "已上报"]);
